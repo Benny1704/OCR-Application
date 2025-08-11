@@ -19,14 +19,22 @@
     --bg-hover-light:#68446c33;
     --bg-hover-dark:#7d398633; */
 
+    --primary:#C0DAFF;
+    --primary-dark:#2C3D50;
+
+    --primary-gradient:#FCFEFF;
+    --primary-dark-gradient:#020713;
+
     --primary:#2C3D50;
-    --primary-dark:#020713;
+
+    --primary-gradient:#020713;
 
     --secondary:#2EC0BB;
+    /* --secondary: #96FF03; */
     --secondary-dark:#1a1a1a;
 
     --white:#FFFEFF;
-    --black:#f0f0f0;
+    --black:#090909;
 }
 
 *{
@@ -38,11 +46,11 @@
 body{
     width: 100vw;
     height: 100vh;
-    background-image: linear-gradient(180deg,var(--primary),var(--primary-dark));
+    /* background-image: linear-gradient(180deg,var(--primary),var(--primary-dark)); */
+    /* background-image: linear-gradient(180deg,light-dark(var(--primary),var(--primary-dark)),light-dark(var(--primary-gradient),var(--primary-dark-gradient))); */
+    background: light-dark(var(--primary),var(--primary-dark));
+    background: radial-gradient(circle, light-dark(var(--primary),var(--primary-dark)) 0%, light-dark(var(--primary-gradient),var(--primary-dark-gradient)) 100%);
     font-family: "Inter", sans-serif;
-    /* font-optical-sizing: auto;
-    font-weight: <weight>;
-    font-style: normal; */
 }
 
 i{

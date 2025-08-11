@@ -1,50 +1,49 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import BrandLogo from '../../assets/images/logo.png'
 import '../../assets/styles/Layout.scss'
 import { NavLink } from 'react-router-dom';
 
+const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => {
+    if (ref.current) {
+        const activeLink = ref.current.querySelector('.nav-item.active') as HTMLElement;
+        if (activeLink) {
+            const activeLi = activeLink.parentElement;
+            if (activeLi) {
+                ref.current.style.setProperty('--position-x-active', `${activeLi.offsetLeft}px`);
+            }
+        }
+    }
+};
+
 const Header = () => {
     
-    const [activeIndex, setActiveIndex] = useState(0);
-    const navItemElements = useRef<HTMLLIElement[]>([]);
     const sidenavRef = useRef<HTMLUListElement>(null);
     const navItem = [
-        {
-            name: "Dashboard",
-            link: "dashboard"
-        },
-        {
-            name: "Queue",
-            link: "queue"
-        },
-        {
-            name: "Documents",
-            link: "document"
-        },
-        {
-            name: "Reports",
-            link: "report"
-        },
-        {
-            name: "Logs",
-            link: "log"
-        },
+        { name: "Dashboard", link: "dashboard" },
+        { name: "Queue", link: "queue" },
+        { name: "Documents", link: "document" },
+        { name: "Reports", link: "report" },
+        { name: "Logs", link: "log" },
     ];
 
-    const updateActivePosition = () => {
-        const activeElement = navItemElements.current[activeIndex];
-        if (sidenavRef.current && activeElement) {
-            sidenavRef.current.style.setProperty('--position-x-active', `${activeElement.offsetLeft}px`);
+    useLayoutEffect(() => {
+        
+        updateActivePosition(sidenavRef);
+
+        const observer = new ResizeObserver(() => {
+            updateActivePosition(sidenavRef);
+        });
+
+        if (sidenavRef.current) {
+            observer.observe(sidenavRef.current);
         }
-    };
 
-    useEffect(() => {
-        updateActivePosition();
-    }, [activeIndex]);
-
-    const handleSetActiveIndex = (index: number) => {
-        setActiveIndex(index);
-    };
+        return () => {
+            if (sidenavRef.current) {
+                observer.unobserve(sidenavRef.current);
+            }
+        };
+    }, [window.location.pathname]);
 
     return (
 
@@ -62,10 +61,12 @@ const Header = () => {
                         <i className="fi fi-sc-sparkles"></i>
                     </div>
                     {navItem.map((nav,i) => 
-                        <NavLink to={nav.link} key={i} ref={el => {if(el){navItemElements.current[i] = el}}} onClick={() => handleSetActiveIndex(i)} className={`nav-item ${activeIndex == i ? 'active': ''}`}>
-                            <span className='dot'></span>
-                            <p className="text">{nav.name}</p>
-                        </NavLink>
+                        <li key={i}>
+                            <NavLink to={nav.link} className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
+                                <span className='dot'></span>
+                                <p className="text">{nav.name}</p>
+                            </NavLink>
+                        </li>
                     )}
                     <div className="nav-effect"></div>
                 </ul>
