@@ -1,0 +1,184 @@
+.header-container{
+  width: 100vw;
+  height: 70px;
+  display: grid;
+  padding-inline: 10px;
+  grid-template-columns: 25vw 50vw 25vw;
+  grid-template-rows: 70px;
+  grid-template-areas: "brand nav action";
+  align-items: center;
+  justify-content: center;
+
+  .brand-icon{
+    grid-area: brand;
+    height: 100%;
+    // background-color: var(--primary);
+    gap: 10px;
+    padding-left: clamp(30px,3.5vw,60px);
+    img{
+      width: clamp(1rem,1.5vw,1.5rem);
+    }
+    span{
+      background-color: var(--white);
+      height: clamp(1rem,1.5vw,1.5rem);
+      width: 1px;
+    }
+    h1{
+      font-family: "Lexend Giga", sans-serif;
+      font-size: clamp(1rem,1.5vw,1.5rem);
+      font-weight: 600;
+      color: var(--white);
+      margin-left: -2px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+
+  .nav-container{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    grid-area: nav;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    --w-item: 9vw;
+    --h-item: 50px;
+    --position-x-active: 5px;
+    .nav{
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr repeat(5,var(--w-item));
+      padding: 5px 5px;
+      border-radius: 25px;
+      width: 100%;
+      height: var(--h-item);
+      background-color: var(--white);
+      .nav-icon{
+        width: 40px;
+        height: 40px;
+        background-color: var(--primary);
+        color: var(--white);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        img{
+          padding: 10px;
+        }
+        i{
+          font-size: clamp(1rem,1.2vw,1.2rem);
+        }
+      }
+      li{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        z-index: 1;
+        cursor: pointer;
+        .dot{
+          width: clamp(.3rem,.5vw,.5rem);
+          height: clamp(.3rem,.5vw,.5rem);
+          background-color: var(--white);
+          border-radius: 50%;
+          transition: all 0.5s ease-in-out;
+          scale: 0;
+        }
+        .text{
+          font-size: clamp(.6rem,1vw,1rem);
+          transition: all 0.5s ease-in-out;
+        }
+        &.active{
+          .dot{
+            scale: 1;
+          }
+          .text{
+            // font-weight: 600;
+            color: var(--white);
+          }
+        }
+      }
+      .nav-effect{
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: var(--position-x-active);
+        width: var(--w-item);
+        height: 40px;
+        // background-color: var(--primary);
+        background-color: var(--secondary);
+        border-radius: 20px;
+        transition: all 0.5s ease-in-out;
+      }
+    }
+  }
+
+  .actions{
+    grid-area: action;
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    padding-block: 10px;
+    padding-right: clamp(30px,3.5vw,60px);
+    height: 100%;
+    // background-color: var(--primary);
+    gap: 20px;
+    button{
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(0.8rem,1vw,1rem);
+      transition: all 0.5s ease-in-out;
+      &.upload{
+        padding: 0 20px;
+        background-color: var(--white);
+        color: var(--primary);
+        height: 50px;
+        border-radius: 30px;
+        gap: 10px;
+        // i{
+        //   display: none;
+        //   transition: all 0.5s ease-in-out;
+        // }
+        // &:hover{
+        //   i{
+        //     display: block;
+        //     opacity: 1;
+        //     transform: translateX(0) scale(1);
+        //     @starting-style {
+        //       opacity: 0;
+        //       transform: translateX(50px) scale(0);
+        //     }
+        //   }
+        // }
+      }
+      &.logout{
+        height: 50px;
+        width: 50px;
+        border-radius: 50%;
+        transition: all 0.5s ease-in-out;
+        background-color: var(--white);
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .header-container{
+    grid-template-columns: 25vw 50vw 25vw;
+    .nav-container{
+      --w-item: 9vw;
+    }
+  }
+}
+@media screen and (max-width: 840px) {
+  .header-container{
+    grid-template-columns: 20vw 60vw 20vw;
+    .nav-container{
+      --w-item: 8.5vw;
+    }
+  }
+}
