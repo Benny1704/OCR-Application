@@ -4,7 +4,7 @@ import RootLayout from "./components/layout/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Queue from "./pages/Queue";
 import Documents from "./pages/Documents";
-import Reports from "./pages/Reports";
+import Upload from "./pages/Upload";
 import Logs from "./pages/Logs";
 
 const routeDefinitions = createRoutesFromElements(
@@ -12,7 +12,7 @@ const routeDefinitions = createRoutesFromElements(
     <Route index  path="/dashboard" element={<Dashboard/>} />
     <Route path="/queue" element={<Queue/>} />
     <Route path="/document" element={<Documents/>} />
-    <Route path="/report" element={<Reports/>} />
+    <Route path="/upload" element={<Upload/>} />
     <Route path="/log" element={<Logs/>} />
   </Route>
 );

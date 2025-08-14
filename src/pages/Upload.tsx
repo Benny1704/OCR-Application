@@ -1,9 +1,9 @@
 import React from 'react'
 
-const Reports = () => {
+const Upload = () => {
   return (
     <div>Reports</div>
   )
 }
 
-export default Reports
+export default Upload
