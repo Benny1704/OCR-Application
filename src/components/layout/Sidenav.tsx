@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef } from 'react'
 import BrandLogo from '../../assets/images/logo.png'
 import '../../assets/styles/Layout.scss'
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router';
+import ThemeToggle from '../common/ThemeToggle';
+import { useAuth } from '../../hooks/useAuth';
 
 const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => {
     if (ref.current) {
@@ -18,13 +20,20 @@ const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => 
 
 const Sidenav = () => {
     const sidenavRef = useRef<HTMLUListElement>(null);
+    const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    }
+    
     const navItem = [
-        { name: "Dashboard", link: "dashboard" , icon: "fi-sr-objects-column" },
-        // { name: "Queue", link: "queue" , icon: "fi-rr-hourglass-end" },
-        { name: "Queue", link: "queue" , icon: "fi-sr-calendar-clock" },
+        ...(user?.role === 'admin' ? [{ name: "Dashboard", link: "dashboard" , icon: "fi-rr-objects-column" }] : []),
+        { name: "Queue", link: "queue" , icon: "fi-rr-calendar-clock" },
         // { name: "Documents", link: "document" , icon: "fi-sr-document" },
-        { name: "Upload", link: "upload" , icon: "fi-sr-cloud-upload-alt" },
-        { name: "Logs", link: "log" , icon: "fi-sr-square-terminal" },
+        { name: "Upload", link: "upload" , icon: "fi-rr-folder-upload" },
+        ...(user?.role === 'admin' ? [{ name: "Logs", link: "log" , icon: "fi-rr-square-terminal" }] : []),
     ];
 
     useLayoutEffect(() => {
@@ -63,13 +72,15 @@ const Sidenav = () => {
                             </NavLink>
                         </li>
                     )}
+                    
+                    <div className="theme-toggle"><ThemeToggle></ThemeToggle></div>
                     <div className="nav-effect"></div>
                 </ul>
             </nav>
             
             <div className="actions">
                 {/* <button className="upload action font-medium"> <i className="fi fi-sr-upload"></i></button> */}
-                <button className="logout action font-medium"> <i className="fi fi-sr-sign-out-alt"></i></button>
+                <button className="logout action font-medium" onClick={handleLogout}> <i className="fi fi-sr-sign-out-alt"></i></button>
             </div>
         </div>
 

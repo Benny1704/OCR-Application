@@ -17,10 +17,7 @@ const RootLayout = () => {
         
         <div className="layout">
           <div className="sidenav"><Sidenav/></div>
-          <div className="outlet">
-            <div className="outlet-container"><Outlet/></div>
-          </div>
-
+          <div className="outlet"><Outlet/></div>
         </div>
 
         // <>
