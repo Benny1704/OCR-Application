@@ -54,6 +54,8 @@ const Dashboard = () => {
                     </button>
                 </div>
                 
+                <DashboardStatusTable />
+                
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <ChartCard title="Financial Obligations" icon={Banknote}>
                           <ResponsiveContainer width="100%" height="100%">
@@ -78,8 +80,6 @@ const Dashboard = () => {
                           </ResponsiveContainer>
                      </ChartCard>
                 </div>
-                
-                <DashboardStatusTable />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ChartCard title="Spending by Vendor" icon={TrendingUp}>

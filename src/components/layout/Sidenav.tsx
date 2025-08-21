@@ -31,7 +31,7 @@ const Sidenav = () => {
     const navItem = [
         ...(user?.role === 'admin' ? [{ name: "Dashboard", link: "dashboard" , icon: "fi-rr-objects-column" }] : []),
         { name: "Queue", link: "queue" , icon: "fi-rr-calendar-clock" },
-        // { name: "Documents", link: "document" , icon: "fi-sr-document" },
+        { name: "Documents", link: "document" , icon: "fi-rr-document" },
         { name: "Upload", link: "upload" , icon: "fi-rr-folder-upload" },
         ...(user?.role === 'admin' ? [{ name: "Logs", link: "log" , icon: "fi-rr-square-terminal" }] : []),
     ];

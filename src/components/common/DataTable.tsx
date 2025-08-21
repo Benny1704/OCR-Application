@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Undo, Redo, Columns, Rows, Info, Save, Search } from 'lucide-react';
+import { useTheme } from '../../hooks/useTheme'; // Assuming path based on your example
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps } from '../../interfaces/Types';
 import { Popup, JsonPreviewModal, InfoPill, HowToUse } from './Helper';
 
@@ -15,6 +16,7 @@ const DataTable = ({
   renderActionCell,
   actionColumnHeader = 'Action'
 }: DataTableProps) => {
+  const { theme } = useTheme(); // Using the theme hook
   const [data, setData] = useState<DataItem[]>(tableData);
   const [history, setHistory] = useState<DataItem[][]>([tableData]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -275,8 +277,6 @@ const DataTable = ({
     setDraggedCell(null);
   };
 
-  // Note: This function is now only reachable if you re-implement the old logic
-  // via the renderActionCell prop. It is no longer called by default.
   const openActionPopup = (itemIndex: number) => {
     const itemForPopup = data[itemIndex];
     if (itemForPopup) {
@@ -366,7 +366,7 @@ const DataTable = ({
           autoFocus
           onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
           onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
-          className="absolute inset-0 w-full h-full p-3 text-sm bg-indigo-50 border-2 border-indigo-500 rounded-md outline-none z-10"
+          className={`absolute inset-0 w-full h-full p-3 text-sm border-2 border-indigo-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-indigo-50 text-gray-900'}`}
         />
       );
     }
@@ -377,12 +377,11 @@ const DataTable = ({
     <div className="overflow-x-auto">
       <table className="w-full border-collapse select-none">
         <thead>
-          <tr className="bg-gray-100">
-            {fixedHeaderKey && <th className="p-3 font-bold text-left border-b-2 border-gray-300 bg-gray-200 capitalize sticky left-0 z-10">{fixedHeaderKey.replace(/_/g, ' ')}</th>}
-            {movableHeaders.map(header => (<th key={header} className="p-3 font-semibold text-left border-b-2 border-gray-200 capitalize">{header}</th>))}
-            {/* --- CHANGE 1: Conditionally render the action header --- */}
+          <tr className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}>
+            {fixedHeaderKey && <th className={`p-3 font-bold text-left capitalize sticky left-0 z-10 border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700/50' : 'text-gray-700 border-gray-300 bg-gray-200'}`}>{fixedHeaderKey.replace(/_/g, ' ')}</th>}
+            {movableHeaders.map(header => (<th key={header} className={`p-3 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>{header}</th>))}
             {renderActionCell && (
-              <th className="p-3 font-semibold text-left border-b-2 border-gray-200">{actionColumnHeader}</th>
+              <th className={`p-3 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>{actionColumnHeader}</th>
             )}
           </tr>
         </thead>
@@ -390,8 +389,8 @@ const DataTable = ({
           {filteredData.map((row) => {
             const rowIndex = row.originalIndex;
             return (
-              <tr key={row.id || rowIndex} className="hover:bg-gray-50">
-                {fixedHeaderKey && <td className="p-3 border-b border-gray-200 bg-gray-50 font-medium text-gray-600 sticky left-0">{row[fixedHeaderKey]}</td>}
+              <tr key={row.id || rowIndex} className={theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}>
+                {fixedHeaderKey && <td className={`p-3 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>{row[fixedHeaderKey]}</td>}
                 {movableHeaders.map(header => (
                   <td key={header}
                     onDoubleClick={() => isEditable && setEditingCell({ rowIndex, colKey: header })}
@@ -400,13 +399,12 @@ const DataTable = ({
                     onDragStart={() => handleDragStart(rowIndex, header)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(rowIndex, header)}
-                    className={`relative p-3 border-b border-gray-200 transition-all duration-150 ${!isEditable ? 'cursor-default' : 'cursor-pointer'} ${isSelected(rowIndex, header) ? 'bg-indigo-100 ring-2 ring-indigo-400' : ''}`}>
+                    className={`relative p-3 border-b transition-all duration-150 ${!isEditable ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-indigo-900/60 ring-2 ring-indigo-600' : 'bg-indigo-100 ring-2 ring-indigo-400') : ''}`}>
                     {renderCellContent(rowIndex, header)}
                   </td>
                 ))}
-                {/* --- CHANGE 2: Conditionally render the action cell --- */}
                 {renderActionCell && (
-                  <td className="p-3 border-b border-gray-200 text-center">
+                  <td className={`p-3 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                     {renderActionCell(row, rowIndex)}
                   </td>
                 )}
@@ -419,18 +417,18 @@ const DataTable = ({
   );
 
   return (
-    <div className=" bg-white rounded-xl">
+    <div className="rounded-xl">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="w-full flex justify-between items-center gap-2 flex-wrap">
           {isSearchable && (
             <div className="relative mr-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} size={20} />
               <input
                 type="text"
                 placeholder="Search table..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className={`pl-10 pr-4 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'}`}
               />
             </div>
           )}
@@ -439,19 +437,19 @@ const DataTable = ({
               <button onClick={handleSaveChanges} className="p-2 rounded-md bg-green-500 text-white hover:bg-green-600 flex items-center gap-2" title="Save Changes">
                 <Save size={20} /> Save
               </button>
-              <button onClick={undo} disabled={historyIndex === 0} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed" title="Undo (Ctrl+Z)"><Undo size={20} /></button>
-              <button onClick={redo} disabled={historyIndex === history.length - 1} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed" title="Redo (Ctrl+Y)"><Redo size={20} /></button>
-              <div className="flex items-center border border-gray-300 rounded-md ml-4" title="Shift Selected Cells (Shift + Arrow)">
-                <button onClick={() => shiftCells('left')} className="p-2 border-r hover:bg-gray-100"><ArrowLeft size={20} /></button>
-                <button onClick={() => shiftCells('up')} className="p-2 border-r hover:bg-gray-100"><ArrowUp size={20} /></button>
-                <button onClick={() => shiftCells('down')} className="p-2 border-r hover:bg-gray-100"><ArrowDown size={20} /></button>
-                <button onClick={() => shiftCells('right')} className="p-2 hover:bg-gray-100"><ArrowRight size={20} /></button>
+              <button onClick={undo} disabled={historyIndex === 0} className={`p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark' ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`} title="Undo (Ctrl+Z)"><Undo size={20} /></button>
+              <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark' ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`} title="Redo (Ctrl+Y)"><Redo size={20} /></button>
+              <div className={`flex items-center border rounded-md ml-4 ${theme === 'dark' ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`} title="Shift Selected Cells (Shift + Arrow)">
+                <button onClick={() => shiftCells('left')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><ArrowLeft size={20} /></button>
+                <button onClick={() => shiftCells('up')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><ArrowUp size={20} /></button>
+                <button onClick={() => shiftCells('down')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><ArrowDown size={20} /></button>
+                <button onClick={() => shiftCells('right')} className={`p-2 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}><ArrowRight size={20} /></button>
               </div>
-              <div className="flex items-center border border-gray-300 rounded-md ml-2" title="Shift Entire Column/Row (Alt + Arrow)">
-                <button onClick={() => shiftColumnOrRow('left')} className="p-2 border-r hover:bg-gray-100"><Columns size={20} /></button>
-                <button onClick={() => shiftColumnOrRow('up')} className="p-2 border-r hover:bg-gray-100"><Rows size={20} /></button>
-                <button onClick={() => shiftColumnOrRow('down')} className="p-2 border-r hover:bg-gray-100"><Rows size={20} /></button>
-                <button onClick={() => shiftColumnOrRow('right')} className="p-2 hover:bg-gray-100"><Columns size={20} /></button>
+              <div className={`flex items-center border rounded-md ml-2 ${theme === 'dark' ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`} title="Shift Entire Column/Row (Alt + Arrow)">
+                <button onClick={() => shiftColumnOrRow('left')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><Columns size={20} /></button>
+                <button onClick={() => shiftColumnOrRow('up')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><Rows size={20} /></button>
+                <button onClick={() => shiftColumnOrRow('down')} className={`p-2 border-r ${theme === 'dark' ? 'border-r-gray-600 hover:bg-gray-700' : 'hover:bg-gray-100'}`}><Rows size={20} /></button>
+                <button onClick={() => shiftColumnOrRow('right')} className={`p-2 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}><Columns size={20} /></button>
               </div>
             </div>
           )}
@@ -463,13 +461,13 @@ const DataTable = ({
       <Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} data={popupData} />
       <JsonPreviewModal isOpen={isJsonPreviewOpen} onClose={() => setIsJsonPreviewOpen(false)} data={data} />
       {isEditable &&
-        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+        <div className={`mt-6 pt-4 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <div>
-            {selectionInfo || <p className="text-sm text-gray-500">Click a cell to begin selection.</p>}
+            {selectionInfo || <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Click a cell to begin selection.</p>}
           </div>
           <div className="relative">
-            <button onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} className="p-2 rounded-full hover:bg-gray-200">
-              <Info size={20} className="text-gray-600" />
+            <button onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+              <Info size={20} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
             </button>
             {showHelp && <HowToUse />}
           </div>

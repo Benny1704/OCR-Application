@@ -22,7 +22,7 @@ const Login = () => {
       }
   };
   return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans" style={{ background: 'radial-gradient(circle, #2d3a4b 0%, #1a1a2e 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center p-4 font-sans" style={{ background: 'radial-gradient(circle, #2d3a4b 0%, #1a1a2e 100%)' }}>
           <div className="bg-white/10 backdrop-blur-lg p-8 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in border border-white/20">
               <div className="flex justify-center mb-8">
                   <img src={brandLogo} className="w-24" alt="Nextriq Logo"/>
@@ -38,7 +38,7 @@ const Login = () => {
                   </div>
                   {error && <p className="text-red-400 text-sm text-center">{error}</p>}
                   <button className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-violet-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/40" type="submit">
-                      Sign In
+                      Log In
                   </button>
               </form>
           </div>

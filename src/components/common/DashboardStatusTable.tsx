@@ -43,7 +43,7 @@ const DashboardStatusTable = () => {
         <div className={cardClasses}>
             <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Document Status Overview</h3>
-                <button onClick={() => navigate('queue')} className="text-sm font-semibold text-violet-500 dark:text-violet-400 hover:underline">
+                <button onClick={() => navigate('/queue')} className="text-sm font-semibold text-violet-500 dark:text-violet-400 hover:underline">
                     View Full Queue &rarr;
                 </button>
             </div>

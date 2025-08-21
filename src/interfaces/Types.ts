@@ -130,19 +130,95 @@ export interface ProductDetails {
   total_net_Amount: number;
 }
 export interface ExtractedData {
-  invoice: Invoice;
-  supplier: Supplier;
-  purchase: Purchase;
-  taxes: Taxes;
-  discount: { discount_percentage: string; discount_amount: string };
-  charges: {
-    other_deductions: string;
-    freight_charges: string;
-    other_charges: string;
+  invoice_image_url: string;
+
+  // Supplier & Invoice Details
+  supplier_code: string;
+  supplier_name_email: string;
+  by_no: string;
+  gstin_no: string;
+  invoice_no: string;
+  grn_no: string;
+  po_no: string;
+  invoice_date: string;
+  pattial_amount: string;
+  merchandise_name: string;
+
+  // Product Details
+  product_details: any[];
+
+  // Amount & Tax Details
+  total_pcs: string;
+  freight_charges: string;
+  master_discount_percent: string;
+  igst: string;
+  igst_rounded_off: string;
+  product_total: string;
+  misc_additions: string;
+  special_discount_percent: string;
+  tcs_percent: string;
+  tcs_amount: string;
+  discount: string;
+  misc_deductions: string;
+  credit_days: string;
+  tcs_rounded_off: string;
+  rounded_off: string;
+  taxable_value: string;
+  e_invoice: string;
+  total_amount: string;
+
+  [key: string]: any; // Allows for dynamic key access
+}
+export interface ChildProduct {
+  id: string;
+  s_no: number;
+  product_code: string;
+  product_description: string;
+  pieces: number;
+  style_code: string;
+  hsn_code: string;
+  counter: string;
+  type: 'Regular' | 'Promo';
+  brand: string;
+}
+
+// Data for the main DataTable row, including all details needed for the popup
+export interface ProductWithDetails {
+  // --- Main Table Fields ---
+  id: string; // Primary key
+  s_no: number;
+  product_group: string;
+  uom: string; // Unit of Measure
+  qty: number;
+  pcs: number;
+  cost_price: number;
+  discount_amount: number;
+  discount_percent: string;
+  price_code: string;
+  supplier_description: string;
+  mrp: number;
+  hsn_code: string;
+  igst: string;
+  rounded_off: number;
+  total: number;
+  
+  // --- Popup-specific Data ---
+  
+  // Section 1: Additional Details
+  by_no: string;
+  gst_rate: string;
+  po_no: string;
+
+  // Section 2: Child DataTable data
+  child_products: ChildProduct[];
+  
+  // Section 3: Summary Data
+  summary: {
+    total_pcs: number;
+    entered_pcs: number;
+    total_qty: number;
+    entered_qty: number;
   };
-  amount: Amount;
-  billing: Billing;
-  product_details: ProductDetails;
 }
 export interface Log {
   id: number;
@@ -152,6 +228,7 @@ export interface Log {
   details: string;
 }
 export interface Document {
+  uploadedBy: string;
   id: number;
   name: string;
   supplierName: string;
@@ -163,7 +240,14 @@ export interface Document {
   isPriority: boolean;
   invoiceId?: string;
   irnNumber?: string;
+  errorMessage?: string;
 }
 export interface MainLayoutProps {
   children?: ReactNode;
+}
+
+export interface ProductDetailPopupProps {
+  isOpen: boolean;
+  onClose: () => void;  
+  data: ProductWithDetails | null;
 }

@@ -1,114 +1,178 @@
-import { RefreshCw, Save } from 'lucide-react';
-import { useState, type FC } from 'react'
-import { useNavigate } from 'react-router';
-import { RetryModal, AccordionItem, InputField, ProductDetailsTable } from '../components/common/Helper';
+import { RefreshCw, Save, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { RetryModal } from '../components/common/Helper';
+import { DynamicField } from '../components/common/DynamicField';
+import { formConfig } from '../components/config/formConfig';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import type { ExtractedData, ProductItem } from '../interfaces/Types';
-import { mockExtractedData } from '../lib/MockData';
+import { mockExtractedData, mockProductData } from '../lib/MockData';
+import type { ExtractedData, ProductWithDetails, DataItem } from '../interfaces/Types';
 import DataTable from '../components/common/DataTable';
+import ProductDetailPopup from '../components/common/ProductDetailsPopup';
 
-const Edit = () => {
+const EditPage = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-    const { user } = useAuth();
-    const [data, setData] = useState<ExtractedData>(mockExtractedData);
-    const [isRetryModalOpen, setRetryModalOpen] = useState(false);
-    const [openAccordion, setOpenAccordion] = useState<string>('supplier_invoice');
+  const { user } = useAuth();
 
-    const handleSectionChange = (section: keyof Omit<ExtractedData, 'product_details' | 'billing'>, name: string, value: string) => { 
-        setData(prev => ({ ...prev, [section]: { ...(prev[section] as object), [name]: value } })); 
+  const [data, setData] = useState<ExtractedData>(mockExtractedData);
+  const [isRetryModalOpen, setRetryModalOpen] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setData((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleViewImage = () => window.open(data.invoice_image_url, '_blank', 'noopener,noreferrer');
+  const openRetryModal = () => setRetryModalOpen(true);
+  const handleSimpleRetry = () => { setRetryModalOpen(false); navigate('/loading'); };
+  const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
+  
+  const isReadOnly = user?.role !== 'admin';
+
+  const secondaryButtonClasses = `
+    flex items-center gap-2 font-semibold py-2 px-4 rounded-lg transition-colors
+    border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500
+    ${theme === 'dark'
+      ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]'
+      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'
+    }`;
+
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
+
+  const renderActionCell = (row: DataItem) => {
+    const productRow = row as ProductWithDetails; 
+
+    const handleOpenPopup = () => {
+      const fullProductData = mockProductData.find(p => p.id === productRow.id);
+      if (fullProductData) {
+        setSelectedProduct(fullProductData);
+        setIsPopupOpen(true);
+      }
     };
-    const handleProductItemsChange = (newItems: ProductItem[]) => { setData(prev => ({ ...prev, product_details: { ...prev.product_details, items: newItems } })); };
-
-    const openRetryModal = () => setRetryModalOpen(true);
-    const handleSimpleRetry = () => { setRetryModalOpen(false); navigate('/loading'); };
-    const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
-    
-    const isReadOnly = user?.role !== 'admin';
-
-    const toggleAccordion = (key: string) => {
-        setOpenAccordion(openAccordion === key ? '' : key);
-    };
-    
-    const SectionSubheader: FC<{ title: string }> = ({ title }) => (
-        <h4 className={`col-span-1 md:col-span-2 lg:col-span-3 font-semibold mt-4 mb-1 text-base ${theme === 'dark' ? 'text-violet-400' : 'text-violet-700'}`}>{title}</h4>
-    );
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-fade-in-up">
-            <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
-            <div className="flex justify-between items-center">
-                <h2 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Verify & Edit Extracted Data</h2>
-                {user?.role === 'admin' && (
-                    <button onClick={openRetryModal} className={`flex items-center gap-2 font-bold py-2 px-4 rounded-lg transition-colors border shadow-sm ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white border-gray-600' : 'bg-white hover:bg-gray-100 text-gray-800 border-gray-300'}`}>
-                        <RefreshCw className="w-5 h-5"/> Retry Processing
-                    </button>
-                )}
-            </div>
-            
-            <div className="space-y-4">
-                 <AccordionItem
-                    key="supplier_invoice"
-                    title="Supplier & Invoice Details"
-                    isOpen={openAccordion === 'supplier_invoice'}
-                    onClick={() => toggleAccordion('supplier_invoice')}
-                >
-                    <SectionSubheader title="Invoice Information" />
-                    {Object.entries(data.invoice).map(([field, value]) => (
-                        <InputField key={`invoice-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('invoice', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 border-t my-4 dark:border-gray-700 border-gray-200"></div>
-                    <SectionSubheader title="Supplier Information" />
-                     {Object.entries(data.supplier).map(([field, value]) => (
-                        <InputField key={`supplier-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('supplier', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                </AccordionItem>
+        <button 
+          onClick={handleOpenPopup}
+          className="p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+          title="View Details"
+        >
+          <Eye size={18} />
+        </button>
+      );
+    };
+  
+  const mainTableData = mockProductData.map(p => ({
+    id: p.id,
+    s_no: p.s_no,
+    product_group: p.product_group,
+    uom: p.uom,
+    qty: p.qty,
+    pcs: p.pcs,
+    cost_price: p.cost_price,
+    discount_amount: p.discount_amount,
+    discount_percent: p.discount_percent,
+    price_code: p.price_code,
+    supplier_description: p.supplier_description,
+    mrp: p.mrp,
+    hsn_code: p.hsn_code,
+    igst: p.igst,
+    rounded_off: p.rounded_off,
+    total: p.total
+  }));
 
-                <AccordionItem
-                    key="product_details"
-                    title="Product Details"
-                    isOpen={openAccordion === 'product_details'}
-                    onClick={() => toggleAccordion('product_details')}
-                    isTable
-                >
-                  {/* <DataTable tableData={JSON.parse(JSON.stringify(data.product_details.items))}/> */}
-                    <ProductDetailsTable initialItems={data.product_details.items} onItemsChange={handleProductItemsChange} isReadOnly={isReadOnly} />
-                </AccordionItem>
-
-                <AccordionItem
-                    key="gst_amount"
-                    title="GST & Amount Details"
-                    isOpen={openAccordion === 'gst_amount'}
-                    onClick={() => toggleAccordion('gst_amount')}
-                >
-                    <SectionSubheader title="Tax Details" />
-                    {Object.entries(data.taxes).map(([field, value]) => (
-                        <InputField key={`taxes-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('taxes', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 border-t my-4 dark:border-gray-700 border-gray-200"></div>
-                    <SectionSubheader title="Charges & Discounts" />
-                    {Object.entries(data.discount).map(([field, value]) => (
-                        <InputField key={`discount-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('discount', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                     {Object.entries(data.charges).map(([field, value]) => (
-                        <InputField key={`charges-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('charges', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 border-t my-4 dark:border-gray-700 border-gray-200"></div>
-                    <SectionSubheader title="Final Amount" />
-                    {Object.entries(data.amount).map(([field, value]) => (
-                        <InputField key={`amount-${field}`} label={field} name={field} value={value as string} onChange={(e) => handleSectionChange('amount', e.target.name, e.target.value)} readOnly={isReadOnly} />
-                    ))}
-                </AccordionItem>
+  return (
+    <div className={`min-h-screen flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
+      <main className="flex-grow py-8 md:py-12">
+        <div className="px-4 sm:px-6 lg:px-8 space-y-8 animate-fade-in-up">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+              <h1 className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
+                Verify & Edit Extracted Data
+              </h1>
+              <p className={`mt-2 text-md ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                Review the data extracted from the invoice and make necessary corrections.
+              </p>
             </div>
-            
-            <div className="mt-8 flex justify-end">
-                <button onClick={() => navigate('/preview')} className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
-                    <Save className="w-5 h-5"/> Save and Preview
+            <div className="flex items-center space-x-3">
+              <button onClick={handleViewImage} className={secondaryButtonClasses}>
+                <Eye className="w-5 h-5" /> View Image
+              </button>
+              {user?.role === 'admin' && (
+                <button onClick={openRetryModal} className={secondaryButtonClasses}>
+                  <RefreshCw className="w-5 h-5" /> Retry
                 </button>
+              )}
             </div>
-        </div>
-    );
-}
+          </div>
 
-export default Edit
+          <div className="space-y-6">
+            {formConfig.map((section) => (
+              <div key={section.id} className={`rounded-xl border shadow-sm ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <div className="p-6">
+                  <h2 className={`text-xl font-semibold pb-4 mb-6 border-b ${theme === 'dark' ? 'text-gray-50 border-slate-700' : 'text-gray-900 border-slate-200'}`}>
+                    {section.title}
+                  </h2>
+                  {section.id === 'product_details' ? (
+                    // <div className="text-center text-slate-500 py-8">Product Details Table will be rendered here.</div>
+                    <div className="py-4">
+                        <DataTable
+                        tableData={mainTableData}
+                        isEditable={true}
+                        isSearchable={true}
+                        renderActionCell={renderActionCell}
+                        actionColumnHeader="Details"
+                    />
+
+                    <ProductDetailPopup 
+                        isOpen={isPopupOpen}
+                        onClose={() => setIsPopupOpen(false)}
+                        data={selectedProduct}
+                    />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {section.fields?.map((field) => (
+                        <DynamicField
+                          key={field.key}
+                          label={field.label}
+                          name={field.key}
+                          value={data[field.key] as string}
+                          onChange={handleInputChange}
+                          readOnly={isReadOnly}
+                          theme={theme}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+      
+      <footer className={`py-4 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+        <div className="px-4 sm:px-6 lg:px-8 flex justify-end">
+          <button
+            onClick={() => navigate('/preview')}
+            className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
+          >
+            <Save className="w-5 h-5" /> Save and Preview
+          </button>
+        </div>
+      </footer>
+
+      <RetryModal
+        isOpen={isRetryModalOpen}
+        onClose={() => setRetryModalOpen(false)}
+        onRetry={handleSimpleRetry}
+        onRetryWithAlterations={handleRetryWithAlterations}
+      />
+    </div>
+  );
+};
+
+export default EditPage;
