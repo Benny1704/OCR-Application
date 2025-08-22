@@ -78,7 +78,7 @@ const ProductDetailPopup = ({ isOpen, onClose, data }: ProductDetailPopupProps) 
         
         <main className="flex-grow overflow-y-auto p-6 sm:p-8">
           <div className="space-y-10">
-            <section>
+            {/* <section>
               <SectionHeader icon={<SupplierIcon />} title="Supplier Information" />
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
                 <InfoField label="Byno" value={data.by_no} />
@@ -88,12 +88,12 @@ const ProductDetailPopup = ({ isOpen, onClose, data }: ProductDetailPopupProps) 
                 <InfoField label="UOM" value={data.uom} />
                 <InfoField label="Description" value={data.supplier_description} />
               </div>
-            </section>
+            </section> */}
             
             <section>
               <SectionHeader icon={<ItemsIcon />} title="Item Breakdown" />
               <div className={`rounded-lg p-4 overflow-hidden ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
-                <DataTable tableData={data.child_products} isEditable={true} isSearchable={true} />
+                <DataTable tableData={data.child_products} isEditable={true} isSearchable={true} pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] }} maxHeight="100%" />
               </div>
             </section>
             

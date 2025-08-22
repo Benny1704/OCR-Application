@@ -1,72 +1,179 @@
-import { CheckCircle2 } from "lucide-react";
-import type { FC } from "react";
+import { CheckCircle2, Eye, X, Building, DollarSign, FileText } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import type { ExtractedData } from "../interfaces/Types";
-import { mockExtractedData } from "../lib/MockData";
+import { mockExtractedData, mockProductData } from "../lib/MockData";
 
-const Preview = () => {
-  const { theme } = useTheme();
-  const navigate = useNavigate();
-    const { user } = useAuth();
-    const data: ExtractedData = mockExtractedData;
+// --- INTERFACES ---
+interface ChildProduct { id: string; s_no: number; product_code: string; product_description: string; pieces: number; style_code: string; hsn_code: string; counter: string; type: string; brand: string; }
+interface Summary { total_pcs: number; entered_pcs: number; total_qty: number; entered_qty: number; }
+interface ProductWithDetails { id: string; s_no: number; product_group: string; uom: string; qty: number; pcs: number; cost_price: number; discount_amount: number; discount_percent: string; price_code: string; supplier_description: string; mrp: number; hsn_code: string; igst: string; rounded_off: number; total: number; by_no: string; gst_rate: string; po_no: string; child_products: ChildProduct[]; summary: Summary; }
 
-    const DisplaySection: FC<{ title: string; data: object }> = ({ title, data }) => (
-        <div className={`p-8 rounded-2xl shadow-lg border mb-8 overflow-hidden transition-colors ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`}>
-            <h3 className={`font-bold text-xl border-b pb-4 mb-4 transition-colors ${theme === 'dark' ? 'text-white border-gray-700' : 'text-gray-800 border-gray-200'}`}>{title}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
-                {Object.entries(data).map(([key, value]) => (
-                    <div key={key}>
-                        <span className={`text-sm font-medium capitalize block ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{key.replace(/_/g, ' ')}</span>
-                        <span className={`font-semibold text-lg ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{value.toString() || '-'}</span>
+// --- UI COMPONENTS ---
+// Note: The 'theme' prop is no longer needed. Tailwind's `dark:` variant handles theming automatically.
+const MessageBox = ({ message, onClose }: { message: string; onClose: () => void; }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div className="rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up bg-white dark:bg-[#2a2a3e] border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-center mb-4"><CheckCircle2 className="w-16 h-16 text-emerald-500" /></div>
+            <p className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">{message}</p>
+            <button onClick={onClose} className="w-full font-bold py-2 px-4 rounded-lg transition-colors bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">Close</button>
+        </div>
+    </div>
+);
+
+const ProductDetailsModal = ({ product, onClose }: { product: ProductWithDetails | null; onClose: () => void; }) => {
+    if (!product) return null;
+    const summaryItems = [
+        { label: 'Total Pieces', value: product.summary.total_pcs, isMismatch: product.summary.total_pcs !== product.summary.entered_pcs },
+        { label: 'Entered Pieces', value: product.summary.entered_pcs, isMismatch: product.summary.total_pcs !== product.summary.entered_pcs },
+        { label: 'Total Quantity', value: product.summary.total_qty, isMismatch: product.summary.total_qty !== product.summary.entered_qty },
+        { label: 'Entered Quantity', value: product.summary.entered_qty, isMismatch: product.summary.total_qty !== product.summary.entered_qty },
+    ];
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl transform transition-all animate-fade-in-up bg-gray-50 dark:bg-[#1C1C2E] border border-gray-200 dark:border-gray-700">
+                <div className="sticky top-0 p-5 flex justify-between items-center z-10 bg-inherit rounded-t-2xl border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Details for {product.id}</h3>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="bg-white dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Discrepancy Summary</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            {summaryItems.map(item => (
+                                <div key={item.label} className={`p-3 rounded-md ${item.isMismatch ? 'bg-red-100 dark:bg-red-900/50' : 'bg-green-100 dark:bg-green-900/50'}`}>
+                                    <span className="text-sm block text-gray-600 dark:text-gray-400">{item.label}</span>
+                                    <span className={`text-lg font-bold ${item.isMismatch ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}`}>{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                ))}
+                    <div>
+                        <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">Child Products</h4>
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                            <table className="min-w-full text-sm bg-white dark:bg-gray-800/50">
+                                <thead className="bg-gray-100 dark:bg-gray-900/50">
+                                    <tr className="text-left">
+                                        {['S.No', 'Product Code', 'Description', 'Pieces', 'Brand'].map(h => <th key={h} className="p-3 font-semibold text-gray-600 dark:text-gray-300">{h}</th>)}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {product.child_products.map(child => (
+                                        <tr key={child.id} className="text-gray-700 dark:text-gray-400">
+                                            <td className="p-3">{child.s_no}</td>
+                                            <td className="p-3">{child.product_code}</td>
+                                            <td className="p-3">{child.product_description}</td>
+                                            <td className="p-3">{child.pieces}</td>
+                                            <td className="p-3">{child.brand}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
+};
+
+const InfoCard = ({ title, data, icon: Icon, theme }: { title: string; data: object; icon: React.ElementType; theme: any }) => (
+    <div className={`p-5 rounded-2xl shadow-lg border mb-8 overflow-hidden transition-colors ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
+        <h3 className={`flex items-center font-bold text-lg pb-4 mb-4 border-b ${theme === 'dark' ? 'text-white border-gray-700' : 'text-gray-800 border-gray-200'}`}>
+            <Icon className="w-5 h-5 mr-3 text-blue-500" /> {title}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            {Object.entries(data).map(([key, value]) => (
+                <div key={key}>
+                    <span className={`text-xs font-medium capitalize block ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{key.replace(/_/g, ' ')}</span>
+                    <span className={`font-semibold text-base ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{value.toString() || '-'}</span>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+// --- MAIN PREVIEW COMPONENT ---
+const Preview = () => {
+    const { theme } = useTheme(); 
+    const navigate = useNavigate();
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
+
+    const supplierAndInvoiceDetails = { supplier_name_email: mockExtractedData.supplier_name_email, gstin_no: mockExtractedData.gstin_no, invoice_no: mockExtractedData.invoice_no, invoice_date: mockExtractedData.invoice_date, po_no: mockExtractedData.po_no, merchandise_name: mockExtractedData.merchandise_name, };
+    const amountAndTaxDetails = { product_total: mockExtractedData.product_total, taxable_value: mockExtractedData.taxable_value, discount: mockExtractedData.discount, igst: mockExtractedData.igst, tcs_amount: mockExtractedData.tcs_amount, total_amount: mockExtractedData.total_amount, };
+
+    const handleSubmit = () => { console.log("Submitting data..."); setShowSuccessMessage(true); };
+    const handleCloseMessage = () => { setShowSuccessMessage(false); navigate('/documents'); }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 animate-fade-in-up">
-            <div className="text-center">
-                <h2 className={`text-4xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Final Preview</h2>
-                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-2 text-lg`}>Please confirm the extracted data before final submission.</p>
-            </div>
-            <DisplaySection title="Invoice Details" data={data.invoice} />
-            <DisplaySection title="Supplier Details" data={data.supplier} />
-            <DisplaySection title="Amount Details" data={data.amount} />
-            <div className={`p-6 rounded-2xl shadow-lg border ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`}>
-                <h3 className={`font-bold text-xl mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Product Details</h3>
-                {data.product_details.items.slice(0, 3).map((item, index) => (
-                    <div key={index} className={`border rounded-lg overflow-hidden mb-4 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <table className="min-w-full text-sm">
-                            <thead className={theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-100'}><tr className="text-left"><th className={`p-3 font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>S.No</th><th className={`p-3 font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Description</th><th className={`p-3 font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>HSN</th><th className={`p-3 font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Tax Amount</th></tr></thead>
-                            <tbody className={theme === 'dark' ? 'bg-gray-800' : 'bg-white'}><tr className="text-gray-800 dark:text-gray-300"><td className="p-3">{item.s_no}</td><td className="p-3">{item.description}</td><td className="p-3">{item.size.HSN}</td><td className="p-3">{item.size.tax_amount}</td></tr></tbody>
-                        </table>
-                        <div className={`p-4 border-t ${theme === 'dark' ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-                            <h4 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Size Details</h4>
-                            <div className={`overflow-x-auto rounded-md border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <table className={`min-w-full text-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-                                    <thead className={theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-200'}><tr className="text-left">{['Size', 'Pieces', 'Quantity', 'Rate', 'MRP Rate'].map(h => <th key={h} className={`p-2 font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{h}</th>)}</tr></thead>
-                                    <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                        {item.size.size.slice(0, 5).map((_, sizeIndex) => (
-                                            <tr key={sizeIndex} className='text-gray-800 dark:text-gray-300'><td className="p-2">{item.size.size[sizeIndex] || '-'}</td><td className="p-2">{item.size.pieces[sizeIndex] || '-'}</td><td className="p-2">{item.size.quantity[sizeIndex] || '-'}</td><td className="p-2">{item.size.rate[sizeIndex] || '-'}</td><td className="p-2">{item.size.MRP_rate[sizeIndex] || '-'}</td></tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+        <div className={`min-h-screen font-sans rounded-[30px] ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`}>
+            <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+                <div className="text-center mb-10">
+                    <h2 className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-black-200'}`}>Invoice & Product Verification</h2>
+                    <p className="mt-2 text-base text-gray-500 dark:text-gray-400">Review the details below.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="lg:col-span-1 space-y-8">
+                        <div className={`p-5 rounded-2xl shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
+                            <h3 className={`flex items-center font-bold text-lg mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                                <FileText className="w-5 h-5 mr-3 text-blue-500" /> Invoice Document
+                            </h3>
+                            <div className="rounded-lg overflow-hidden border border-gray-200">
+                                <img src={mockExtractedData.invoice_image_url} alt="Invoice" className="object-cover object-top w-full h-full" />
                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
-            <div className="mt-8 flex justify-end space-x-4">
-                <button onClick={() => navigate('/edit')} className={`font-bold py-3 px-6 rounded-lg transition-colors ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>Back to Edit</button>
-                <button onClick={() => { alert('Data submitted successfully!'); navigate(user?.role === 'admin' ? '/dashboard' : '/queue'); }} className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all">
-                    <CheckCircle2 className="w-5 h-5"/> Confirm & Submit
-                </button>
-            </div>
+                    <div className="lg:col-span-2 space-y-8">
+                        <InfoCard title="Supplier & Invoice Details" data={supplierAndInvoiceDetails} icon={Building} theme={theme} />
+                        <InfoCard title="Amount & Tax Details" data={amountAndTaxDetails} icon={DollarSign} theme={theme} />
+                    </div>
+                </div>
+
+                <div className={`mt-8 rounded-2xl overflow-hidden shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
+                    {/* <h3 className="font-bold text-lg p-5 text-gray-800 dark:text-white">Detailed Product Verification</h3> */}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead className={`p-4 font-semibold ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-100'}`}>
+                                <tr className="text-left">
+                                    {['#', 'Product Group', 'Description', 'Qty', 'Total', 'Actions'].map(h => <th key={h} className={`p-4 font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{h}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {mockProductData.map((product) => (
+                                    <tr key={product.id} className={`border-t ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800/50 border-gray-700/60' : 'text-gray-800 bg-gray-50 border-gray-200/80'}`}>
+                                        <td className="p-4">{product.s_no}</td>
+                                        <td className="p-4 font-medium">{product.product_group}</td>
+                                        <td className="p-4 ">{product.supplier_description}</td>
+                                        <td className="p-4">{product.qty} {product.uom}</td>
+                                        <td className="p-4 font-semibold">{product.total.toFixed(2)}</td>
+                                        <td className="p-4">
+                                            <button onClick={() => setSelectedProduct(product)} className="flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                <Eye className="w-4 h-4" /> View Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="mt-10 pt-6 border-t border-gray-200/80 dark:border-gray-700/60 flex justify-end space-x-4">
+                    <button onClick={() => navigate('/edit')} className="font-bold py-3 px-6 rounded-lg transition-colors bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">Back to Edit</button>
+                    <button onClick={handleSubmit} className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all">
+                        <CheckCircle2 className="w-5 h-5"/> Confirm & Submit
+                    </button>
+                </div>
+            </main>
+
+            {showSuccessMessage && <MessageBox message="Data submitted successfully!" onClose={handleCloseMessage} />}
+            <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
         </div>
     );
 }
 
-export default Preview
+export default Preview;

@@ -1,6 +1,5 @@
 import { useLocation, Outlet } from "react-router-dom";
-import '../../assets/styles/Layout.scss'
-import Header from "./Header";
+import '../../assets/styles/Layout.scss';
 import Sidenav from "./Sidenav";
               
 const RootLayout = () => {

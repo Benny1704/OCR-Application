@@ -124,6 +124,8 @@ const EditPage = () => {
                         isSearchable={true}
                         renderActionCell={renderActionCell}
                         actionColumnHeader="Details"
+                        pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] }}
+                        maxHeight="100%"
                     />
 
                     <ProductDetailPopup 

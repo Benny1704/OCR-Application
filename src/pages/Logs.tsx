@@ -1,284 +1,328 @@
-import { useState, useMemo, type ChangeEvent } from "react";
-import {
-  FileUp,
-  CheckCircle2,
-  ShieldCheck,
-  XCircle,
-  Search,
-  ChevronDown,
-  SearchX,
-  type LucideIcon,
-} from "lucide-react";
+import { useMemo, useState, Fragment } from "react";
 import { useTheme } from "../hooks/useTheme";
+import { BrainCircuit, FileCheck2, FileX2, ChevronDown, CheckCircle } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, Transition } from "@headlessui/react";
 
 // --- TYPE DEFINITIONS ---
-interface Log {
-  id: number;
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
+interface StatCardProps {
+  title: string;
+  value: string;
+  change: string;
+  changeType: "increase" | "decrease";
+  Icon: React.ElementType;
 }
 
-interface ActionStyle {
-  Icon: LucideIcon;
-  color: string;
-  bg: string;
-  label: string;
+interface ChartData {
+  name: string;
+  automated: number;
+  edited: number;
+  failed: number;
 }
 
 // --- MOCK DATA ---
-const mockLogs: Log[] = [
-    {
-    id: 1,
-    // Note: To make "Today" and "Yesterday" work, the current date is assumed to be Aug 20, 2025
-    timestamp: "2025-08-20 10:45:12",
-    user: "admin@example.com",
-    action: "UPLOAD_SUCCESS",
-    details: "Uploaded document 'Financial_Report_Q3.pdf'",
+const statsData: StatCardProps[] = [
+  {
+    title: "Total Invoices Processed",
+    value: "1,482",
+    change: "+12.5%",
+    changeType: "increase",
+    Icon: FileCheck2,
   },
   {
-    id: 2,
-    timestamp: "2025-08-20 10:42:05",
-    user: "john.doe@example.com",
-    action: "VERIFICATION_PENDING",
-    details: "Document 'Project_Proposal_V4.docx' is awaiting verification.",
+    title: "LLM Tokens Consumed",
+    value: "2.1M",
+    change: "+8.2%",
+    changeType: "increase",
+    Icon: BrainCircuit,
   },
   {
-    id: 3,
-    timestamp: "2025-08-19 09:15:33",
-    user: "jane.smith@example.com",
-    action: "PROCESSING_FAILED",
-    details: "Failed to process 'Marketing_Images.zip'. Error: File corrupted.",
-  },
-  {
-    id: 4,
-    timestamp: "2025-08-19 16:20:48",
-    user: "admin@example.com",
-    action: "USER_AUTHENTICATED",
-    details: "User successfully authenticated via SSO.",
-  },
-  {
-    id: 5,
-    timestamp: "2025-08-18 14:05:19",
-    user: "john.doe@example.com",
-    action: "UPLOAD_SUCCESS",
-    details: "Uploaded document 'Client_Contract_Signed.pdf'",
-  },
-  {
-    id: 6,
-    timestamp: "2025-08-18 11:55:01",
-    user: "system",
-    action: "VERIFICATION_SUCCESS",
-    details: "Document 'Onboarding_Form_Final.pdf' was automatically verified.",
+    title: "Processing Failures",
+    value: "31",
+    change: "-3.1%",
+    changeType: "decrease",
+    Icon: FileX2,
   },
 ];
 
-// --- HELPER FUNCTIONS ---
+const chartData: ChartData[] = [
+  { name: "Mon", automated: 180, edited: 60, failed: 10 },
+  { name: "Tue", automated: 210, edited: 75, failed: 8 },
+  { name: "Wed", automated: 230, edited: 80, failed: 5 },
+  { name: "Thu", automated: 200, edited: 70, failed: 12 },
+  { name: "Fri", automated: 250, edited: 90, failed: 7 },
+  { name: "Sat", automated: 190, edited: 65, failed: 4 },
+  { name: "Sun", automated: 220, edited: 85, failed: 6 },
+];
 
-const getActionStyle = (action: string, theme: string): ActionStyle => {
-  const isDark = theme === "dark";
-  switch (action) {
-    case "UPLOAD_SUCCESS":
-      return {
-        Icon: FileUp,
-        color: isDark ? "text-sky-400" : "text-sky-600",
-        bg: isDark ? "bg-sky-900/40" : "bg-sky-100",
-        label: "Upload",
-      };
-    case "VERIFICATION_SUCCESS":
-    case "USER_AUTHENTICATED":
-      return {
-        Icon: CheckCircle2,
-        color: isDark ? "text-emerald-400" : "text-emerald-600",
-        bg: isDark ? "bg-emerald-900/40" : "bg-emerald-100",
-        label: "Success",
-      };
-    case "PROCESSING_FAILED":
-      return {
-        Icon: XCircle,
-        color: isDark ? "text-red-400" : "text-red-600",
-        bg: isDark ? "bg-red-900/40" : "bg-red-100",
-        label: "Failed",
-      };
-    case "VERIFICATION_PENDING":
-      return {
-        Icon: ShieldCheck,
-        color: isDark ? "text-amber-400" : "text-amber-600",
-        bg: isDark ? "bg-amber-900/40" : "bg-amber-100",
-        label: "Pending",
-      };
-    default:
-      return {
-        Icon: FileUp,
-        color: isDark ? "text-gray-400" : "text-gray-600",
-        bg: isDark ? "bg-gray-800" : "bg-gray-200",
-        label: "Generic",
-      };
+const timeRanges = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "All Time"];
+
+// --- REUSABLE ANIMATED STAT CARD COMPONENT ---
+const StatCard = ({ title, value, change, changeType, Icon }: StatCardProps) => {
+  const { theme } = useTheme();
+  const changeColor = changeType === 'increase' ? 'text-emerald-400' : 'text-rose-400';
+
+  return (
+    <motion.div
+      variants={{
+        hidden: { y: 20, opacity: 0 },
+        visible: { y: 0, opacity: 1 },
+      }}
+      whileHover={{ scale: 1.03, transition: { type: "spring", stiffness: 300 } }}
+      className={`relative p-6 rounded-2xl overflow-hidden border transition-colors ${
+        theme === "dark"
+          ? "bg-neutral-900/50 border-neutral-800"
+          : "bg-white border-neutral-200 shadow-sm"
+      }`}
+    >
+      {/* Subtle background glow on hover */}
+      <motion.div
+        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1),transparent_40%)]"
+        initial={{ opacity: 0, scale: 0.5 }}
+        whileHover={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      />
+      <div className="relative z-10">
+        <div className="flex items-center justify-between">
+          <p className="font-medium text-base">{title}</p>
+          <Icon className="w-6 h-6 text-neutral-500" />
+        </div>
+        <p className="text-4xl font-bold mt-4">{value}</p>
+        <div className="flex items-center gap-1 text-sm mt-1">
+          <span className={changeColor}>{change}</span>
+          <span className={theme === 'dark' ? 'text-neutral-400' : 'text-neutral-600'}>
+            vs last period
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- CUSTOM RECHARTS TOOLTIP ---
+const CustomTooltip = ({ active, payload, label }: any) => {
+  const { theme } = useTheme();
+  if (active && payload && payload.length) {
+    return (
+      <div className={`p-4 rounded-xl shadow-lg border ${
+        theme === 'dark' 
+          ? 'bg-neutral-800/80 backdrop-blur-sm border-neutral-700' 
+          : 'bg-white/80 backdrop-blur-sm border-neutral-200'
+      }`}>
+        <p className="font-bold text-base mb-2">{label}</p>
+        {payload.map((pld: any) => (
+          <div key={pld.dataKey} className="flex items-center justify-between text-sm">
+            <div className="flex items-center mr-4">
+              <div className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: pld.fill }} />
+              <span>{pld.name}:</span>
+            </div>
+            <span className="font-semibold">{pld.value}</span>
+          </div>
+        ))}
+      </div>
+    );
   }
+  return null;
 };
 
-const formatDateHeader = (dateString: string): string => {
-    const logDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    logDate.setHours(0, 0, 0, 0);
-
-    if (logDate.getTime() === today.getTime()) {
-        return "Today";
-    }
-    if (logDate.getTime() === yesterday.getTime()) {
-        return "Yesterday";
-    }
-
-    return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    }).format(new Date(dateString));
-};
-
-
-// --- LOGS COMPONENT ---
+// --- MAIN ANALYTICS DASHBOARD COMPONENT ---
 const Logs = () => {
   const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedRange, setSelectedRange] = useState(timeRanges[0]);
 
-  const filteredLogs = useMemo(() => mockLogs.filter(
-    (log) =>
-      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase())
-  ), [searchTerm]);
+  const chartColors = useMemo(() => (
+    theme === 'dark' ? {
+      grid: 'rgba(255, 255, 255, 0.05)',
+      text: '#a3a3a3', // neutral-400
+      automated: "url(#colorAutomatedDark)",
+      edited: "url(#colorEditedDark)",
+      failed: "url(#colorFailedDark)",
+    } : {
+      grid: 'rgba(0, 0, 0, 0.05)',
+      text: '#525252', // neutral-600
+      automated: "url(#colorAutomatedLight)",
+      edited: "url(#colorEditedLight)",
+      failed: "url(#colorFailedLight)",
+    }
+  ), [theme]);
 
-  const groupedLogs = useMemo(() => {
-    return filteredLogs.reduce((acc, log) => {
-      const date = log.timestamp.split(" ")[0];
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(log);
-      return acc;
-    }, {} as Record<string, Log[]>);
-  }, [filteredLogs]);
-
-  const sortedDates = useMemo(() => 
-    Object.keys(groupedLogs).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()), 
-    [groupedLogs]
-  );
+  // Framer Motion container variants for staggered animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
 
   return (
     <div
-      className={`h-full w-full flex flex-col transition-colors rounded-2xl overflow-hidden ${
-        theme === "dark" ? "bg-[#1C1C2E] text-gray-200" : "bg-gray-50 text-gray-900"
+      className={`h-full w-full flex flex-col transition-colors rounded-[30px] overflow-hidden ${
+        theme === "dark" ? "bg-black text-neutral-200" : "bg-neutral-100 text-neutral-800"
       }`}
     >
-      <header
-        className={`sticky top-0 z-10 p-4 sm:p-6 border-b transition-colors ${
+      {/* --- HEADER --- */}
+      <motion.header
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        className={`sticky top-0 z-20 p-4 sm:p-6 border-b transition-colors ${
           theme === "dark"
-            ? "bg-[#1C1C2E] backdrop-blur-sm border-gray-800"
-            : "bg-gray-50/80 backdrop-blur-sm border-gray-200"
+            ? "bg-black/70 backdrop-blur-lg border-neutral-800"
+            : "bg-neutral-100/70 backdrop-blur-lg border-neutral-200"
         }`}
       >
-        <div>
-          <h1 className="text-2xl font-bold">Activity Logs</h1>
-          <p className={`mt-1 text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            An overview of all recent activities in the system.
-          </p>
-        </div>
-        <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Search
-              className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 ${
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              }`}
-            />
-            <input
-              type="text"
-              placeholder="Search logs by user, action, or details..."
-              value={searchTerm}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className={`w-full pl-11 pr-4 py-2.5 rounded-lg border transition-colors focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none ${
-                theme === "dark"
-                  ? "bg-gray-900 border-gray-700 text-gray-200 placeholder-gray-500"
-                  : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
-              }`}
-            />
-          </div>
-          <button
-            className={`flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 rounded-lg border font-semibold transition-colors ${
-              theme === "dark"
-                ? "bg-gray-900 border-gray-700 text-gray-200 hover:bg-gray-800"
-                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <span>Filter by Action</span>
-            <ChevronDown className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-grow overflow-y-auto p-4 sm:p-6">
-        {filteredLogs.length > 0 ? (
-          <div className="space-y-8">
-            {sortedDates.map((date) => {
-              const logsForDate = groupedLogs[date];
-              return (
-                <section key={date}>
-                  <h2 className="text-sm font-semibold mb-3">
-                    {formatDateHeader(date)}
-                  </h2>
-                  {/*// ANCHOR - This is the change you requested. */}
-                  <div className={`rounded-lg border ${theme === 'dark' ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}>
-                    {logsForDate.map((log, index) => {
-                      const { Icon, color, bg, label } = getActionStyle(log.action, theme);
-                      return (
-                        <div
-                          key={log.id}
-                          className={`flex items-start gap-4 p-4 transition-colors ${index < logsForDate.length - 1 ? (theme === 'dark' ? 'border-b border-gray-800' : 'border-b border-gray-200') : ''}`}
-                        >
-                          <div
-                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${bg} ${color}`}
-                          >
-                            <Icon size={20} />
-                          </div>
-                          <div className="flex-grow">
-                            <p className="font-medium">{log.details}</p>
-                            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-sm mt-1">
-                              <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
-                                {log.user}
-                              </span>
-                              <span className={theme === "dark" ? "text-gray-600" : "text-gray-400"}>•</span>
-                              <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${bg} ${color}`}>
-                                {label}
-                              </span>
-                            </div>
-                          </div>
-                          <p className={`flex-shrink-0 text-sm font-mono pt-0.5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                            {log.timestamp.split(" ")[1]}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-             <div className={`p-4 rounded-full mb-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
-                <SearchX size={32} className={theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}/>
-             </div>
-            <p className="text-lg font-semibold">No Logs Found</p>
-            <p className={`text-sm mt-1 max-w-sm ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-              Your search for "{searchTerm}" did not return any results. Try a different keyword.
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Invoice Processing Analytics</h1>
+            <p className={`mt-1 text-sm ${theme === "dark" ? "text-neutral-400" : "text-neutral-600"}`}>
+              An overview of automated invoice processing performance.
             </p>
           </div>
-        )}
+          
+          {/* --- INTERACTIVE DROPDOWN --- */}
+          <Menu as="div" className="relative inline-block text-left mt-4 sm:mt-0">
+            <div>
+              <Menu.Button className={`inline-flex w-full justify-center items-center gap-2 px-4 py-2.5 rounded-lg border font-semibold transition-all text-sm duration-300 ${
+                theme === "dark"
+                  ? "bg-neutral-900 border-neutral-700 text-neutral-200 hover:bg-neutral-800 hover:border-violet-500"
+                  : "bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-violet-500"
+              }`}>
+                {selectedRange}
+                <ChevronDown className="w-4 h-4" aria-hidden="true" />
+              </Menu.Button>
+            </div>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className={`absolute right-0 mt-2 w-48 origin-top-right rounded-md shadow-lg ring-1 ring-opacity-5 focus:outline-none ${
+                theme === 'dark' 
+                  ? 'bg-neutral-800 ring-black'
+                  : 'bg-white ring-black'
+              }`}>
+                <div className="py-1">
+                  {timeRanges.map((range) => (
+                    <Menu.Item key={range}>
+                      {({ active }) => (
+                        <button
+                          onClick={() => setSelectedRange(range)}
+                          className={`${
+                            active ? (theme === 'dark' ? 'bg-neutral-700' : 'bg-neutral-100') : ''
+                          } ${
+                            selectedRange === range ? 'font-bold text-violet-400' : ''
+                          } group flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors`}
+                        >
+                          {range}
+                          {selectedRange === range && <CheckCircle className="ml-auto h-4 w-4" />}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  ))}
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
+        </div>
+      </motion.header>
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-8">
+        {/* --- STATS CARDS --- */}
+        <motion.section
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {statsData.map((stat) => (
+              <StatCard key={stat.title} {...stat} />
+            ))}
+          </div>
+        </motion.section>
+
+        {/* --- COMPARISON CHART --- */}
+        <motion.section
+           variants={{
+            hidden: { y: 20, opacity: 0 },
+            visible: { y: 0, opacity: 1, transition: { delay: 0.3, duration: 0.5 } },
+          }}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className={`p-4 sm:p-6 rounded-2xl border ${
+            theme === "dark"
+              ? "bg-neutral-900/50 border-neutral-800"
+              : "bg-white border-neutral-200 shadow-sm"
+          }`}>
+            <h2 className="text-lg font-semibold mb-1">Weekly Processing Breakdown</h2>
+            <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-neutral-400' : 'text-neutral-600'}`}>
+              Comparison of invoices processed automatically, with edits, or failed.
+            </p>
+            <div style={{ width: '100%', height: 350 }}>
+              <ResponsiveContainer>
+                <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  {/* --- GRADIENT DEFINITIONS FOR BARS --- */}
+                  <defs>
+                    <linearGradient id="colorAutomatedDark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.2}/>
+                    </linearGradient>
+                    <linearGradient id="colorEditedDark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.2}/>
+                    </linearGradient>
+                    <linearGradient id="colorFailedDark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                    </linearGradient>
+                    <linearGradient id="colorAutomatedLight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0284c7" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#0284c7" stopOpacity={0.4}/>
+                    </linearGradient>
+                    <linearGradient id="colorEditedLight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#d97706" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#d97706" stopOpacity={0.4}/>
+                    </linearGradient>
+                     <linearGradient id="colorFailedLight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#e11d48" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#e11d48" stopOpacity={0.4}/>
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                  <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    cursor={{ fill: theme === 'dark' ? 'rgba(163, 163, 163, 0.1)' : 'rgba(39, 39, 42, 0.1)' }}
+                    content={<CustomTooltip />}
+                  />
+                  <Legend wrapperStyle={{fontSize: "14px", paddingTop: "20px"}}/>
+                  <Bar dataKey="automated" name="Automated" stackId="a" fill={chartColors.automated} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="edited" name="With Edits" stackId="a" fill={chartColors.edited} />
+                  <Bar dataKey="failed" name="Failed (Manual)" stackId="a" fill={chartColors.failed} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.section>
       </main>
     </div>
   );

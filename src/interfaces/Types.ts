@@ -228,11 +228,12 @@ export interface Log {
   details: string;
 }
 export interface Document {
+  sno: number;
   uploadedBy: string;
   id: number;
   name: string;
   supplierName: string;
-  status: "Queued" | "Processed" | "Failed" | "Processing";
+  status: "Queued" | "Processed" | "Failed" | "Processing" | "Reviewed";
   uploadDate: string;
   invoiceDate: string;
   size: string;

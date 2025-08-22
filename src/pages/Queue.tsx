@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import { initialMockDocuments } from "../lib/MockData";
+import { documentConfig, initialMockDocuments } from "../lib/MockData";
 import type { Document } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
@@ -20,11 +20,42 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { RetryModal, StatusBadge } from "../components/common/Helper";
+import { AgGridReact } from "ag-grid-react";
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import type { ColDef } from "ag-grid-community";
 
+ModuleRegistry.registerModules([AllCommunityModule]);
+interface IRow {
+  make: string;
+  model: string;
+  price: number;
+  electric: boolean;
+}
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [rowData, setRowData] = useState<IRow[]>([
+    { make: "Tesla", model: "Model Y", price: 64950, electric: true },
+    { make: "Ford", model: "F-Series", price: 33850, electric: false },
+    { make: "Toyota", model: "Corolla", price: 29600, electric: false },
+    { make: "Mercedes", model: "EQA", price: 48890, electric: true },
+    { make: "Fiat", model: "500", price: 15774, electric: false },
+    { make: "Nissan", model: "Juke", price: 20675, electric: false },
+  ]);
+
+  // Column Definitions: Defines & controls grid columns.
+  const [colDefs, setColDefs] = useState<ColDef<IRow>[]>([
+    { field: "make" },
+    { field: "model" },
+    { field: "price" },
+    { field: "electric" },
+  ]);
+
+  const defaultColDef: ColDef = {
+    flex: 1,
+  };
 
   const EditButton = () => {
     return (
@@ -141,25 +172,6 @@ const Queue = () => {
     );
   };
 
-  // useLayoutEffect(() => {
-        
-  //   updateActivePosition(sidenavRef);
-
-  //   const observer = new ResizeObserver(() => {
-  //       updateActivePosition(sidenavRef);
-  //   });
-
-  //   if (sidenavRef.current) {
-  //     observer.observe(sidenavRef.current);
-  //   }
-
-  //   return () => {
-  //     if (sidenavRef.current) {
-  //         observer.unobserve(sidenavRef.current);
-  //     }
-  //   };
-  // }, [window.location.pathname]);
-
   const handleDelete = (id: number) => {
     if (user?.role !== "admin") return;
     setDocuments((docs) => docs.filter((doc) => doc.id !== id));
@@ -175,7 +187,26 @@ const Queue = () => {
     navigate("imageAlteration");
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+        
+    updateActivePosition();
+
+    const observer = new ResizeObserver(() => {
+        updateActivePosition();
+    });
+
+    if (tabRef.current) {
+      observer.observe(tabRef.current);
+    }
+
+    return () => {
+      if (tabRef.current) {
+          observer.unobserve(tabRef.current);
+      }
+    };
+  }, [window.location.pathname,activeTab]);
+
+  const updateActivePosition = () => {
     if (tabRef.current) {
       const activeLi = tabRef.current.querySelector(
         ".nav-item.active"
@@ -192,7 +223,7 @@ const Queue = () => {
         );
       }
     }
-  }, [activeTab]);
+  }
 
   const InfoCard = ({
     icon,
@@ -264,18 +295,23 @@ const Queue = () => {
             onRetryWithAlterations={handleRetryWithAlterations}
           />
           {activeTab === "Processed" ? (
-            <DataTable
-              tableData={JSON.parse(JSON.stringify(documentsForTab))}
-              isSearchable={true}
-              isEditable={true}
-              renderActionCell={EditButton}
-              actionColumnHeader="Action"
-            />
+            <div className="table">
+              <DataTable
+                tableData={JSON.parse(JSON.stringify(documentsForTab))}
+                tableConfig={documentConfig}
+                isSearchable={true}
+                // isEditable={true}
+                renderActionCell={EditButton}
+                actionColumnHeader="Review"
+                pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] }}
+                maxHeight="100%"
+              />
+              {/* <AgGridReact rowData={rowData} columnDefs={colDefs} defaultColDef={defaultColDef}/> */}
+            </div>
           ) : (
             <div className="h-full">
               {documentsForTab.length > 0 ? (
-                <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
-                  {/* --- DOCUMENT LIST (LEFT) --- */}
+                <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
                   <aside
                     className={`rounded-xl border ${
                       theme === "dark"
@@ -327,9 +363,6 @@ const Queue = () => {
                                     fill="currentColor"
                                   />
                                 )}
-                              </p>
-                              <p className={`text-xs mt-1 ${textSecondary}`}>
-                                ID: doc_{doc.id}
                               </p>
                             </div>
                             <div className="flex flex-col items-end">
@@ -500,8 +533,19 @@ const Queue = () => {
                                   </button>
                                 </>
                               )}
-                            {activeTab === "Failed" &&
-                              user?.role === "admin" && (
+                            {activeTab === "Failed" && (
+                            <>
+                              <button
+                                  onClick={() => navigate('/manualEntry')}
+                                  className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border ${
+                                    theme === "dark"
+                                      ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
+                                      : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+                                  }`}
+                                >
+                                  <i className="fi fi-rr-add-document"></i> Manual Entry
+                              </button>
+                              {user?.role === "admin" && (
                                 <button
                                   onClick={openRetryModal}
                                   className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border ${
@@ -510,10 +554,11 @@ const Queue = () => {
                                       : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
                                   }`}
                                 >
-                                  <RefreshCw className="w-4 h-4" /> Retry
-                                  Processing
+                                  <RefreshCw className="w-4 h-4" /> Retry Processing
                                 </button>
                               )}
+                            </>
+                          )}
                           </div>
                           {selectedDocument.status === "Processing" && (
                             <p

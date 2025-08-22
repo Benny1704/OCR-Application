@@ -36,14 +36,13 @@ const Upload = () => {
     
     const acceptOptions: Accept = {
         'application/pdf': ['.pdf'],
-        'image/png': ['.png'],
         'image/jpeg': ['.jpg', '.jpeg'],
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: acceptOptions,
-        maxSize: 10 * 1024 * 1024, // 10 MB
+        maxSize: 15 * 1024 * 1024, // 10 MB
         // REMOVED maxFiles from here to handle the logic manually in onDrop
     });
 
@@ -68,7 +67,7 @@ const Upload = () => {
     const isOverLimit = files.length > MAX_FILES;
 
     return (
-        <div className={`h-full w-full flex flex-col p-4 sm:p-6 transition-colors animate-fade-in-up rounded-2xl overflow-hidden ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200" : "bg-gray-50 text-gray-900"}`}>
+        <div className={`h-full w-full flex flex-col p-4 sm:p-6 transition-colors animate-fade-in-up rounded-[30px] overflow-hidden ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200" : "bg-gray-50 text-gray-900"}`}>
             {/* --- HEADER --- */}
             <header className="flex-shrink-0 mb-6">
                 <div className="flex items-center gap-3">
@@ -106,8 +105,8 @@ const Upload = () => {
                             <h4 className="font-bold">File Guidelines</h4>
                         </div>
                         <ul className={`list-disc list-inside space-y-1.5 text-sm mt-3 pl-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <li>Max file size: **10MB** per file</li>
-                            <li>Accepted formats: **PDF, PNG, JPG/JPEG**</li>
+                            <li>Max file size: **15MB** per file</li>
+                            <li>Accepted formats: **PDF, JPG/JPEG**</li>
                         </ul>
                     </div>
                 </div>

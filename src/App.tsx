@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import ImageAlterations from "./pages/ImageAlterations";
 import Edit from "./pages/Edit";
 import Preview from "./pages/Preview";
+import ManualEntry from "./pages/ManualEntry";
 import { type Role } from "./interfaces/Types";
 import { useContext } from "react";
 import { AuthContext, AuthProvider } from "./contexts/AuthContext";
@@ -44,6 +45,7 @@ const routeDefinitions = createRoutesFromElements(
       <Route path="/imageAlteration" element={<ImageAlterations />} />
       <Route path="/edit" element={<Edit />} />
       <Route path="/preview" element={<Preview />} />
++      <Route path="/manualEntry" element={<ManualEntry />} />
     </Route>
 
   </Route>

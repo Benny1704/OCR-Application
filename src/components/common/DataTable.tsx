@@ -1,22 +1,48 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Undo, Redo, Columns, Rows, Info, Save, Search } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Undo, Redo, Columns, Rows, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme'; // Assuming path based on your example
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps } from '../../interfaces/Types';
 import { Popup, JsonPreviewModal, InfoPill, HowToUse } from './Helper';
 
-export interface DataTableProps extends OriginalDataTableProps {
+export interface TableColumnConfig {
+  key: string;
+  header: string;
+  type?: 'string' | 'number' | 'boolean' | 'date';
+  width?: string;
+  sortable?: boolean;
+  editable?: boolean;
+  fixed?: boolean;
+}
+
+export interface TableConfig {
+  columns: TableColumnConfig[];
+  fixedColumn?: string; // Override for fixed column
+}
+
+export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
+  tableData: DataItem[];
+  tableConfig?: TableConfig;
   renderActionCell?: (row: DataItem, rowIndex: number) => React.ReactNode;
   actionColumnHeader?: string;
+  pagination?: {
+    enabled: boolean;
+    pageSize?: number;
+    pageSizeOptions?: number[];
+  };
+  maxHeight?: string;
 }
 
 const DataTable = ({
   tableData,
+  tableConfig,
   isEditable = false,
   isSearchable = false,
   renderActionCell,
-  actionColumnHeader = 'Action'
+  actionColumnHeader = 'Action',
+  pagination = { enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] },
+  maxHeight = '600px'
 }: DataTableProps) => {
-  const { theme } = useTheme(); // Using the theme hook
+  const { theme } = useTheme();
   const [data, setData] = useState<DataItem[]>(tableData);
   const [history, setHistory] = useState<DataItem[][]>([tableData]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -30,6 +56,10 @@ const DataTable = ({
   const [editingCell, setEditingCell] = useState<CellIdentifier | null>(null);
   const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
 
   useEffect(() => {
     setData(tableData);
@@ -37,27 +67,90 @@ const DataTable = ({
     setHistoryIndex(0);
   }, [tableData]);
 
-  const { fixedHeaderKey, movableHeaders } = useMemo(() => {
-    if (!data || data.length === 0) return { fixedHeaderKey: null, movableHeaders: [] };
-    const allHeaders = Object.keys(data[0]);
-    const fixed = allHeaders[0];
-    const movable = allHeaders.filter(h => h !== fixed && h !== 'id');
-    return { fixedHeaderKey: fixed, movableHeaders: movable };
-  }, [data]);
-
-  const filteredData = useMemo<(DataItem & { originalIndex: number })[]>(() => {
-    if (!isSearchable || !searchQuery) {
-      return data.map((row, index) => ({ ...row, originalIndex: index }));
+  // Compute table structure from config or data
+  const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
+    if (tableConfig && tableConfig.columns.length > 0) {
+      // Use table configuration
+      const fixedCol = tableConfig.fixedColumn || 
+        tableConfig.columns.find(col => col.fixed)?.key || 
+        tableConfig.columns[0]?.key;
+      
+      const movableCols = tableConfig.columns
+        .filter(col => col.key !== fixedCol && col.key !== 'id')
+        .map(col => col.key);
+      
+      const configMap = tableConfig.columns.reduce((acc, col) => {
+        acc[col.key] = col;
+        return acc;
+      }, {} as Record<string, TableColumnConfig>);
+      
+      return { 
+        fixedHeaderKey: fixedCol, 
+        movableHeaders: movableCols, 
+        columnConfig: configMap 
+      };
+    } else {
+      // Fallback to dynamic structure from data
+      if (!data || data.length === 0) return { fixedHeaderKey: null, movableHeaders: [], columnConfig: {} };
+      const allHeaders = Object.keys(data[0]);
+      const fixed = allHeaders[0];
+      const movable = allHeaders.filter(h => h !== fixed && h !== 'id');
+      
+      // Create default config
+      const configMap = allHeaders.reduce((acc, header) => {
+        acc[header] = {
+          key: header,
+          header: header.replace(/_/g, ' '),
+          type: 'string',
+          editable: true,
+          fixed: header === fixed
+        };
+        return acc;
+      }, {} as Record<string, TableColumnConfig>);
+      
+      return { fixedHeaderKey: fixed, movableHeaders: movable, columnConfig: configMap };
     }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return data
-      .map((row, index) => ({ ...row, originalIndex: index }))
-      .filter(row =>
+  }, [data, tableConfig]);
+
+  // Filter data based on search and ensure all configured columns exist
+  const processedData = useMemo(() => {
+    let processed = data.map((row, index) => {
+      // Ensure all configured columns exist in the row
+      const processedRow = { ...row, originalIndex: index };
+      if (tableConfig) {
+        tableConfig.columns.forEach(col => {
+          if (!(col.key in processedRow)) {
+            processedRow[col.key] = '';
+          }
+        });
+      }
+      return processedRow;
+    });
+
+    // Apply search filter
+    if (isSearchable && searchQuery) {
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      processed = processed.filter(row =>
         Object.values(row).some(value =>
           String(value).toLowerCase().includes(lowerCaseQuery)
         )
       );
-  }, [data, searchQuery, isSearchable]);
+    }
+
+    return processed;
+  }, [data, searchQuery, isSearchable, tableConfig]);
+
+  // Pagination calculations
+  const totalItems = processedData.length;
+  const totalPages = pagination.enabled ? Math.ceil(totalItems / pageSize) : 1;
+  const startIndex = pagination.enabled ? (currentPage - 1) * pageSize : 0;
+  const endIndex = pagination.enabled ? Math.min(startIndex + pageSize, totalItems) : totalItems;
+  const paginatedData = pagination.enabled ? processedData.slice(startIndex, endIndex) : processedData;
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
 
   const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
     if (!isEditable) return;
@@ -96,9 +189,13 @@ const DataTable = ({
   
   const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
     if (!isEditable) return;
+    // Convert pagination index back to original data index
+    const actualRowIndex = pagination.enabled ? startIndex + rowIndex : rowIndex;
+    const originalRowIndex = paginatedData[rowIndex]?.originalIndex ?? actualRowIndex;
+    
     const newData: DataItem[] = structuredClone(data);
-    if (newData[rowIndex]) {
-      newData[rowIndex][colKey] = value;
+    if (newData[originalRowIndex]) {
+      newData[originalRowIndex][colKey] = value;
     }
     updateData(newData, selectedCells);
   };
@@ -209,7 +306,8 @@ const DataTable = ({
         else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
           if (selectedCells.length === 1) {
             const { rowIndex, colKey } = selectedCells[0];
-            const value = data[rowIndex]?.[colKey];
+            const actualRowIndex = pagination.enabled ? startIndex + rowIndex : rowIndex;
+            const value = data[paginatedData[rowIndex]?.originalIndex ?? actualRowIndex]?.[colKey];
             setCopiedCell({ rowIndex, colKey, value });
           }
         } else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
@@ -218,10 +316,14 @@ const DataTable = ({
             const targetCell = selectedCells[0];
             if (targetCell.colKey === fixedHeaderKey) return;
             const newData: DataItem[] = structuredClone(data);
-            if (newData[targetCell.rowIndex] && newData[copiedCell.rowIndex]) {
-              const targetValue = newData[targetCell.rowIndex][targetCell.colKey];
-              newData[targetCell.rowIndex][targetCell.colKey] = copiedCell.value;
-              newData[copiedCell.rowIndex][copiedCell.colKey] = targetValue;
+            const actualRowIndex = pagination.enabled ? startIndex + targetCell.rowIndex : targetCell.rowIndex;
+            const originalRowIndex = paginatedData[targetCell.rowIndex]?.originalIndex ?? actualRowIndex;
+            const copiedOriginalIndex = paginatedData[copiedCell.rowIndex]?.originalIndex ?? copiedCell.rowIndex;
+            
+            if (newData[originalRowIndex] && newData[copiedOriginalIndex]) {
+              const targetValue = newData[originalRowIndex][targetCell.colKey];
+              newData[originalRowIndex][targetCell.colKey] = copiedCell.value;
+              newData[copiedOriginalIndex][copiedCell.colKey] = targetValue;
               updateData(newData, [targetCell]);
               setCopiedCell(null);
             }
@@ -244,7 +346,7 @@ const DataTable = ({
         let colIndex = movableHeaders.indexOf(colKey);
 
         if (e.key === 'ArrowUp' && rowIndex > 0) rowIndex--;
-        if (e.key === 'ArrowDown' && rowIndex < data.length - 1) rowIndex++;
+        if (e.key === 'ArrowDown' && rowIndex < paginatedData.length - 1) rowIndex++;
         if (e.key === 'ArrowLeft' && colIndex > 0) colKey = movableHeaders[colIndex - 1];
         if (e.key === 'ArrowRight' && colIndex < movableHeaders.length - 1) colKey = movableHeaders[colIndex + 1];
 
@@ -258,7 +360,7 @@ const DataTable = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, selectedCells, copiedCell, data, updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, fixedHeaderKey, editingCell, isEditable]);
+  }, [undo, redo, selectedCells, copiedCell, data, updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, fixedHeaderKey, editingCell, isEditable, pagination.enabled, startIndex, paginatedData]);
 
   const handleDragStart = (rowIndex: number, colKey: string) => {
     if (!isEditable || colKey === fixedHeaderKey) return;
@@ -268,17 +370,22 @@ const DataTable = ({
   const handleDrop = (targetRowIndex: number, targetColKey: string) => {
     if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
     if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
+    
     const newData: DataItem[] = structuredClone(data);
-    if (newData[draggedCell.rowIndex] && newData[targetRowIndex]) {
-        [newData[draggedCell.rowIndex][draggedCell.colKey], newData[targetRowIndex][targetColKey]] =
-        [newData[targetRowIndex][targetColKey], newData[draggedCell.rowIndex][draggedCell.colKey]];
+    const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex ?? draggedCell.rowIndex;
+    const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex ?? targetRowIndex;
+    
+    if (newData[draggedOriginalIndex] && newData[targetOriginalIndex]) {
+        [newData[draggedOriginalIndex][draggedCell.colKey], newData[targetOriginalIndex][targetColKey]] =
+        [newData[targetOriginalIndex][targetColKey], newData[draggedOriginalIndex][draggedCell.colKey]];
     }
     updateData(newData);
     setDraggedCell(null);
   };
 
   const openActionPopup = (itemIndex: number) => {
-    const itemForPopup = data[itemIndex];
+    const originalIndex = paginatedData[itemIndex]?.originalIndex ?? itemIndex;
+    const itemForPopup = data[originalIndex];
     if (itemForPopup) {
       setPopupData(itemForPopup);
       setIsPopupOpen(true);
@@ -290,23 +397,23 @@ const DataTable = ({
     const pills = [<InfoPill key="count">{selectedCells.length} cell(s) selected</InfoPill>];
     const firstCell = selectedCells[0];
     if (selectedCells.every(c => c.rowIndex === firstCell.rowIndex)) {
-      const rowData = data[firstCell.rowIndex];
+      const rowData = paginatedData[firstCell.rowIndex];
       if (rowData && fixedHeaderKey) {
         const rowName = rowData[fixedHeaderKey];
         pills.push(<InfoPill key="row">Row: {rowName}</InfoPill>);
       }
     }
     if (selectedCells.every(c => c.colKey === firstCell.colKey)) {
-      const colName = firstCell.colKey;
+      const colName = columnConfig[firstCell.colKey]?.header || firstCell.colKey;
       pills.push(<InfoPill key="col">Column: {colName}</InfoPill>);
     }
     return pills;
-  }, [selectedCells, data, fixedHeaderKey]);
+  }, [selectedCells, paginatedData, fixedHeaderKey, columnConfig]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colKey: string) => {
     const { key, shiftKey } = e;
     const value = e.currentTarget.value;
-    const maxRow = data.length - 1;
+    const maxRow = paginatedData.length - 1;
     const maxCol = movableHeaders.length - 1;
 
     const move = (direction: 'next' | 'prev' | 'up' | 'down') => {
@@ -356,7 +463,7 @@ const DataTable = ({
 
   const renderCellContent = (rowIndex: number, colKey: string) => {
     const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.colKey === colKey;
-    const cellValue = data[rowIndex]?.[colKey];
+    const cellValue = paginatedData[rowIndex]?.[colKey];
 
     if (isEditing) {
       return (
@@ -373,33 +480,166 @@ const DataTable = ({
     return cellValue;
   };
 
+  const getColumnHeader = (key: string) => {
+    return columnConfig[key]?.header || key.replace(/_/g, ' ');
+  };
+
+  const renderPaginationControls = () => {
+    if (!pagination.enabled) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const showPages = 5;
+      let start = Math.max(1, currentPage - Math.floor(showPages / 2));
+      let end = Math.min(totalPages, start + showPages - 1);
+      
+      if (end - start + 1 < showPages) {
+        start = Math.max(1, end - showPages + 1);
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    };
+
+    return (
+      <div className={`flex items-center justify-between gap-4 py-4 px-2 border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+        <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          Showing {startIndex + 1} to {endIndex} of {totalItems} entries
+          {searchQuery && ` (filtered from ${data.length} total entries)`}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            Show:
+          </div>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className={`px-2 py-1 text-sm rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
+          >
+            {pagination.pageSizeOptions?.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+          
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className={`p-1 rounded ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              <SkipBack size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`p-1 rounded ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            
+            {getPageNumbers().map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1 text-sm rounded ${
+                  page === currentPage
+                    ? 'bg-[#7F22FE] text-white'
+                    : theme === 'dark'
+                    ? 'text-gray-300 hover:bg-gray-700'
+                    : 'text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`p-1 rounded ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className={`p-1 rounded ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              <SkipForward size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTable = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse select-none">
-        <thead>
-          <tr className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}>
-            {fixedHeaderKey && <th className={`p-3 font-bold text-left capitalize sticky left-0 z-10 border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700/50' : 'text-gray-700 border-gray-300 bg-gray-200'}`}>{fixedHeaderKey.replace(/_/g, ' ')}</th>}
-            {movableHeaders.map(header => (<th key={header} className={`p-3 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>{header}</th>))}
-            {renderActionCell && (
-              <th className={`p-3 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>{actionColumnHeader}</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {filteredData.map((row) => {
-            const rowIndex = row.originalIndex;
-            return (
+    <div className="flex flex-col" style={{ height: maxHeight }}>
+      {/* A single scrolling container for the entire table */}
+      <div className="flex-1 overflow-auto">
+        <table className="w-full border-collapse select-none">
+          <thead>
+            <tr className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}>
+              {fixedHeaderKey && (
+                <th 
+                  className={`p-3 font-bold text-left capitalize sticky top-0 left-0 z-30 border-b-2 ${
+                    theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700' : 'text-gray-700 border-gray-300 bg-gray-200'
+                  }`}
+                >
+                  {getColumnHeader(fixedHeaderKey)}
+                </th>
+              )}
+              {movableHeaders.map(header => (
+                <th 
+                  key={header} 
+                  className={`p-3 font-semibold text-left capitalize sticky top-0 z-20 border-b-2 ${
+                    theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'
+                  }`}
+                >
+                  {getColumnHeader(header)}
+                </th>
+              ))}
+              {renderActionCell && (
+                <th 
+                  className={`p-3 font-semibold text-left sticky top-0 z-20 border-b-2 ${
+                    theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'
+                  }`}
+                >
+                  {actionColumnHeader}
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedData.map((row, rowIndex) => (
               <tr key={row.id || rowIndex} className={theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}>
-                {fixedHeaderKey && <td className={`p-3 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>{row[fixedHeaderKey]}</td>}
+                {fixedHeaderKey && (
+                  <td 
+                    className={`p-3 border-b font-medium sticky left-0 z-10 ${
+                      theme === 'dark' ? 'border-gray-700 bg-gray-900 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'
+                    }`}
+                  >
+                    {row[fixedHeaderKey]}
+                  </td>
+                )}
                 {movableHeaders.map(header => (
-                  <td key={header}
-                    onDoubleClick={() => isEditable && setEditingCell({ rowIndex, colKey: header })}
+                  <td 
+                    key={header}
+                    onDoubleClick={() => isEditable && columnConfig[header]?.editable !== false && setEditingCell({ rowIndex, colKey: header })}
                     onClick={(e) => handleCellClick(rowIndex, header, e)}
                     draggable={isEditable}
                     onDragStart={() => handleDragStart(rowIndex, header)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(rowIndex, header)}
-                    className={`relative p-3 border-b transition-all duration-150 ${!isEditable ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-indigo-900/60 ring-2 ring-indigo-600' : 'bg-indigo-100 ring-2 ring-indigo-400') : ''}`}>
+                    className={`relative p-3 border-b transition-all duration-150 ${!isEditable ? 'cursor-default' : 'cursor-pointer'} ${
+                      theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
+                    } ${
+                      isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-indigo-900/60 ring-2 ring-indigo-600' : 'bg-indigo-100 ring-2 ring-indigo-400') : ''
+                    }`}
+                  >
                     {renderCellContent(rowIndex, header)}
                   </td>
                 ))}
@@ -409,10 +649,10 @@ const DataTable = ({
                   </td>
                 )}
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -458,9 +698,12 @@ const DataTable = ({
 
       {renderTable()}
 
+      {pagination.enabled && renderPaginationControls()}
+
       <Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} data={popupData} />
       <JsonPreviewModal isOpen={isJsonPreviewOpen} onClose={() => setIsJsonPreviewOpen(false)} data={data} />
-      {isEditable &&
+      
+      {isEditable && (
         <div className={`mt-6 pt-4 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <div>
             {selectionInfo || <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Click a cell to begin selection.</p>}
@@ -472,7 +715,7 @@ const DataTable = ({
             {showHelp && <HowToUse />}
           </div>
         </div>
-      }
+      )}
     </div>
   );
 };
