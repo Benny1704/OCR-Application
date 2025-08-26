@@ -50,17 +50,14 @@ const ProductDetailPopup = ({ isOpen, onClose, data }: ProductDetailPopupProps) 
       onClick={onClose}
     >
       <div 
-        className={`w-full max-w-5xl h-full max-h-[95vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden ring-1 
+        className={`w-full h-full max-h-[95vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden ring-1 
                     ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200 ring-white/10" : "bg-gray-50 text-gray-900 ring-black/5"}
                     transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         onClick={e => e.stopPropagation()}
       >
-        <header className={`flex-shrink-0 flex justify-between items-start p-6 sm:p-8 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+        <header className={`flex-shrink-0 flex justify-between items-center p-6 sm:p-8 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
           <div>
-            <p className={`text-base font-medium ${theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'}`}>Product Group Details</p>
-            <h2 className={`text-4xl sm:text-5xl font-extrabold mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-              {data.product_group}
-            </h2>
+            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Product Group Details</p>
           </div>
           <button 
             onClick={onClose} 
@@ -70,7 +67,7 @@ const ProductDetailPopup = ({ isOpen, onClose, data }: ProductDetailPopupProps) 
                           : 'text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 focus:ring-offset-gray-50'}`}
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -78,17 +75,6 @@ const ProductDetailPopup = ({ isOpen, onClose, data }: ProductDetailPopupProps) 
         
         <main className="flex-grow overflow-y-auto p-6 sm:p-8">
           <div className="space-y-10">
-            {/* <section>
-              <SectionHeader icon={<SupplierIcon />} title="Supplier Information" />
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
-                <InfoField label="Byno" value={data.by_no} />
-                <InfoField label="PO No" value={data.po_no} />
-                <InfoField label="HSN" value={data.hsn_code} />
-                <InfoField label="GST" value={`${data.gst_rate}%`} />
-                <InfoField label="UOM" value={data.uom} />
-                <InfoField label="Description" value={data.supplier_description} />
-              </div>
-            </section> */}
             
             <section>
               <SectionHeader icon={<ItemsIcon />} title="Item Breakdown" />

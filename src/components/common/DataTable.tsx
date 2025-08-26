@@ -40,7 +40,7 @@ const DataTable = ({
   renderActionCell,
   actionColumnHeader = 'Action',
   pagination = { enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] },
-  maxHeight = '600px'
+  maxHeight = '100%'
 }: DataTableProps) => {
   const { theme } = useTheme();
   const [data, setData] = useState<DataItem[]>(tableData);
