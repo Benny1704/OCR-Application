@@ -2,6 +2,7 @@ import { RefreshCw, ChevronLeft, ChevronRight, Eye, ZoomOut, RotateCcw, ZoomIn, 
 import { useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { InfoPillProps, PopupProps, ProductItem, Document, Toast as ToastType } from '../../interfaces/Types';
+import { motion } from 'framer-motion';
 
 // --- Toast and Upload Status Components ---
 
@@ -16,27 +17,50 @@ export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: nu
     }, [toast, onRemove]);
 
     const iconMap = {
-        success: <CheckCircle className="w-5 h-5 text-green-500" />,
+        success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
         error: <AlertTriangle className="w-5 h-5 text-red-500" />,
     };
 
+    const toastVariants = {
+        initial: { opacity: 0, y: -20, scale: 0.9 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, x: 50, scale: 0.8 },
+    };
+
     return (
-        <div className={`w-full max-w-sm p-4 rounded-lg shadow-lg flex items-start gap-4 transition-all animate-fade-in-up ${
-            theme === 'dark' ? 'bg-gray-800 border border-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-900'
-        }`}>
-            {iconMap[toast.type]}
+        <motion.div
+            layout
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`w-full max-w-sm p-4 rounded-xl shadow-lg flex items-start gap-3 border backdrop-blur-lg ${
+                theme === 'dark' 
+                ? 'bg-gray-800/80 border-gray-700/60 text-white' 
+                : 'bg-white/80 border-gray-200/80 text-gray-900'
+            }`}
+        >
+            <div className="flex-shrink-0 mt-0.5">{iconMap[toast.type]}</div>
             <div className="flex-grow">
-                <p className="font-semibold">{toast.message}</p>
+                <p className="font-semibold text-sm">{toast.message}</p>
                 {toast.action && (
-                    <button onClick={toast.action.onClick} className="mt-2 text-sm font-bold text-violet-500 hover:underline">
+                    <button 
+                        onClick={toast.action.onClick} 
+                        className={`mt-2 text-sm font-bold rounded-md px-3 py-1 transition-colors ${
+                            theme === 'dark' 
+                            ? 'bg-violet-500/20 text-violet-300 hover:bg-violet-500/30'
+                            : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                        }`}
+                    >
                         {toast.action.label}
                     </button>
                 )}
             </div>
-            <button onClick={() => onRemove(toast.id)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                <X className="w-4 h-4 text-gray-500" />
+            <button onClick={() => onRemove(toast.id)} className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0">
+                <X className="w-4 h-4" />
             </button>
-        </div>
+        </motion.div>
     );
 };
 
@@ -59,24 +83,36 @@ export const UploadStatus = ({ files, onClose }: { files: File[]; onClose: () =>
     }, [onClose]);
 
     return (
-        <div className={`w-full max-w-xs p-4 rounded-lg shadow-lg flex flex-col gap-4 transition-all animate-fade-in-up ${
-            theme === 'dark' ? 'bg-gray-800 border border-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-900'
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 50, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`w-full max-w-xs p-4 rounded-xl shadow-lg flex flex-col gap-3 border backdrop-blur-lg ${
+            theme === 'dark' 
+            ? 'bg-gray-800/80 border-gray-700/60 text-white' 
+            : 'bg-white/80 border-gray-200/80 text-gray-900'
         }`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <UploadCloud className="w-5 h-5 text-violet-500" />
-                    <p className="font-semibold">Uploading {files.length} file(s)</p>
+                    <p className="font-semibold text-sm">Uploading {files.length} file(s)</p>
                 </div>
-                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <X className="w-4 h-4 text-gray-500" />
+                <button onClick={onClose} className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <X className="w-4 h-4" />
                 </button>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div className="bg-violet-600 h-2.5 rounded-full" style={{ width: `${progress}%`, transition: 'width 0.3s ease-in-out' }}></div>
+            <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 text-right">{progress}%</p>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div className="bg-violet-600 h-1.5 rounded-full" style={{ width: `${progress}%`, transition: 'width 0.3s ease-in-out' }}></div>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
+
 
 // --- Existing Helper Components ---
 

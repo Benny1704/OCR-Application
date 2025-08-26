@@ -13,7 +13,6 @@
     "@flaticon/flaticon-uicons": "^3.3.1",
     "@headlessui/react": "^2.2.7",
     "@tailwindcss/vite": "^4.1.11",
-    "ag-grid-react": "^34.1.1",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.539.0",
     "react": "^19.1.0",

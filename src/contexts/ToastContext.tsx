@@ -14,7 +14,7 @@ export const ToastContext = createContext<ToastContextType | null>(null);
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
     const [toasts, setToasts] = useState<ToastType[]>([]);
-    const [uploadFiles, setUploadFiles] = useState<File[] | null>([]);
+    const [uploadFiles, setUploadFiles] = useState<File[] | null>(null);
 
     const addToast = (toast: Omit<ToastType, 'id'>) => {
         setToasts(prev => [...prev, { ...toast, id: Date.now() }]);

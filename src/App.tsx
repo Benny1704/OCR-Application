@@ -18,6 +18,7 @@ import { ThemeProvider } from "./contexts/ThemeContexts";
 import { ToastProvider } from "./contexts/ToastContext";
 import { useToast } from "./hooks/useToast";
 import { Toast, UploadStatus } from "./components/common/Helper";
+import { AnimatePresence } from "framer-motion";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
     const auth = useContext(AuthContext);
@@ -29,17 +30,13 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
 
 const routeDefinitions = createRoutesFromElements(
   <Route>
-
     <Route path="/login" element={<Login />} />
-
     <Route element={<RootLayout/>}>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/log" element={<Logs />} />
       </Route>
-
       <Route path="/queue" element={<Queue/>} />
       <Route path="/document" element={<Documents/>} />
       <Route path="/upload" element={<Upload/>} />
@@ -48,7 +45,6 @@ const routeDefinitions = createRoutesFromElements(
       <Route path="/preview" element={<Preview />} />
       <Route path="/manualEntry" element={<ManualEntry />} />
     </Route>
-
   </Route>
 );
 
@@ -60,16 +56,17 @@ const AppWithToasts = () => {
     return (
         <>
             <RouterProvider router={router} />
-            <div className="fixed top-4 right-4 z-[100] space-y-2">
-                {toasts.map(toast => (
-                    <Toast key={toast.id} toast={toast} onRemove={removeToast} />
-                ))}
+            {/* This container ensures toasts stack correctly in the corner */}
+            <div className="fixed top-4 right-4 z-[100] flex flex-col items-end gap-2">
+                <AnimatePresence>
+                    {uploadFiles && uploadFiles.length > 0 && (
+                       <UploadStatus files={uploadFiles} onClose={hideUploadStatus} />
+                    )}
+                    {toasts.map(toast => (
+                        <Toast key={toast.id} toast={toast} onRemove={removeToast} />
+                    ))}
+                </AnimatePresence>
             </div>
-            {uploadFiles && (
-                <div className="fixed top-4 right-4 z-[100]">
-                    <UploadStatus files={uploadFiles} onClose={hideUploadStatus} />
-                </div>
-            )}
         </>
     );
 }
@@ -86,4 +83,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
