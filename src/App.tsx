@@ -1,5 +1,5 @@
-import {createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider } from "react-router-dom"
-import './App.css'
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider } from "react-router-dom";
+import './App.css';
 import RootLayout from "./components/layout/RootLayout";
 import Dashboard from "./pages/Dashboard";
 import Queue from "./pages/Queue";
@@ -15,6 +15,9 @@ import { type Role } from "./interfaces/Types";
 import { useContext } from "react";
 import { AuthContext, AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContexts";
+import { ToastProvider } from "./contexts/ToastContext";
+import { useToast } from "./hooks/useToast";
+import { Toast, UploadStatus } from "./components/common/Helper";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
     const auth = useContext(AuthContext);
@@ -37,32 +40,49 @@ const routeDefinitions = createRoutesFromElements(
           <Route path="/log" element={<Logs />} />
       </Route>
 
-      {/* <Route path="dashboard" element={<Dashboard/>} /> */}
-      {/* <Route path="log" element={<Logs/>} /> */}
       <Route path="/queue" element={<Queue/>} />
       <Route path="/document" element={<Documents/>} />
       <Route path="/upload" element={<Upload/>} />
       <Route path="/imageAlteration" element={<ImageAlterations />} />
       <Route path="/edit" element={<Edit />} />
       <Route path="/preview" element={<Preview />} />
-+      <Route path="/manualEntry" element={<ManualEntry />} />
+      <Route path="/manualEntry" element={<ManualEntry />} />
     </Route>
 
   </Route>
 );
 
-const router = createBrowserRouter(routeDefinitions)
+const router = createBrowserRouter(routeDefinitions);
+
+const AppWithToasts = () => {
+    const { toasts, removeToast, uploadFiles, hideUploadStatus } = useToast();
+
+    return (
+        <>
+            <RouterProvider router={router} />
+            <div className="fixed top-4 right-4 z-[100] space-y-2">
+                {toasts.map(toast => (
+                    <Toast key={toast.id} toast={toast} onRemove={removeToast} />
+                ))}
+            </div>
+            {uploadFiles && (
+                <div className="fixed top-4 right-4 z-[100]">
+                    <UploadStatus files={uploadFiles} onClose={hideUploadStatus} />
+                </div>
+            )}
+        </>
+    );
+}
 
 function App() {
-
   return (
-
     <AuthProvider>
         <ThemeProvider>
-            <RouterProvider router={router} />
+            <ToastProvider>
+                <AppWithToasts />
+            </ToastProvider>
         </ThemeProvider>
     </AuthProvider>
-    // <RouterProvider router={router}></RouterProvider>
   )
 }
 

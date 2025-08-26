@@ -131,8 +131,6 @@ export interface ProductDetails {
 }
 export interface ExtractedData {
   invoice_image_url: string;
-
-  // Supplier & Invoice Details
   supplier_code: string;
   supplier_name_email: string;
   by_no: string;
@@ -143,11 +141,7 @@ export interface ExtractedData {
   invoice_date: string;
   pattial_amount: string;
   merchandise_name: string;
-
-  // Product Details
   product_details: any[];
-
-  // Amount & Tax Details
   total_pcs: string;
   freight_charges: string;
   master_discount_percent: string;
@@ -167,7 +161,7 @@ export interface ExtractedData {
   e_invoice: string;
   total_amount: string;
 
-  [key: string]: any; // Allows for dynamic key access
+  [key: string]: any;
 }
 export interface ChildProduct {
   id: string;
@@ -182,13 +176,11 @@ export interface ChildProduct {
   brand: string;
 }
 
-// Data for the main DataTable row, including all details needed for the popup
 export interface ProductWithDetails {
-  // --- Main Table Fields ---
-  id: string; // Primary key
+  id: string;
   s_no: number;
   product_group: string;
-  uom: string; // Unit of Measure
+  uom: string;
   qty: number;
   pcs: number;
   cost_price: number;
@@ -201,18 +193,10 @@ export interface ProductWithDetails {
   igst: string;
   rounded_off: number;
   total: number;
-  
-  // --- Popup-specific Data ---
-  
-  // Section 1: Additional Details
   by_no: string;
   gst_rate: string;
   po_no: string;
-
-  // Section 2: Child DataTable data
   child_products: ChildProduct[];
-  
-  // Section 3: Summary Data
   summary: {
     total_pcs: number;
     entered_pcs: number;
@@ -251,4 +235,14 @@ export interface ProductDetailPopupProps {
   isOpen: boolean;
   onClose: () => void;  
   data: ProductWithDetails | null;
+}
+
+export interface Toast {
+    id: number;
+    message: string;
+    type: 'success' | 'error';
+    action?: {
+        label: string;
+        onClick: () => void;
+    };
 }

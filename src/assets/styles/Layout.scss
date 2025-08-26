@@ -128,6 +128,7 @@
         background-color: var(--secondary);
         border-radius: 15px;
         transition: all 0.5s ease-in-out;
+        // transition: all 0.5s cubic-bezier(.47,1.64,.41,.8);
       }
     }
   }

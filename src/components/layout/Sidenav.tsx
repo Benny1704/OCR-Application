@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef } from 'react'
-import BrandLogo from '../../assets/images/logo.png'
-import '../../assets/styles/Layout.scss'
-import { NavLink, useNavigate } from 'react-router';
+import { useLayoutEffect, useRef } from 'react';
+import BrandLogo from '../../assets/images/logo.png';
+import '../../assets/styles/Layout.scss';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import ThemeToggle from '../common/ThemeToggle';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -21,7 +21,8 @@ const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => 
 const Sidenav = () => {
     const sidenavRef = useRef<HTMLUListElement>(null);
     const { user, logout } = useAuth();
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = () => {
         logout();
@@ -37,7 +38,6 @@ const Sidenav = () => {
     ];
 
     useLayoutEffect(() => {
-        
         updateActivePosition(sidenavRef);
 
         const observer = new ResizeObserver(() => {
@@ -53,24 +53,34 @@ const Sidenav = () => {
                 observer.unobserve(sidenavRef.current);
             }
         };
-    }, [window.location.pathname]);
+    }, [location.pathname]);
 
     return (
 
         <div className="sidenav-container">
             <div className="brand-icon flex justify-start items-center">
-                <img src={BrandLogo} alt=""/>
+                <img src={BrandLogo} alt="Brand Logo"/>
             </div>
 
             <nav className="nav-container" ref={sidenavRef}>
                 <ul className="nav">
                     {navItem.map((nav,i) => 
                         <li key={i}>
-                            <NavLink to={nav.link} className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
+                            <NavLink 
+                                to={nav.link} 
+                                className={({ isActive }) => {
+                                    if (nav.name === 'Queue') {
+                                        const queuePaths = ['/queue', '/edit', '/preview', '/imageAlteration'];
+                                        const isQueueActive = queuePaths.some(path => location.pathname.startsWith(path));
+                                        return isQueueActive ? 'nav-item active' : 'nav-item';
+                                    }
+                                    return isActive ? 'nav-item active' : 'nav-item';
+                                }}
+                            >
                                 <i className={`fi ${nav.icon}`}></i>
                                 <p className="tooltip">{nav.name}</p>
                             </NavLink>
-                        </li>
+                        </li>
                     )}
                     
                     <div className="theme-toggle"><ThemeToggle></ThemeToggle></div>
@@ -79,7 +89,6 @@ const Sidenav = () => {
             </nav>
             
             <div className="actions">
-                {/* <button className="upload action font-medium"> <i className="fi fi-sr-upload"></i></button> */}
                 <button className="logout action font-medium" onClick={handleLogout}> <i className="fi fi-sr-sign-out-alt"></i></button>
             </div>
         </div>
@@ -87,4 +96,4 @@ const Sidenav = () => {
     )
 }
 
-export default Sidenav
+export default Sidenav;

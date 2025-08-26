@@ -59,12 +59,13 @@ const Queue = () => {
         const queuedDocs = currentDocs.filter(
           (d) => d.status === "Queued" && !d.isPriority
         );
-        if (queuedDocs.length === 0) return currentDocs;
-
         const priorityDoc = currentDocs.find(
           (d) => d.status === "Queued" && d.isPriority
         );
+        if (!priorityDoc && queuedDocs.length === 0) return currentDocs;
+        
         const docToProcess = priorityDoc || queuedDocs[0];
+        if (!docToProcess) return currentDocs;
 
         const updatedDocs = currentDocs.map((d) =>
           d.id === docToProcess.id ? { ...d, status: "Processing" as const } : d
@@ -92,10 +93,10 @@ const Queue = () => {
       );
       list.sort((a, b) => {
         if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
-        if (a.status === "Processing") return -1;
-        if (b.status === "Processing") return 1;
+        if (a.status === "Processing" && b.status !== "Processing") return -1;
+        if (b.status === "Processing" && a.status !== "Processing") return 1;
         return (
-          new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+          new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
         );
       });
     } else if (activeTab === "Processed") {
@@ -138,11 +139,11 @@ const Queue = () => {
   const openRetryModal = () => setRetryModalOpen(true);
   const handleSimpleRetry = () => {
     setRetryModalOpen(false);
-    navigate("loading");
+    navigate("/loading");
   };
   const handleRetryWithAlterations = () => {
     setRetryModalOpen(false);
-    navigate("imageAlteration");
+    navigate("/imageAlteration");
   };
 
   const updateActivePosition = () => {
@@ -151,10 +152,6 @@ const Queue = () => {
         ".nav-item.active"
       ) as HTMLElement;
       if (activeLi) {
-        tabRef.current.style.setProperty(
-          "--position-y-active",
-          `${activeLi.offsetTop}px`
-        );
         tabRef.current.style.setProperty(
           "--position-x-active",
           `${activeLi.offsetLeft}px`
@@ -172,7 +169,7 @@ const Queue = () => {
     return () => {
       if (tabRef.current) observer.unobserve(tabRef.current);
     };
-  }, [window.location.pathname, activeTab]);
+  }, [activeTab]);
 
   const InfoCard = ({
     icon,
@@ -184,14 +181,14 @@ const Queue = () => {
     value: string;
   }) => (
     <div
-      className={`p-4 rounded-lg flex items-center gap-4 transition-colors ${
+      className={`p-3 rounded-lg flex items-center gap-3 transition-colors ${
         theme === "dark"
           ? "bg-gray-800/60 border border-gray-700/80"
           : "bg-gray-100 border border-gray-200"
       }`}
     >
       <div
-        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
           theme === "dark"
             ? "bg-violet-600/10 text-violet-400"
             : "bg-violet-100 text-violet-600"
@@ -200,8 +197,8 @@ const Queue = () => {
         {icon}
       </div>
       <div>
-        <p className={`text-sm ${textSecondary}`}>{label}</p>
-        <p className={`font-semibold ${textPrimary}`}>{value}</p>
+        <p className={`text-xs ${textSecondary}`}>{label}</p>
+        <p className={`font-semibold text-sm ${textPrimary}`}>{value}</p>
       </div>
     </div>
   );
@@ -213,9 +210,9 @@ const Queue = () => {
   );
 
   const tabIcons = {
-    Queued: <ClipboardClock size={18} />,
-    Processed: <ClipboardCheck size={18} />,
-    Failed: <ClipboardX size={18} />,
+    Queued: <ClipboardClock size={16} />,
+    Processed: <ClipboardCheck size={16} />,
+    Failed: <ClipboardX size={16} />,
   };
 
   return (
@@ -260,14 +257,14 @@ const Queue = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="h-full w-full flex flex-col"
             >
               {activeTab === "Processed" ? (
-                <div className="table">
+                <div className="flex-grow overflow-auto">
                   <DataTable
                     tableData={JSON.parse(JSON.stringify(documentsForTab))}
                     tableConfig={documentConfig}
@@ -279,28 +276,27 @@ const Queue = () => {
                       pageSize: 10,
                       pageSizeOptions: [5, 10, 25, 50, 100],
                     }}
-                    // maxHeight="100%"
+                    maxHeight="100%"
                   />
                 </div>
               ) : documentsForTab.length > 0 ? (
-                <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                  {/* --- DOCUMENT LIST (LEFT) - No longer uses motion --- */}
+                <main className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow overflow-hidden">
                   <aside
                     className={`rounded-xl border flex flex-col ${
                       theme === "dark" ? "bg-gray-800/20" : "bg-white"
                     } ${borderPrimary}`}
                   >
-                    <div className={`p-4 border-b ${borderPrimary}`}>
-                      <h3 className={`font-semibold text-lg ${textHeader}`}>
+                    <div className={`p-3 border-b ${borderPrimary}`}>
+                      <h3 className={`font-semibold text-base ${textHeader}`}>
                         {activeTab} Documents
                       </h3>
                     </div>
-                    <div className="p-2 overflow-y-auto max-h-[550px]">
+                    <div className="flex-grow p-2 overflow-y-auto">
                       {documentsForTab.map((doc) => (
                         <button
                           key={doc.id}
                           onClick={() => setSelectedDocumentId(doc.id)}
-                          className={`w-full text-left p-3 rounded-lg flex items-center gap-4 transition-all duration-200 group ${
+                          className={`w-full text-left p-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 group ${
                             selectedDocumentId === doc.id
                               ? theme === "dark"
                                 ? "bg-violet-600/20"
@@ -311,7 +307,7 @@ const Queue = () => {
                           }`}
                         >
                           <div
-                            className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+                            className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 ${
                               selectedDocumentId === doc.id
                                 ? theme === "dark"
                                   ? "bg-violet-600/30 text-violet-300"
@@ -321,16 +317,16 @@ const Queue = () => {
                                 : "bg-gray-100 text-gray-500 group-hover:bg-gray-200 group-hover:text-gray-600"
                             }`}
                           >
-                            <File size={20} />
+                            <File size={18} />
                           </div>
                           <div className="flex-1 overflow-hidden">
                             <p
-                              className={`font-bold flex gap-2 items-center truncate ${textHeader}`}
+                              className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}
                             >
                               {doc.name}
                               {doc.isPriority && (
                                 <Star
-                                  className="w-4 h-4 text-yellow-400 mt-1"
+                                  className="w-3.5 h-3.5 text-yellow-400"
                                   fill="currentColor"
                                 />
                               )}
@@ -342,23 +338,21 @@ const Queue = () => {
                     </div>
                   </aside>
 
-                  {/* --- DOCUMENT DETAILS (RIGHT) - No longer uses motion --- */}
                   <section
                     className={`lg:col-span-2 rounded-xl border flex flex-col ${
                       theme === "dark" ? "bg-gray-800/20" : "bg-white"
                     } ${borderPrimary}`}
                   >
                     {selectedDocument ? (
-                      <div className="h-full flex flex-col p-6">
-                        {/* --- HEADER --- */}
-                        <div className="flex justify-between items-start pb-5">
+                      <div className="h-full flex flex-col p-4">
+                        <div className="flex justify-between items-start pb-4 flex-shrink-0">
                           <div className="flex-1 overflow-hidden pr-4">
                             <h3
-                              className={`text-2xl font-bold truncate ${textHeader}`}
+                              className={`text-lg font-bold truncate ${textHeader}`}
                             >
                               {selectedDocument.name}
                             </h3>
-                            <p className={textSecondary}>
+                            <p className={`text-xs ${textSecondary}`}>
                               Uploaded on {selectedDocument.uploadDate}
                             </p>
                           </div>
@@ -368,21 +362,20 @@ const Queue = () => {
                             theme={theme}
                           />
                         </div>
-                        <hr className={borderPrimary} />
+                        <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
-                        <div className="py-6 space-y-6 flex-grow overflow-y-auto">
-                          {/* --- ERROR MESSAGE --- */}
+                        <div className="py-4 space-y-4 flex-grow overflow-y-auto">
                           {activeTab === "Failed" &&
                             selectedDocument.errorMessage && (
                               <div
-                                className={`p-4 rounded-lg flex items-start gap-3 ${
+                                className={`p-3 rounded-lg flex items-start gap-3 text-xs ${
                                   theme === "dark"
                                     ? "bg-red-900/20 border border-red-700/40"
                                     : "bg-red-50 border border-red-200"
                                 }`}
                               >
                                 <AlertCircle
-                                  className={`w-6 h-6 flex-shrink-0 mt-0.5 ${
+                                  className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
                                     theme === "dark"
                                       ? "text-red-400"
                                       : "text-red-500"
@@ -399,7 +392,7 @@ const Queue = () => {
                                     Processing Error
                                   </p>
                                   <p
-                                    className={`mt-1 text-sm ${
+                                    className={`mt-1 ${
                                       theme === "dark"
                                         ? "text-red-400"
                                         : "text-red-700"
@@ -411,39 +404,36 @@ const Queue = () => {
                               </div>
                             )}
 
-                          {/* --- DOCUMENT INFORMATION --- */}
                           <div>
                             <h4
-                              className={`font-semibold text-lg mb-4 ${textHeader}`}
+                              className={`font-semibold text-base mb-3 ${textHeader}`}
                             >
                               Document Information
                             </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <InfoCard
-                                icon={<Database size={20} />}
+                                icon={<Database size={18} />}
                                 label="File Size"
                                 value={selectedDocument.size}
                               />
                               <InfoCard
-                                icon={<User size={20} />}
+                                icon={<User size={18} />}
                                 label="Uploaded By"
                                 value={selectedDocument.uploadedBy || "Admin"}
                               />
                             </div>
                           </div>
                         </div>
-                        <hr className={borderPrimary} />
+                        <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
-                        <div className="pt-5">
+                        <div className="pt-4 flex-shrink-0">
                           <h4
-                            className={`font-semibold text-lg mb-4 ${textHeader}`}
+                            className={`font-semibold text-base mb-3 ${textHeader}`}
                           >
                             Actions
                           </h4>
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
                             {activeTab === "Queued" &&
-                              (selectedDocument.status === "Queued" ||
-                                selectedDocument.status === "Processing") &&
                               user?.role === "admin" && (
                                 <>
                                   <button
@@ -453,14 +443,14 @@ const Queue = () => {
                                     disabled={
                                       selectedDocument.status === "Processing"
                                     }
-                                    className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
+                                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
                                       theme === "dark"
                                         ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
                                         : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
                                     }`}
                                   >
                                     <Star
-                                      className={`w-4 h-4 ${
+                                      className={`w-3.5 h-3.5 ${
                                         selectedDocument.isPriority
                                           ? "text-yellow-400"
                                           : ""
@@ -471,7 +461,7 @@ const Queue = () => {
                                           : "none"
                                       }
                                     />
-                                    Set as Priority
+                                    Priority
                                   </button>
                                   <button
                                     onClick={() =>
@@ -480,92 +470,89 @@ const Queue = () => {
                                     disabled={
                                       selectedDocument.status === "Processing"
                                     }
-                                    className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
+                                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
                                       theme === "dark"
                                         ? "bg-red-900/40 border-red-700/60 text-red-300 hover:bg-red-900/60"
                                         : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
                                     }`}
                                   >
-                                    <Trash2 className="w-4 h-4" /> Delete
+                                    <Trash2 className="w-3.5 h-3.5" /> Delete
                                   </button>
                                 </>
                               )}
                             {activeTab === "Failed" && (
-                            <>
-                              <button
+                              <>
+                                <button
                                   onClick={() => navigate('/manualEntry')}
-                                  className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border ${
+                                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${
                                     theme === "dark"
                                       ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
                                       : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
                                   }`}
                                 >
                                   <i className="fi fi-rr-add-document"></i> Manual Entry
-                              </button>
-                              {user?.role === "admin" && (
-                                <button
-                                  onClick={openRetryModal}
-                                  className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-semibold shadow-sm transition-all border ${
-                                    theme === "dark"
-                                      ? "bg-yellow-900/40 border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
-                                      : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
-                                  }`}
-                                >
-                                  <RefreshCw className="w-4 h-4" /> Retry Processing
                                 </button>
-                              )}
-                            </>
-                          )}
+                                {user?.role === "admin" && (
+                                  <button
+                                    onClick={openRetryModal}
+                                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${
+                                      theme === "dark"
+                                        ? "bg-yellow-900/40 border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
+                                        : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                                    }`}
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" /> Retry
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                           {selectedDocument.status === "Processing" && (
                             <p
-                              className={`text-sm mt-4 ${
+                              className={`text-xs mt-3 ${
                                 theme === "dark"
                                   ? "text-yellow-400"
                                   : "text-yellow-600"
                               }`}
                             >
-                              Cannot perform actions while a document is being
-                              processed.
+                              Cannot perform actions while processing.
                             </p>
                           )}
                         </div>
                       </div>
                     ) : (
-                      // Placeholder when no document is selected
                       <div className="flex flex-col items-center justify-center h-full text-center p-6">
                         <div
-                          className={`flex items-center justify-center w-20 h-20 rounded-full mb-6 ${
+                          className={`flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
                             theme === "dark"
                               ? "bg-violet-600/10 text-violet-400"
                               : "bg-violet-100 text-violet-600"
                           }`}
                         >
-                          <FileText className="w-10 h-10" />
+                          <FileText className="w-8 h-8" />
                         </div>
                         <h3
-                          className={`text-xl font-semibold ${textHeader}`}
+                          className={`text-lg font-semibold ${textHeader}`}
                         >
                           Select a document
                         </h3>
-                        <p className={textSecondary}>
-                          Choose a document to view its details and actions.
+                        <p className={`text-sm ${textSecondary}`}>
+                          Choose a document to view its details.
                         </p>
                       </div>
                     )}
                   </section>
                 </main>
               ) : (
-                // Empty state for the tab
-                <div className="h-full flex flex-col justify-center items-center text-center py-16">
+                <div className="flex-grow flex flex-col justify-center items-center text-center py-12">
                   <div
-                    className={`flex items-center justify-center w-24 h-24 rounded-full mb-6 ${
+                    className={`flex items-center justify-center w-20 h-20 rounded-full mb-4 ${
                       theme === "dark" ? "bg-gray-800" : "bg-gray-100"
                     }`}
                   >
-                    <FileText className={`w-12 h-12 ${textSecondary}`} />
+                    <FileText className={`w-10 h-10 ${textSecondary}`} />
                   </div>
-                  <p className={`font-semibold text-lg ${textHeader}`}>
+                  <p className={`font-semibold text-base ${textHeader}`}>
                     No {activeTab.toLowerCase()} documents found
                   </p>
                   <p className={`text-sm mt-1 ${textSecondary}`}>

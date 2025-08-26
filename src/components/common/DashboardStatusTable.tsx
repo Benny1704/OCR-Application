@@ -57,7 +57,7 @@ const StatusColumn: FC<{
 const DashboardStatusTable = () => {
     const { theme } = useTheme();
     const navigate = useNavigate();
-    const cardClasses = `p-6 rounded-2xl shadow-md border transition-colors ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`;
+    const cardClasses = `p-4 md:p-6 rounded-2xl shadow-md border transition-colors ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`;
 
     const { queued, processed, failed } = useMemo(() => {
         const allDocs = initialMockDocuments;
@@ -79,13 +79,13 @@ const DashboardStatusTable = () => {
 
     return (
         <div className={cardClasses}>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Document Status Overview</h3>
-                <button onClick={() => navigate('/queue')} className="text-sm font-semibold text-violet-500 dark:text-violet-400 hover:underline">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2">
+                <h3 className={`text-lg md:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Document Status Overview</h3>
+                <button onClick={() => navigate('/queue')} className="text-sm font-semibold text-violet-500 dark:text-violet-400 hover:underline self-start sm:self-center">
                     View Full Queue &rarr;
                 </button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <StatusColumn title="In Queue" docs={queued.docs} count={queued.count} icon={Loader2} accentColor="blue" />
                 <StatusColumn title="Processed" docs={processed.docs} count={processed.count} icon={CheckCircle2} accentColor="green" />
                 <StatusColumn title="Failed" docs={failed.docs} count={failed.count} icon={XCircle} accentColor="red" />

@@ -8,7 +8,7 @@ import { motion, type Variants } from "framer-motion"; // <-- IMPORT THE TYPE HE
 import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { itemVariants } from '../components/common/Animation'; 
+import { itemVariants } from '../components/common/Animation';
 import { containerVariants } from '../components/common/Animation';
 
 interface MetricCardProps {
@@ -35,7 +35,7 @@ interface CustomTooltipProps {
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
     const { theme } = useTheme();
     
-    const cardClasses = `p-6 rounded-2xl shadow-lg border transition-all duration-300 transform hover:-translate-y-1 ${
+    const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border transition-all duration-300 transform hover:-translate-y-1 ${
         theme === 'dark' 
         ? 'bg-[#1C1C2E] border-gray-700/50 hover:border-violet-500' 
         : 'bg-white border-gray-200/80 hover:border-violet-400'
@@ -51,15 +51,15 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
     return (
         <motion.div variants={cardVariants} className={cardClasses}>
             <div className="flex justify-between items-start">
-                <h3 className={`text-md font-semibold ${textSecondary}`}>{title}</h3>
-                <Icon className="w-6 h-6 text-gray-400" />
+                <h3 className={`text-sm md:text-md font-semibold ${textSecondary}`}>{title}</h3>
+                <Icon className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
             </div>
-            <p className={`text-3xl font-bold mt-2 ${textPrimary}`}>{value}</p>
+            <p className={`text-2xl md:text-3xl font-bold mt-2 ${textPrimary}`}>{value}</p>
             {change && (
                 <div className="flex items-center mt-2">
                     {changeType === 'increase' ? <ArrowUpRight className="w-4 h-4 text-green-500" /> : <ArrowDownRight className="w-4 h-4 text-red-500" />}
-                    <p className={`ml-1 text-sm font-semibold ${changeType === 'increase' ? 'text-green-500' : 'text-red-500'}`}>{change}</p>
-                    <p className={`ml-2 text-sm ${textSecondary}`}>vs last month</p>
+                    <p className={`ml-1 text-xs md:text-sm font-semibold ${changeType === 'increase' ? 'text-green-500' : 'text-red-500'}`}>{change}</p>
+                    <p className={`ml-2 text-xs md:text-sm ${textSecondary}`}>vs last month</p>
                 </div>
             )}
         </motion.div>
@@ -157,19 +157,19 @@ const Dashboard = () => {
 
     return (
         <motion.div 
-            className="flex flex-col gap-8"
+            className="flex flex-col gap-6 md:gap-8"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
         >
-            <motion.div className="flex justify-between items-center" variants={itemVariants}>
+            <motion.div className="flex flex-col md:flex-row justify-between md:items-center gap-4" variants={itemVariants}>
                 <div>
-                    <h1 className={`text-4xl font-bold ${textHeader}`}>Dashboard</h1>
-                    <p className={`mt-1 ${textSecondary}`}>Welcome back, {user?.email || 'Admin'}!</p>
+                    <h1 className={`text-3xl md:text-4xl font-bold ${textHeader}`}>Dashboard</h1>
+                    <p className={`mt-1 text-sm md:text-base ${textSecondary}`}>Welcome back, {user?.email || 'Admin'}!</p>
                 </div>
                 <motion.button 
                     onClick={() => navigate('/upload')} 
-                    className="flex items-center gap-2 bg-violet-600 text-white font-bold py-3 px-5 rounded-xl shadow-lg transition-all transform hover:shadow-violet-400/50 focus:outline-none focus:ring-4 focus:ring-violet-500/50"
+                    className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 md:py-3 md:px-5 rounded-xl shadow-lg transition-all transform hover:shadow-violet-400/50 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm md:text-base"
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
                 >
@@ -177,7 +177,7 @@ const Dashboard = () => {
                 </motion.button>
             </motion.div>
 
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
                 {kpiMetrics.map((metric, i) => (
                     <MetricCard key={metric.title} {...metric} index={i} />
                 ))}
@@ -187,7 +187,7 @@ const Dashboard = () => {
                 <DashboardStatusTable />
             </motion.div>
 
-            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-8" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
                 <ChartCard title="Financial Obligations" icon={Banknote}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={monthlyExpenseData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
@@ -225,7 +225,7 @@ const Dashboard = () => {
                 <ChartCard title="Spending by Vendor" icon={TrendingUp}>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={5} labelLine={false}>
+                            <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
                                 {spendByVendorData.map((entry, index) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
                             </Pie>
                             <Tooltip content={<CustomPieTooltip />} />
@@ -253,19 +253,19 @@ const Dashboard = () => {
 
 const ChartCard = ({ title, icon: Icon, children }: ChartCardProps) => {
     const { theme } = useTheme();
-    const cardClasses = `p-6 rounded-2xl shadow-lg border ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
+    const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
 
     return (
         <div className={cardClasses}>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <Icon className="w-6 h-6 text-violet-500 dark:text-violet-400" />
-                    <h3 className={`text-lg font-bold ${textPrimary}`}>{title}</h3>
+                    <Icon className="w-5 h-5 md:w-6 md:h-6 text-violet-500 dark:text-violet-400" />
+                    <h3 className={`text-base md:text-lg font-bold ${textPrimary}`}>{title}</h3>
                 </div>
                 <DropdownMenu />
             </div>
-            <div className="h-80">
+            <div className="h-72 md:h-80">
                 {children}
             </div>
         </div>

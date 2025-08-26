@@ -1,20 +1,15 @@
-// src/components/Upload.tsx
-
 import { HardDriveUpload, FileText, X, Eye, Paperclip, Info, Files, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useCallback } from 'react';
 import { useDropzone, type Accept } from 'react-dropzone';
 import { useTheme } from '../hooks/useTheme';
-
-// TODO: Replace this with your preferred toast library (e.g., react-hot-toast)
-const showToast = (message: string) => {
-    alert(message);
-};
+import { useToast } from '../hooks/useToast';
 
 const Upload = () => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const [files, setFiles] = useState<File[]>([]);
+    const { addToast, showUploadStatus } = useToast();
 
     const MAX_FILES = 5;
 
@@ -25,11 +20,6 @@ const Upload = () => {
             )
         );
 
-        if (files.length + newFiles.length > MAX_FILES) {
-            showToast(`You can select a maximum of ${MAX_FILES} files.`);
-        }
-        
-        // Add all newly selected, non-duplicate files to the list
         setFiles(prevFiles => [...prevFiles, ...newFiles]);
 
     }, [files]);
@@ -42,8 +32,7 @@ const Upload = () => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: acceptOptions,
-        maxSize: 15 * 1024 * 1024, // 10 MB
-        // REMOVED maxFiles from here to handle the logic manually in onDrop
+        maxSize: 15 * 1024 * 1024,
     });
 
     const removeFile = (fileName: string): void => {
@@ -51,8 +40,18 @@ const Upload = () => {
     };
     
     const handleProceed = (): void => {
-        console.log("Proceeding with files:", files);
-        navigate('/queue');
+        const filesToUpload = files.slice(0, MAX_FILES);
+        showUploadStatus(filesToUpload);
+        setTimeout(() => {
+            addToast({
+                type: 'success',
+                message: 'Upload complete!',
+                action: {
+                    label: 'Show',
+                    onClick: () => navigate('/queue')
+                }
+            });
+        }, 3000); // Simulate upload time
     };
 
     const formatBytes = (bytes: number, decimals: number = 2): string => {
@@ -68,7 +67,6 @@ const Upload = () => {
 
     return (
         <div className={`h-full w-full flex flex-col p-4 sm:p-6 transition-colors animate-fade-in-up rounded-[30px] overflow-hidden ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200" : "bg-gray-50 text-gray-900"}`}>
-            {/* --- HEADER --- */}
             <header className="flex-shrink-0 mb-6">
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-2.5 rounded-lg shadow-lg">
@@ -83,10 +81,8 @@ const Upload = () => {
                 </div>
             </header>
 
-            {/* --- MAIN CONTENT GRID --- */}
             <main className="flex-grow grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-0">
                 
-                {/* --- LEFT COLUMN: UPLOAD ZONE --- */}
                 <div className="lg:col-span-3 flex flex-col gap-8">
                     <div {...getRootProps()} className={`relative flex-grow flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all duration-300 group ${theme === 'dark' ? 'border-gray-700 hover:border-violet-500' : 'border-gray-300 hover:border-violet-500'} ${isDragActive ? (theme === 'dark' ? 'border-violet-500 bg-violet-900/20' : 'border-violet-500 bg-violet-50') : (theme === 'dark' ? 'hover:bg-gray-900' : 'hover:bg-gray-100/50')}`}>
                         <input {...getInputProps()} />
@@ -111,7 +107,6 @@ const Upload = () => {
                     </div>
                 </div>
 
-                {/* --- RIGHT COLUMN: FILE LIST & ACTIONS --- */}
                 <div className={`lg:col-span-2 flex flex-col rounded-lg border min-h-0 ${theme === 'dark' ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}>
                     {files.length > 0 ? (
                         <>
@@ -129,8 +124,8 @@ const Upload = () => {
                                 )}
                             </div>
                             <div className="overflow-y-auto p-4 space-y-3 flex-grow">
-                                {files.map((file) => (
-                                    <div key={`${file.name}-${file.lastModified}`} className={`flex items-center p-3 rounded-lg border transition-all animate-fade-in-up ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                {files.map((file, index) => (
+                                    <div key={`${file.name}-${file.lastModified}`} className={`flex items-center p-3 rounded-lg border transition-all animate-fade-in-up ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-gray-50 border-gray-200'} ${index >= MAX_FILES ? 'border-red-500/50' : ''}`}>
                                         <FileText className="w-6 h-6 mr-4 text-violet-500 flex-shrink-0" />
                                         <div className="flex-grow overflow-hidden">
                                             <p className={`font-medium truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`} title={file.name}>

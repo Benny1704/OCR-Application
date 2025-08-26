@@ -10,7 +10,6 @@ interface Summary { total_pcs: number; entered_pcs: number; total_qty: number; e
 interface ProductWithDetails { id: string; s_no: number; product_group: string; uom: string; qty: number; pcs: number; cost_price: number; discount_amount: number; discount_percent: string; price_code: string; supplier_description: string; mrp: number; hsn_code: string; igst: string; rounded_off: number; total: number; by_no: string; gst_rate: string; po_no: string; child_products: ChildProduct[]; summary: Summary; }
 
 // --- UI COMPONENTS ---
-// Note: The 'theme' prop is no longer needed. Tailwind's `dark:` variant handles theming automatically.
 const MessageBox = ({ message, onClose }: { message: string; onClose: () => void; }) => (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up bg-white dark:bg-[#2a2a3e] border border-gray-200 dark:border-gray-700">
@@ -80,15 +79,15 @@ const ProductDetailsModal = ({ product, onClose }: { product: ProductWithDetails
 };
 
 const InfoCard = ({ title, data, icon: Icon, theme }: { title: string; data: object; icon: React.ElementType; theme: any }) => (
-    <div className={`p-5 rounded-2xl shadow-lg border mb-8 overflow-hidden transition-colors ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
-        <h3 className={`flex items-center font-bold text-lg pb-4 mb-4 border-b ${theme === 'dark' ? 'text-white border-gray-700' : 'text-gray-800 border-gray-200'}`}>
+    <div className={`p-4 md:p-5 rounded-2xl shadow-lg border mb-6 md:mb-8 overflow-hidden transition-colors ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
+        <h3 className={`flex items-center font-bold text-md md:text-lg pb-3 md:pb-4 mb-3 md:mb-4 border-b ${theme === 'dark' ? 'text-white border-gray-700' : 'text-gray-800 border-gray-200'}`}>
             <Icon className="w-5 h-5 mr-3 text-blue-500" /> {title}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             {Object.entries(data).map(([key, value]) => (
                 <div key={key}>
                     <span className={`text-xs font-medium capitalize block ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{key.replace(/_/g, ' ')}</span>
-                    <span className={`font-semibold text-base ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{value.toString() || '-'}</span>
+                    <span className={`font-semibold text-sm md:text-base ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{value.toString() || '-'}</span>
                 </div>
             ))}
         </div>
@@ -111,15 +110,15 @@ const Preview = () => {
     return (
         <div className={`min-h-screen font-sans rounded-[30px] ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`}>
             <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-                <div className="text-center mb-10">
-                    <h2 className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-black-200'}`}>Invoice & Product Verification</h2>
-                    <p className="mt-2 text-base text-gray-500 dark:text-gray-400">Review the details below.</p>
+                <div className="text-center mb-8 md:mb-10">
+                    <h2 className={`text-2xl md:text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-black-200'}`}>Invoice & Product Verification</h2>
+                    <p className="mt-2 text-sm md:text-base text-gray-500 dark:text-gray-400">Review the details below.</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div className="lg:col-span-1 space-y-8">
-                        <div className={`p-5 rounded-2xl shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
-                            <h3 className={`flex items-center font-bold text-lg mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
+                    <div className="lg:col-span-1 space-y-6 md:space-y-8">
+                        <div className={`p-4 md:p-5 rounded-2xl shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
+                            <h3 className={`flex items-center font-bold text-md md:text-lg mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                 <FileText className="w-5 h-5 mr-3 text-blue-500" /> Invoice Document
                             </h3>
                             <div className="rounded-lg overflow-hidden border border-gray-200">
@@ -127,30 +126,29 @@ const Preview = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="lg:col-span-2 space-y-8">
+                    <div className="lg:col-span-2 space-y-6 md:space-y-8">
                         <InfoCard title="Supplier & Invoice Details" data={supplierAndInvoiceDetails} icon={Building} theme={theme} />
                         <InfoCard title="Amount & Tax Details" data={amountAndTaxDetails} icon={DollarSign} theme={theme} />
                     </div>
                 </div>
 
-                <div className={`mt-8 rounded-2xl overflow-hidden shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
-                    {/* <h3 className="font-bold text-lg p-5 text-gray-800 dark:text-white">Detailed Product Verification</h3> */}
+                <div className={`mt-6 md:mt-8 rounded-2xl overflow-hidden shadow-lg border ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200/80 bg-white'}`}>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead className={`p-4 font-semibold ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-100'}`}>
                                 <tr className="text-left">
-                                    {['#', 'Product Group', 'Description', 'Qty', 'Total', 'Actions'].map(h => <th key={h} className={`p-4 font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{h}</th>)}
+                                    {['#', 'Product Group', 'Description', 'Qty', 'Total', 'Actions'].map(h => <th key={h} className={`p-3 md:p-4 font-semibold text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
                                 {mockProductData.map((product) => (
-                                    <tr key={product.id} className={`border-t ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800/50 border-gray-700/60' : 'text-gray-800 bg-gray-50 border-gray-200/80'}`}>
-                                        <td className="p-4">{product.s_no}</td>
-                                        <td className="p-4 font-medium">{product.product_group}</td>
-                                        <td className="p-4 ">{product.supplier_description}</td>
-                                        <td className="p-4">{product.qty} {product.uom}</td>
-                                        <td className="p-4 font-semibold">{product.total.toFixed(2)}</td>
-                                        <td className="p-4">
+                                    <tr key={product.id} className={`border-t text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800/50 border-gray-700/60' : 'text-gray-800 bg-gray-50 border-gray-200/80'}`}>
+                                        <td className="p-3 md:p-4">{product.s_no}</td>
+                                        <td className="p-3 md:p-4 font-medium">{product.product_group}</td>
+                                        <td className="p-3 md:p-4 ">{product.supplier_description}</td>
+                                        <td className="p-3 md:p-4">{product.qty} {product.uom}</td>
+                                        <td className="p-3 md:p-4 font-semibold">{product.total.toFixed(2)}</td>
+                                        <td className="p-3 md:p-4">
                                             <button onClick={() => setSelectedProduct(product)} className="flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                                 <Eye className="w-4 h-4" /> View Details
                                             </button>
@@ -162,9 +160,9 @@ const Preview = () => {
                     </div>
                 </div>
 
-                <div className="mt-10 pt-6 border-t border-gray-200/80 dark:border-gray-700/60 flex justify-end space-x-4">
-                    <button onClick={() => navigate('/edit')} className="font-bold py-3 px-6 rounded-lg transition-colors bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">Back to Edit</button>
-                    <button onClick={handleSubmit} className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all">
+                <div className="mt-8 md:mt-10 pt-6 border-t border-gray-200/80 dark:border-gray-700/60 flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button onClick={() => navigate('/edit')} className="w-full sm:w-auto font-bold py-3 px-6 rounded-lg transition-colors bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">Back to Edit</button>
+                    <button onClick={handleSubmit} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all">
                         <CheckCircle2 className="w-5 h-5"/> Confirm & Submit
                     </button>
                 </div>
