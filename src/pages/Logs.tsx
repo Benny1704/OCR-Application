@@ -81,7 +81,7 @@ const StatCard = ({ title, value, change, changeType, Icon }: StatCardProps) => 
       whileHover={{ scale: 1.03, transition: { type: "spring", stiffness: 300 } }}
       className={`relative p-6 rounded-2xl overflow-hidden border transition-colors ${
         theme === "dark"
-          ? "bg-neutral-900/50 border-neutral-800"
+          ? "bg-[#1C1C2E] border-gray-700"
           : "bg-white border-neutral-200 shadow-sm"
       }`}
     >
@@ -116,8 +116,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className={`p-4 rounded-xl shadow-lg border ${
         theme === 'dark' 
-          ? 'bg-neutral-800/80 backdrop-blur-sm border-neutral-700' 
-          : 'bg-white/80 backdrop-blur-sm border-neutral-200'
+          ? 'bg-gray-800/80 backdrop-blur-sm border-gray-700' 
+          : 'bg-white/80 backdrop-blur-sm border-gray-200'
       }`}>
         <p className="font-bold text-base mb-2">{label}</p>
         {payload.map((pld: any) => (
@@ -142,7 +142,7 @@ const Logs = () => {
 
   const chartColors = useMemo(() => (
     theme === 'dark' ? {
-      grid: 'rgba(255, 255, 255, 0.05)',
+      grid: 'rgba(255, 255, 255, 0.1)',
       text: '#a3a3a3', // neutral-400
       automated: "url(#colorAutomatedDark)",
       edited: "url(#colorEditedDark)",
@@ -170,7 +170,7 @@ const Logs = () => {
   return (
     <div
       className={`h-full w-full flex flex-col transition-colors rounded-[30px] overflow-hidden ${
-        theme === "dark" ? "bg-black text-neutral-200" : "bg-neutral-100 text-neutral-800"
+        theme === "dark" ? "bg-[#1C1C2E] text-neutral-200" : "bg-gray-50 text-neutral-800"
       }`}
     >
       {/* --- HEADER --- */}
@@ -180,8 +180,8 @@ const Logs = () => {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         className={`sticky top-0 z-20 p-4 sm:p-6 border-b transition-colors ${
           theme === "dark"
-            ? "bg-black/70 backdrop-blur-lg border-neutral-800"
-            : "bg-neutral-100/70 backdrop-blur-lg border-neutral-200"
+            ? "bg-[#1C1C2E] backdrop-blur-lg border-gray-700"
+            : "bg-gray-50/70 backdrop-blur-lg border-gray-200"
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -197,8 +197,8 @@ const Logs = () => {
             <div>
               <Menu.Button className={`inline-flex w-full justify-center items-center gap-2 px-4 py-2.5 rounded-lg border font-semibold transition-all text-sm duration-300 ${
                 theme === "dark"
-                  ? "bg-neutral-900 border-neutral-700 text-neutral-200 hover:bg-neutral-800 hover:border-violet-500"
-                  : "bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-violet-500"
+                  ? "bg-gray-800 border-gray-700 text-neutral-200 hover:bg-gray-700 hover:border-violet-500"
+                  : "bg-white border-gray-300 text-neutral-700 hover:bg-neutral-50 hover:border-violet-500"
               }`}>
                 {selectedRange}
                 <ChevronDown className="w-4 h-4" aria-hidden="true" />
@@ -215,7 +215,7 @@ const Logs = () => {
             >
               <Menu.Items className={`absolute right-0 mt-2 w-48 origin-top-right rounded-md shadow-lg ring-1 ring-opacity-5 focus:outline-none ${
                 theme === 'dark' 
-                  ? 'bg-neutral-800 ring-black'
+                  ? 'bg-gray-800 ring-black'
                   : 'bg-white ring-black'
               }`}>
                 <div className="py-1">
@@ -225,7 +225,7 @@ const Logs = () => {
                         <button
                           onClick={() => setSelectedRange(range)}
                           className={`${
-                            active ? (theme === 'dark' ? 'bg-neutral-700' : 'bg-neutral-100') : ''
+                            active ? (theme === 'dark' ? 'bg-gray-700' : 'bg-neutral-100') : ''
                           } ${
                             selectedRange === range ? 'font-bold text-violet-400' : ''
                           } group flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors`}
@@ -269,7 +269,7 @@ const Logs = () => {
         >
           <div className={`p-4 sm:p-6 rounded-2xl border ${
             theme === "dark"
-              ? "bg-neutral-900/50 border-neutral-800"
+              ? "bg-[#1C1C2E] border-gray-700"
               : "bg-white border-neutral-200 shadow-sm"
           }`}>
             <h2 className="text-lg font-semibold mb-1">Weekly Processing Breakdown</h2>

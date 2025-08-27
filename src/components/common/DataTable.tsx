@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Undo, Redo, Columns, Rows, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
+import { Undo, Redo, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps } from '../../interfaces/Types';
-import { Popup, JsonPreviewModal, InfoPill, HowToUse } from './Helper';
+import { Popup, InfoPill, HowToUse } from './Helper';
 
 export interface TableColumnConfig {
   key: string;
@@ -32,6 +32,12 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
   maxHeight?: string;
 }
 
+type ProcessedDataItem = DataItem & {
+  sno: number;
+  originalIndex: number;
+};
+
+
 const DataTable = ({
   tableData,
   tableConfig,
@@ -54,7 +60,7 @@ const DataTable = ({
   const [lastSelected, setLastSelected] = useState<CellIdentifier | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [editingCell, setEditingCell] = useState<CellIdentifier | null>(null);
-  const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
+  // const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,9 +114,9 @@ const DataTable = ({
     };
   }, [data, tableConfig]);
 
-  const processedData = useMemo(() => {
-    let processed = data.map((row, index) => {
-      const processedRow = { 
+  const processedData: ProcessedDataItem[] = useMemo(() => {
+    let processed: ProcessedDataItem[] = data.map((row, index) => {
+      const processedRow: ProcessedDataItem = { 
         ...row, 
         sno: index + 1,
         originalIndex: index 
@@ -118,7 +124,7 @@ const DataTable = ({
       if (tableConfig) {
         tableConfig.columns.forEach(col => {
           if (!(col.key in processedRow)) {
-            processedRow[col.key] = '';
+            (processedRow as any)[col.key] = '';
           }
         });
       }
@@ -185,7 +191,9 @@ const DataTable = ({
   const handleAddRow = useCallback(() => {
     if (!isEditable) return;
 
-    const newRow: DataItem = {};
+    const newRow: DataItem = {
+      id: `new-${Date.now()}`
+    };
 
     Object.values(columnConfig).forEach(col => {
       if (col.key !== 'sno') {
@@ -249,7 +257,7 @@ const DataTable = ({
   };
 
   const handleSaveChanges = () => {
-    setIsJsonPreviewOpen(true);
+    // setIsJsonPreviewOpen(true);
   };
 
   const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
@@ -505,7 +513,7 @@ const DataTable = ({
           autoFocus
           onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
           onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
-          className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-indigo-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-indigo-50 text-gray-900'}`}
+          className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
         />
       );
     }
@@ -536,7 +544,7 @@ const DataTable = ({
     };
 
     return (
-      <div className={`flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-4 border-t text-xs ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+      <div className={`flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-4 border-t text-xs ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}>
         <div className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
           Showing {totalItems > 0 ? startIndex + 1 : 0}-{endIndex} of {totalItems}
         </div>
@@ -562,7 +570,7 @@ const DataTable = ({
                 </button>
                 
                 {getPageNumbers().map(page => (
-                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-2 py-0.5 text-xs rounded ${page === currentPage ? 'bg-[#7F22FE] text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
+                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-2 py-0.5 text-xs rounded ${page === currentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
                     {page}
                   </button>
                 ))}
@@ -582,7 +590,7 @@ const DataTable = ({
 
   return (
     <div 
-        className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`} 
+        className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-white'}`} 
         style={{ maxHeight: maxHeight }}
     >
       {/* Toolbar Area */}
@@ -595,7 +603,7 @@ const DataTable = ({
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full md:w-56 pl-8 pr-3 py-1.5 text-sm border rounded-md focus:ring-indigo-500 focus:border-indigo-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
+              className={`w-full md:w-56 pl-8 pr-3 py-1.5 text-sm border rounded-md focus:ring-violet-500 focus:border-violet-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
             />
           </div>
         )}
@@ -636,7 +644,7 @@ const DataTable = ({
             {paginatedData.map((row, rowIndex) => (
               <tr key={row.sno} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
                 {fixedHeaderKey && (
-                  <td className={`p-2 border-b font-medium sticky left-0 z-10 ${theme === 'dark' ? 'border-gray-700 bg-gray-900 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                  <td className={`p-2 border-b font-medium sticky left-0 z-10 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
                     {row[fixedHeaderKey]}
                   </td>
                 )}
@@ -649,7 +657,7 @@ const DataTable = ({
                     onDragStart={() => handleDragStart(rowIndex, header)} 
                     onDragOver={(e) => e.preventDefault()} 
                     onDrop={() => handleDrop(rowIndex, header)} 
-                    className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[header]?.editable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-indigo-900/60 ring-1 ring-indigo-500' : 'bg-indigo-100 ring-1 ring-indigo-400') : ''}`}
+                    className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[header]?.editable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
                   >
                     {renderCellContent(rowIndex, header)}
                   </td>
@@ -661,7 +669,6 @@ const DataTable = ({
                 )}
               </tr>
             ))}
-            {/* MODIFICATION START */}
             {isEditable && (
               <tr>
                 <td 
@@ -682,7 +689,6 @@ const DataTable = ({
                 </td>
               </tr>
             )}
-            {/* MODIFICATION END */}
           </tbody>
         </table>
       </div>
@@ -692,7 +698,6 @@ const DataTable = ({
 
       {/* Modals and Popups */}
       <Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} data={popupData} />
-      <JsonPreviewModal isOpen={isJsonPreviewOpen} onClose={() => setIsJsonPreviewOpen(false)} data={data} />
       
       {/* Footer / Info Area */}
       {isEditable && (

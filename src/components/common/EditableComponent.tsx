@@ -48,9 +48,10 @@ const initialEmptyData: ExtractedData = {
 type EditableComponentProps = {
     isManual?: boolean;
     initialData?: ExtractedData;
+    isReadOnly?: boolean; // New prop
 };
 
-const EditableComponent = ({ isManual = false, initialData }: EditableComponentProps) => {
+const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -86,7 +87,7 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
     const handleSimpleRetry = () => { setRetryModalOpen(false); navigate('/loading'); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
 
-    const isReadOnly = user?.role !== 'admin';
+    const finalIsReadOnly = isReadOnly || user?.role !== 'admin';
 
     const secondaryButtonClasses = `
     flex items-center gap-1.5 font-semibold py-1.5 px-3 text-xs md:text-sm rounded-lg transition-colors
@@ -101,11 +102,6 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
 
         const handleOpenPopup = () => {
             const fullProductData:any = mockProductData.find(p => p.id === productRow.id);
-            // if (fullProductData) {
-            //     setSelectedProduct(fullProductData);
-            //     setIsPopupOpen(true);
-            //     alert("clicke");
-            // }
             setSelectedProduct(fullProductData);
             setIsPopupOpen(true);
         };
@@ -133,14 +129,14 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
                     <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                         <div>
                             <h1 className={`text-2xl md:text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
-                                {isManual ? "Manual Entry" : "Verify & Edit Extracted Data"}
+                                {isManual ? "Manual Entry" : (finalIsReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
                             </h1>
                         </div>
                         <div className="flex items-center space-x-2">
                             <button onClick={handleViewImage} className={secondaryButtonClasses} disabled={!data.invoice_image_url}>
                                 <Eye className="w-4 h-4" /> View Image
                             </button>
-                            {user?.role === 'admin' && (
+                            {!finalIsReadOnly && user?.role === 'admin' && (
                                 <button onClick={openRetryModal} className={secondaryButtonClasses}>
                                     <RefreshCw className="w-4 h-4" /> Retry
                                 </button>
@@ -173,7 +169,7 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
                                                             tableData={data.product_details}
-                                                            isEditable={!isReadOnly}
+                                                            isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
                                                             renderActionCell={renderActionCell}
                                                             actionColumnHeader="Details"
@@ -189,7 +185,7 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
                                                                     name={field.key}
                                                                     value={data[field.key as keyof ExtractedData] as string}
                                                                     onChange={handleInputChange}
-                                                                    readOnly={isReadOnly}
+                                                                    readOnly={finalIsReadOnly}
                                                                     theme={theme}
                                                                 />
                                                             ))}
@@ -206,16 +202,18 @@ const EditableComponent = ({ isManual = false, initialData }: EditableComponentP
                 </div>
             </main>
 
-            <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                <div className="px-4 sm:px-6 flex justify-end">
-                    <button
-                        onClick={() => navigate('/preview')}
-                        className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
-                    >
-                        <Save className="w-4 h-4" /> Save and Preview
-                    </button>
-                </div>
-            </footer>
+            {!finalIsReadOnly && (
+              <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+                  <div className="px-4 sm:px-6 flex justify-end">
+                      <button
+                          onClick={() => navigate('/preview')}
+                          className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
+                      >
+                          <Save className="w-4 h-4" /> Save and Preview
+                      </button>
+                  </div>
+              </footer>
+            )}
 
             <RetryModal
                 isOpen={isRetryModalOpen}

@@ -1,10 +1,8 @@
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, ZoomOut, RotateCcw, ZoomIn, ChevronDown, X, CheckCircle, AlertTriangle, UploadCloud } from 'lucide-react';
-import { useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import type { InfoPillProps, PopupProps, ProductItem, Document, Toast as ToastType } from '../../interfaces/Types';
+import type { InfoPillProps, PopupProps, Document, Toast as ToastType } from '../../interfaces/Types';
 import { motion } from 'framer-motion';
-
-// --- Toast and Upload Status Components ---
 
 export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: number) => void; }) => {
     const { theme } = useTheme();
@@ -113,9 +111,6 @@ export const UploadStatus = ({ files, onClose }: { files: File[]; onClose: () =>
     );
 };
 
-
-// --- Existing Helper Components ---
-
 export const Popup = ({ isOpen, onClose, data }: PopupProps) => {
   if (!isOpen) return null;
   return (
@@ -136,23 +131,6 @@ export const Popup = ({ isOpen, onClose, data }: PopupProps) => {
       </div>
     </div>
   );
-};
-
-export const JsonPreviewModal = ({ isOpen, onClose, data }: PopupProps) => {
-     if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-            <div className="bg-gray-900 text-white rounded-lg shadow-2xl p-4 w-full max-w-lg max-h-[80vh] flex flex-col">
-                <h2 className="text-lg font-bold mb-3 text-gray-100">Current JSON Data</h2>
-                <div className="overflow-auto bg-gray-800 p-3 rounded-md flex-grow text-xs">
-                    <pre><code>{JSON.stringify(data, null, 2)}</code></pre>
-                </div>
-                <button onClick={onClose} className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 text-sm">
-                    Close Preview
-                </button>
-            </div>
-        </div>
-    );
 };
 
 export const InfoPill = ({ children }: InfoPillProps) => (

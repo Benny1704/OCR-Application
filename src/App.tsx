@@ -19,6 +19,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { useToast } from "./hooks/useToast";
 import { Toast, UploadStatus } from "./components/common/Helper";
 import { AnimatePresence } from "framer-motion";
+import Review from "./pages/Review";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
     const auth = useContext(AuthContext);
@@ -42,6 +43,7 @@ const routeDefinitions = createRoutesFromElements(
       <Route path="/upload" element={<Upload/>} />
       <Route path="/imageAlteration" element={<ImageAlterations />} />
       <Route path="/edit" element={<Edit />} />
+      <Route path="/review/:id" element={<Review />} />
       <Route path="/preview" element={<Preview />} />
       <Route path="/manualEntry" element={<ManualEntry />} />
     </Route>
