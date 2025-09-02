@@ -1,15 +1,11 @@
 import { CheckCircle2, Eye, X, Building, DollarSign, FileText } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
-import { mockExtractedData, mockProductData } from "../lib/MockData";
+import type { ProductWithDetails, ExtractedData } from "../interfaces/Types";
+import { getExtractedData, getProductData } from "../lib/api/Api";
+import { useToast } from "../hooks/useToast";
 
-// --- INTERFACES ---
-interface ChildProduct { id: string; s_no: number; product_code: string; product_description: string; pieces: number; style_code: string; hsn_code: string; counter: string; type: string; brand: string; }
-interface Summary { total_pcs: number; entered_pcs: number; total_qty: number; entered_qty: number; }
-interface ProductWithDetails { id: string; s_no: number; product_group: string; uom: string; qty: number; pcs: number; cost_price: number; discount_amount: number; discount_percent: string; price_code: string; supplier_description: string; mrp: number; hsn_code: string; igst: string; rounded_off: number; total: number; by_no: string; gst_rate: string; po_no: string; child_products: ChildProduct[]; summary: Summary; }
-
-// --- UI COMPONENTS ---
 const MessageBox = ({ message, onClose }: { message: string; onClose: () => void; }) => (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center transform transition-all animate-fade-in-up bg-white dark:bg-[#2a2a3e] border border-gray-200 dark:border-gray-700">
@@ -100,9 +96,40 @@ const Preview = () => {
     const navigate = useNavigate();
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
+    const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+    const [productData, setProductData] = useState<ProductWithDetails[] | null>(null);
+    const { addToast } = useToast();
 
-    const supplierAndInvoiceDetails = { supplier_name_email: mockExtractedData.supplier_name_email, gstin_no: mockExtractedData.gstin_no, invoice_no: mockExtractedData.invoice_no, invoice_date: mockExtractedData.invoice_date, po_no: mockExtractedData.po_no, merchandise_name: mockExtractedData.merchandise_name, };
-    const amountAndTaxDetails = { product_total: mockExtractedData.product_total, taxable_value: mockExtractedData.taxable_value, discount: mockExtractedData.discount, igst: mockExtractedData.igst, tcs_amount: mockExtractedData.tcs_amount, total_amount: mockExtractedData.total_amount, };
+    useEffect(() => {
+        const fetchData = async () => {
+            const extData = await getExtractedData(addToast);
+            const prodData = await getProductData(addToast);
+            setExtractedData(extData);
+            setProductData(prodData);
+        };
+        fetchData();
+    }, []);
+
+    if (!extractedData || !productData) {
+        return <div>Loading...</div>;
+    }
+
+    const supplierAndInvoiceDetails = {
+        supplier_name_email: extractedData.supplier_name_email,
+        gstin_no: extractedData.gstin_no,
+        invoice_no: extractedData.invoice_no,
+        invoice_date: extractedData.invoice_date,
+        po_no: extractedData.po_no,
+        merchandise_name: extractedData.merchandise_name,
+    };
+    const amountAndTaxDetails = {
+        product_total: extractedData.product_total,
+        taxable_value: extractedData.taxable_value,
+        discount: extractedData.discount,
+        igst: extractedData.igst,
+        tcs_amount: extractedData.tcs_amount,
+        total_amount: extractedData.total_amount,
+    };
 
     const handleSubmit = () => { console.log("Submitting data..."); setShowSuccessMessage(true); };
     const handleCloseMessage = () => { setShowSuccessMessage(false); navigate('/documents'); }
@@ -122,7 +149,7 @@ const Preview = () => {
                                 <FileText className="w-5 h-5 mr-3 text-blue-500" /> Invoice Document
                             </h3>
                             <div className="rounded-lg overflow-hidden border border-gray-200">
-                                <img src={mockExtractedData.invoice_image_url} alt="Invoice" className="object-cover object-top w-full h-full" />
+                                <img src={extractedData.invoice_image_url} alt="Invoice" className="object-cover object-top w-full h-full" />
                             </div>
                         </div>
                     </div>
@@ -141,7 +168,7 @@ const Preview = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {mockProductData.map((product) => (
+                                {productData.map((product) => (
                                     <tr key={product.id} className={`border-t text-xs md:text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800/50 border-gray-700/60' : 'text-gray-800 bg-gray-50 border-gray-200/80'}`}>
                                         <td className="p-3 md:p-4">{product.s_no}</td>
                                         <td className="p-3 md:p-4 font-medium">{product.product_group}</td>

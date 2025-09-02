@@ -5,12 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import type { ExtractedData, ProductWithDetails, DataItem } from '../../interfaces/Types';
-import { mockProductData } from '../../lib/MockData';
-import { formConfig } from '../config/formConfig';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
+import { formConfig } from '../../lib/config/Config';
 
 const initialEmptyData: ExtractedData = {
     invoice_image_url: '',
@@ -48,7 +47,7 @@ const initialEmptyData: ExtractedData = {
 type EditableComponentProps = {
     isManual?: boolean;
     initialData?: ExtractedData;
-    isReadOnly?: boolean; // New prop
+    isReadOnly?: boolean;
 };
 
 const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }: EditableComponentProps) => {
@@ -101,8 +100,8 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
         const productRow = row as ProductWithDetails;
 
         const handleOpenPopup = () => {
-            const fullProductData:any = mockProductData.find(p => p.id === productRow.id);
-            setSelectedProduct(fullProductData);
+            // const fullProductData:any = mockProductData.find(p => p.id === productRow.id);
+            // setSelectedProduct(fullProductData);
             setIsPopupOpen(true);
         };
 

@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { monthlyExpenseData, invoiceVolumeData, discountByVendorData, spendByVendorData } from '../lib/MockData';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
-import { Plus, Banknote, FilePieChart, FileDiff, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download } from 'lucide-react';
-import { motion, type Variants } from "framer-motion"; // <-- IMPORT THE TYPE HERE
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download } from 'lucide-react';
+import { motion, type Variants } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
 import { itemVariants } from '../components/common/Animation';
 import { containerVariants } from '../components/common/Animation';
+import { getDashboardData } from '../lib/api/Api';
+import type { JSX } from 'react/jsx-runtime';
+import { useToast } from '../hooks/useToast';
 
 interface MetricCardProps {
     title: string;
@@ -30,6 +32,7 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string | number;
+  spendByVendorData: { name: string; value: number }[];
 }
 
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
@@ -43,7 +46,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-900';
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
 
-    const cardVariants: Variants = { // <-- ADDED TYPE ANNOTATION
+    const cardVariants: Variants = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { delay: index * 0.1, duration: 0.5, ease: "easeOut" } }
     };
@@ -104,7 +107,7 @@ const DropdownMenu = () => (
     </Menu>
 );
 
-const CustomPieTooltip = ({ active, payload }: CustomTooltipProps) => {
+const CustomPieTooltip = ({ active, payload, spendByVendorData }: CustomTooltipProps) => {
     const { theme } = useTheme();
 
     if (active && payload && payload.length) {
@@ -123,12 +126,22 @@ const CustomPieTooltip = ({ active, payload }: CustomTooltipProps) => {
     return null;
 };
 
-
-// --- MAIN DASHBOARD COMPONENT ---
 const Dashboard = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const { addToast } = useToast();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const data = await getDashboardData(addToast);
+            setDashboardData(data);
+        };
+        setTimeout(() => {
+            fetchData();
+        },5000);
+    }, []);
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     const textHeader = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -148,12 +161,16 @@ const Dashboard = () => {
         );
     }
 
-    const kpiMetrics: Omit<MetricCardProps, 'index'>[] = [
-        { title: "Total Discounts", value: "₹23,316", icon: Wallet, change: "5.2%", changeType: "increase" },
-        { title: "Invoice Exceptions", value: "14", icon: FileDiff, change: "2.1%", changeType: "decrease" },
-        { title: "Avg. Processing Time", value: "2.1 Days", icon: Banknote, change: "8.0%", changeType: "increase" },
-        { title: "Total Spend (MTD)", value: "₹1,84,920", icon: TrendingUp, change: "12.5%", changeType: "increase" }
-    ];
+    if (!dashboardData) {
+        return <div>Loading...</div>;
+    }
+
+    // const kpiMetrics: Omit<MetricCardProps, 'index'>[] = [
+    //     { title: "Total Discounts", value: "₹23,316", icon: Wallet, change: "5.2%", changeType: "increase" },
+    //     { title: "Invoice Exceptions", value: "14", icon: FileDiff, change: "2.1%", changeType: "decrease" },
+    //     { title: "Avg. Processing Time", value: "2.1 Days", icon: Banknote, change: "8.0%", changeType: "increase" },
+    //     { title: "Total Spend (MTD)", value: "₹1,84,920", icon: TrendingUp, change: "12.5%", changeType: "increase" }
+    // ];
 
     return (
         <motion.div 
@@ -165,7 +182,7 @@ const Dashboard = () => {
             <motion.div className="flex flex-col md:flex-row justify-between md:items-center gap-4" variants={itemVariants}>
                 <div>
                     <h1 className={`text-3xl md:text-4xl font-bold ${textHeader}`}>Dashboard</h1>
-                    <p className={`mt-1 text-sm md:text-base ${textSecondary}`}>Welcome back, {user?.email || 'Admin'}!</p>
+                    <p className={`mt-1 text-sm md:text-base ${textSecondary}`}>Welcome back, {user?.username || 'Admin'}!</p>
                 </div>
                 <motion.button 
                     onClick={() => navigate('/upload')} 
@@ -178,7 +195,7 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
-                {kpiMetrics.map((metric, i) => (
+                {dashboardData.kpiMetrics.map((metric: JSX.IntrinsicAttributes & MetricCardProps, i: number) => (
                     <MetricCard key={metric.title} {...metric} index={i} />
                 ))}
             </motion.div>
@@ -190,7 +207,7 @@ const Dashboard = () => {
             <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
                 <ChartCard title="Financial Obligations" icon={Banknote}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlyExpenseData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                        <BarChart data={dashboardData.monthlyExpenseData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                             <defs>
                                 <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
@@ -207,7 +224,7 @@ const Dashboard = () => {
                 </ChartCard>
                 <ChartCard title="Invoice Count" icon={FilePieChart}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={invoiceVolumeData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                        <LineChart data={dashboardData.invoiceVolumeData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                              <defs>
                                 <linearGradient id="countGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
@@ -225,23 +242,23 @@ const Dashboard = () => {
                 <ChartCard title="Spending by Vendor" icon={TrendingUp}>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
-                                {spendByVendorData.map((entry, index) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
+                            <Pie data={dashboardData.spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
+                                {dashboardData.spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
                             </Pie>
-                            <Tooltip content={<CustomPieTooltip />} />
+                            <Tooltip content={<CustomPieTooltip spendByVendorData={dashboardData.spendByVendorData} />} />
                             <Legend iconType="circle" />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Discounts by Vendor" icon={Wallet}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                        <BarChart data={dashboardData.discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                             <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
                             <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.75rem' }}/>
                             <Bar dataKey="value" name="Discount" radius={[0, 4, 4, 0]} barSize={18}>
-                                {discountByVendorData.map((entry, index) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                                {dashboardData.discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>

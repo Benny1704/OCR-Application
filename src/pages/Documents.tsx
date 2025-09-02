@@ -1,20 +1,32 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DataTable from "../components/common/DataTable";
 import { useTheme } from "../hooks/useTheme";
-import { documentConfig, initialMockDocuments } from "../lib/MockData";
 import { motion } from "framer-motion";
 import { containerVariants, itemVariants } from "../components/common/Animation";
 import { useNavigate } from "react-router-dom";
-import { type DataItem } from "../interfaces/Types";
+import { type DataItem, type Document } from "../interfaces/Types";
+import { getDocuments } from "../lib/api/Api";
+import { documentConfig } from "../lib/config/Config";
+import { useToast } from "../hooks/useToast";
 
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+        const data = await getDocuments(addToast);
+        setDocuments(data);
+    };
+    fetchDocuments();
+  }, [])
 
   const reviewedDocuments = useMemo(() => {
-    let docs = initialMockDocuments.filter(
+    let docs = documents.filter(
       (doc) => doc.status === "Reviewed"
     );
 
@@ -26,7 +38,7 @@ const Documents = () => {
     }
 
     return docs;
-  }, [startDate, endDate]);
+  }, [documents, startDate, endDate]);
 
   const renderActionCell = (row: DataItem) => {
     return (

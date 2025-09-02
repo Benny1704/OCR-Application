@@ -43,7 +43,7 @@ export type Page =
   | "preview";
 export type Role = "admin" | "user";
 export interface AuthUser {
-  email: string;
+  username: string;
   role: Role;
 }
 export interface Invoice {

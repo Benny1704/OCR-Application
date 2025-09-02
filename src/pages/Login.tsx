@@ -1,11 +1,12 @@
-import { Mail, Lock, AlertTriangle } from 'lucide-react';
+// src/pages/Login.tsx
+import { User, Lock, AlertTriangle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom'; // Assuming react-router-dom
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import brandLogo from '../assets/images/logo.png';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
-const containerVariants: Variants = { // <-- ADDED TYPE ANNOTATION
+const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
@@ -15,7 +16,7 @@ const containerVariants: Variants = { // <-- ADDED TYPE ANNOTATION
     }
 };
 
-const itemVariants: Variants = { // <-- ADDED TYPE ANNOTATION
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" }}
 };
@@ -23,22 +24,30 @@ const itemVariants: Variants = { // <-- ADDED TYPE ANNOTATION
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('User1');
+  const [password, setPassword] = useState('user@123');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    // Simulate API call delay for better UX
-    setTimeout(() => {
-      const loggedIn = login(email);
-      if (loggedIn) {
-        const role = email === 'admin@nextriq' ? 'admin' : 'user';
-        navigate(role === 'admin' ? '/dashboard' : '/queue');
-      } else {
-        setError('Invalid credentials. Please use a demo account.');
-      }
-    }, 500);
+    setIsLoading(true);
+
+    try {
+        const loggedIn = await login({ username, password });
+        
+        if (loggedIn) {
+            const role = username.includes('Admin1') ? 'admin' : 'user';
+            navigate(role === 'admin' ? '/dashboard' : '/queue');
+        } else {
+            setError('Invalid credentials. Please try again.');
+        }
+    } catch (error) {
+        setError('An unexpected error occurred. Please try again later.');
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -57,15 +66,16 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <motion.div variants={itemVariants} className="relative">
-            <Mail className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2"/>
+            <User className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2"/>
             <input
               className="w-full py-3 pl-12 pr-4 text-white bg-white/10 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all placeholder:text-gray-400"
-              id="email"
-              type="email"
-              placeholder="admin@nextriq or user@nextriq"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
+              disabled={isLoading}
             />
           </motion.div>
           <motion.div variants={itemVariants} className="relative">
@@ -75,7 +85,9 @@ const Login = () => {
               id="password"
               type="password"
               placeholder="Password"
-              defaultValue="password" // For demo purposes
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              disabled={isLoading}
             />
           </motion.div>
 
@@ -94,12 +106,13 @@ const Login = () => {
           
           <motion.div variants={itemVariants}>
             <motion.button
-              className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-violet-500/50 transition-shadow duration-300 shadow-lg hover:shadow-purple-500/40"
+              className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-violet-500/50 transition-shadow duration-300 shadow-lg hover:shadow-purple-500/40 disabled:opacity-50"
               type="submit"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              disabled={isLoading}
             >
-              Log In
+              {isLoading ? 'Logging in...' : 'Log In'}
             </motion.button>
           </motion.div>
         </form>

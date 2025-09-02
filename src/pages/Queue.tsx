@@ -9,7 +9,6 @@ import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import { documentConfig, initialMockDocuments } from "../lib/MockData";
 import type { Document } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
@@ -27,11 +26,15 @@ import {
 } from "lucide-react";
 import { RetryModal, StatusBadge } from "../components/common/Helper";
 import { motion, AnimatePresence } from "framer-motion";
+import { getDocuments } from "../lib/api/Api";
+import { documentConfig } from "../lib/config/Config";
+import { useToast } from "../hooks/useToast";
 
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const tabs: ("Queued" | "Processed" | "Failed")[] = [
     "Queued",
@@ -41,11 +44,19 @@ const Queue = () => {
   const tabRef = useRef<HTMLUListElement>(null);
   const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">("Queued");
 
-  const [documents, setDocuments] = useState<Document[]>(initialMockDocuments);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(
     null
   );
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+        const data = await getDocuments(addToast);
+        setDocuments(data);
+    };
+    fetchDocuments();
+  }, [])
 
   // --- Theme-based text colors for convenience ---
   const textHeader = theme === "dark" ? "text-white" : "text-gray-900";

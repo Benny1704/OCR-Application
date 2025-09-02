@@ -24,9 +24,9 @@ import Review from "./pages/Review";
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
     const auth = useContext(AuthContext);
     if (!auth?.user) {
-        return <Navigate to="login" replace />;
+        return <Navigate to="/login" replace />;
     }
-    return allowedRoles.includes(auth.user.role) ? <Outlet /> : <Navigate to="queue" replace />;
+    return allowedRoles.includes(auth.user.role) ? <Outlet /> : <Navigate to="/queue" replace />;
 };
 
 const routeDefinitions = createRoutesFromElements(

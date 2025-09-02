@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState, Fragment, useEffect } from "react";
 import { useTheme } from "../hooks/useTheme";
 import { BrainCircuit, FileCheck2, FileX2, ChevronDown, CheckCircle } from "lucide-react";
 import {
@@ -13,8 +13,9 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
+import { getDashboardData } from "../lib/api/Api";
+import { useToast } from "../hooks/useToast";
 
-// --- TYPE DEFINITIONS ---
 interface StatCardProps {
   title: string;
   value: string;
@@ -23,14 +24,6 @@ interface StatCardProps {
   Icon: React.ElementType;
 }
 
-interface ChartData {
-  name: string;
-  automated: number;
-  edited: number;
-  failed: number;
-}
-
-// --- MOCK DATA ---
 const statsData: StatCardProps[] = [
   {
     title: "Total Invoices Processed",
@@ -55,19 +48,8 @@ const statsData: StatCardProps[] = [
   },
 ];
 
-const chartData: ChartData[] = [
-  { name: "Mon", automated: 180, edited: 60, failed: 10 },
-  { name: "Tue", automated: 210, edited: 75, failed: 8 },
-  { name: "Wed", automated: 230, edited: 80, failed: 5 },
-  { name: "Thu", automated: 200, edited: 70, failed: 12 },
-  { name: "Fri", automated: 250, edited: 90, failed: 7 },
-  { name: "Sat", automated: 190, edited: 65, failed: 4 },
-  { name: "Sun", automated: 220, edited: 85, failed: 6 },
-];
-
 const timeRanges = ["Last 7 Days", "Last 30 Days", "Last 90 Days", "All Time"];
 
-// --- REUSABLE ANIMATED STAT CARD COMPONENT ---
 const StatCard = ({ title, value, change, changeType, Icon }: StatCardProps) => {
   const { theme } = useTheme();
   const changeColor = changeType === 'increase' ? 'text-emerald-400' : 'text-rose-400';
@@ -85,7 +67,6 @@ const StatCard = ({ title, value, change, changeType, Icon }: StatCardProps) => 
           : "bg-white border-neutral-200 shadow-sm"
       }`}
     >
-      {/* Subtle background glow on hover */}
       <motion.div
         className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1),transparent_40%)]"
         initial={{ opacity: 0, scale: 0.5 }}
@@ -109,7 +90,6 @@ const StatCard = ({ title, value, change, changeType, Icon }: StatCardProps) => 
   );
 };
 
-// --- CUSTOM RECHARTS TOOLTIP ---
 const CustomTooltip = ({ active, payload, label }: any) => {
   const { theme } = useTheme();
   if (active && payload && payload.length) {
@@ -135,10 +115,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// --- MAIN ANALYTICS DASHBOARD COMPONENT ---
 const Logs = () => {
   const { theme } = useTheme();
   const [selectedRange, setSelectedRange] = useState(timeRanges[0]);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+        const data = await getDashboardData(addToast);
+        setAnalyticsData(data);
+    };
+    fetchData();
+  }, []);
 
   const chartColors = useMemo(() => (
     theme === 'dark' ? {
@@ -166,6 +155,10 @@ const Logs = () => {
       },
     },
   };
+
+  if (!analyticsData) {
+    return <div>Loading...</div>
+  }
 
   return (
     <div
@@ -278,7 +271,7 @@ const Logs = () => {
             </p>
             <div style={{ width: '100%', height: 350 }}>
               <ResponsiveContainer>
-                <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <BarChart data={analyticsData.weeklyProcessingData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   {/* --- GRADIENT DEFINITIONS FOR BARS --- */}
                   <defs>
                     <linearGradient id="colorAutomatedDark" x1="0" y1="0" x2="0" y2="1">

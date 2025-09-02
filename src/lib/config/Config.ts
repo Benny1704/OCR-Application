@@ -54,4 +54,17 @@ export const formConfig: FormSection[] = [
         { key: 'total_amount', label: 'Total Amount' },
       ],
     },
-  ];
+];
+
+export const documentConfig = {
+  columns: [
+    { key: 'id', header: 'ID', editable: true },
+    { key: 'name', header: 'File Name', editable: true },
+    { key: 'supplierName', header: 'Supplier Name', editable: true },
+    { key: 'invoiceId', header: 'Invoice ID', editable: true },
+    { key: 'irnNumber', header: 'IRN Number', editable: true },
+    { key: 'uploadedBy', header: 'Uploaded By', editable: true },
+    { key: 'uploadDate', header: 'Upload Date', editable: true },
+    { key: 'invoiceDate', header: 'Invoice Date', editable: true },
+  ]
+};

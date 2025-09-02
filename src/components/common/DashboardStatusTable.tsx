@@ -1,10 +1,11 @@
-import { useMemo, type FC } from 'react';
+import { useMemo, type FC, useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { initialMockDocuments } from '../../lib/MockData';
 import { CheckCircle2, FileCheck2, Loader2, XCircle, type LucideProps } from 'lucide-react';
 import { StatusBadge } from './Helper';
 import type { Document } from '../../interfaces/Types';
 import { useNavigate } from 'react-router-dom';
+import { getDocuments } from '../../lib/api/Api';
+import { useToast } from '../../hooks/useToast';
 
 const StatusColumn: FC<{ 
     title: string, 
@@ -57,25 +58,35 @@ const StatusColumn: FC<{
 const DashboardStatusTable = () => {
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const { addToast } = useToast();
+
+    useEffect(() => {
+        const fetchDocs = async () => {
+            const docs = await getDocuments(addToast);
+            setDocuments(docs);
+        };
+        fetchDocs();
+    }, []);
+
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-md border transition-colors ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`;
 
     const { queued, processed, failed } = useMemo(() => {
-        const allDocs = initialMockDocuments;
         return {
             queued: {
-                docs: allDocs.filter(d => d.status === 'Queued' || d.status === 'Processing').slice(0, 4),
-                count: allDocs.filter(d => d.status === 'Queued' || d.status === 'Processing').length
+                docs: documents.filter(d => d.status === 'Queued' || d.status === 'Processing').slice(0, 4),
+                count: documents.filter(d => d.status === 'Queued' || d.status === 'Processing').length
             },
             processed: {
-                docs: allDocs.filter(d => d.status === 'Processed').slice(0, 4),
-                count: allDocs.filter(d => d.status === 'Processed').length
+                docs: documents.filter(d => d.status === 'Processed').slice(0, 4),
+                count: documents.filter(d => d.status === 'Processed').length
             },
             failed: {
-                docs: allDocs.filter(d => d.status === 'Failed').slice(0, 4),
-                count: allDocs.filter(d => d.status === 'Failed').length
+                docs: documents.filter(d => d.status === 'Failed').slice(0, 4),
+                count: documents.filter(d => d.status === 'Failed').length
             }
         };
-    }, []);
+    }, [documents]);
 
     return (
         <div className={cardClasses}>

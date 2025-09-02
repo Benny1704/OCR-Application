@@ -1,12 +1,28 @@
 import { useParams } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
-import { initialMockDocuments, mockExtractedData } from '../lib/MockData';
+import { useEffect, useState } from 'react';
+import { getExtractedData } from '../lib/api/Api';
+import type { ExtractedData } from '../interfaces/Types';
+import { useToast } from '../hooks/useToast';
 
 const Review = () => {
     const { id } = useParams();
-    const document = initialMockDocuments.find(d => d.id === Number(id));
+    const [data, setData] = useState<ExtractedData | null>(null);
+    const { addToast } = useToast();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const extractedData = await getExtractedData(addToast);
+            setData(extractedData);
+        };
+        fetchData();
+    }, [id]);
   
-    return <EditableComponent initialData={mockExtractedData} isReadOnly={true} />;
+    if (!data) {
+        return <div>Loading...</div>;
+    }
+  
+    return <EditableComponent initialData={data} isReadOnly={true} />;
 }
 
 export default Review
