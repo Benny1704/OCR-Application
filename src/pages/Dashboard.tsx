@@ -11,6 +11,7 @@ import { itemVariants } from '../components/common/Animation';
 import { containerVariants } from '../components/common/Animation';
 import { getDashboardData } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
+import Loader from '../components/common/Loader';
 
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
@@ -145,16 +146,24 @@ const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const { addToast } = useToast();
 
     useEffect(() => {
         const fetchData = async () => {
-            const data = await getDashboardData(addToast);
-            setDashboardData(data);
+            setIsLoading(true);
+            try {
+                const data = await getDashboardData(addToast);
+                setDashboardData(data);
+            } catch (error) {
+                addToast({ type: 'error', message: 'Failed to load dashboard data.' });
+            } finally {
+                setIsLoading(false);
+            }
         };
         setTimeout(() => {
             fetchData();
-        },2000);
+        }, 1500);
     }, []);
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
@@ -175,8 +184,18 @@ const Dashboard = () => {
         );
     }
 
+    if (isLoading) {
+        return <Loader type="wifi"/>;
+    }
+
     if (!dashboardData) {
-        return <div>Loading...</div>;
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center p-8 rounded-lg">
+                    <p className="mt-2 text-gray-600">Error loading data or no data available.</p>
+                </div>
+            </div>
+        );
     }
 
     return (
