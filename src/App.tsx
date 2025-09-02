@@ -31,23 +31,21 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route>
+    <Route element={<RootLayout/>}>
       <Route path="/login" element={<Login />} />
-      <Route element={<RootLayout/>}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/log" element={<Logs />} />
-        </Route>
-        <Route path="/queue" element={<Queue/>} />
-        <Route path="/document" element={<Documents/>} />
-        <Route path="/upload" element={<Upload/>} />
-        <Route path="/imageAlteration" element={<ImageAlterations />} />
-        <Route path="/edit" element={<Edit />} />
-        <Route path="/review/:id" element={<Review />} />
-        <Route path="/preview" element={<Preview />} />
-        <Route path="/manualEntry" element={<ManualEntry />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/log" element={<Logs />} />
       </Route>
+      <Route path="/queue" element={<Queue/>} />
+      <Route path="/document" element={<Documents/>} />
+      <Route path="/upload" element={<Upload/>} />
+      <Route path="/imageAlteration" element={<ImageAlterations />} />
+      <Route path="/edit" element={<Edit />} />
+      <Route path="/review/:id" element={<Review />} />
+      <Route path="/preview" element={<Preview />} />
+      <Route path="/manualEntry" element={<ManualEntry />} />
     </Route>
   )
 );

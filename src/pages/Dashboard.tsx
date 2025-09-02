@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download } from 'lucide-react';
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download, FileDiff } from 'lucide-react';
 import { motion, type Variants } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
@@ -10,8 +10,22 @@ import { useAuth } from '../hooks/useAuth';
 import { itemVariants } from '../components/common/Animation';
 import { containerVariants } from '../components/common/Animation';
 import { getDashboardData } from '../lib/api/Api';
-import type { JSX } from 'react/jsx-runtime';
 import { useToast } from '../hooks/useToast';
+
+const iconMap: { [key: string]: React.ElementType } = {
+    Wallet,
+    FileDiff,
+    Banknote,
+    TrendingUp,
+};
+
+interface KpiMetric {
+    title: string;
+    value: string;
+    icon: string; 
+    change?: string;
+    changeType?: 'increase' | 'decrease';
+}
 
 interface MetricCardProps {
     title: string;
@@ -37,10 +51,10 @@ interface CustomTooltipProps {
 
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
     const { theme } = useTheme();
-    
+
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border transition-all duration-300 transform hover:-translate-y-1 ${
-        theme === 'dark' 
-        ? 'bg-[#1C1C2E] border-gray-700/50 hover:border-violet-500' 
+        theme === 'dark'
+        ? 'bg-[#1C1C2E] border-gray-700/50 hover:border-violet-500'
         : 'bg-white border-gray-200/80 hover:border-violet-400'
     }`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-900';
@@ -114,7 +128,7 @@ const CustomPieTooltip = ({ active, payload, spendByVendorData }: CustomTooltipP
         const data = payload[0].payload;
         const total = spendByVendorData.reduce((acc, entry) => acc + entry.value, 0);
         const percent = ((data.value / total) * 100).toFixed(2);
-        
+
         return (
             <div className={`p-3 rounded-xl shadow-lg border ${theme === 'dark' ? 'bg-[#2a2a3e] border-gray-700' : 'bg-white border-gray-200'}`}>
                 <p className="font-bold text-gray-900 dark:text-gray-100">{`${data.name}`}</p>
@@ -165,15 +179,8 @@ const Dashboard = () => {
         return <div>Loading...</div>;
     }
 
-    // const kpiMetrics: Omit<MetricCardProps, 'index'>[] = [
-    //     { title: "Total Discounts", value: "₹23,316", icon: Wallet, change: "5.2%", changeType: "increase" },
-    //     { title: "Invoice Exceptions", value: "14", icon: FileDiff, change: "2.1%", changeType: "decrease" },
-    //     { title: "Avg. Processing Time", value: "2.1 Days", icon: Banknote, change: "8.0%", changeType: "increase" },
-    //     { title: "Total Spend (MTD)", value: "₹1,84,920", icon: TrendingUp, change: "12.5%", changeType: "increase" }
-    // ];
-
     return (
-        <motion.div 
+        <motion.div
             className="flex flex-col gap-6 md:gap-8"
             variants={containerVariants}
             initial="hidden"
@@ -184,8 +191,8 @@ const Dashboard = () => {
                     <h1 className={`text-3xl md:text-4xl font-bold ${textHeader}`}>Dashboard</h1>
                     <p className={`mt-1 text-sm md:text-base ${textSecondary}`}>Welcome back, {user?.username || 'Admin'}!</p>
                 </div>
-                <motion.button 
-                    onClick={() => navigate('/upload')} 
+                <motion.button
+                    onClick={() => navigate('/upload')}
                     className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 md:py-3 md:px-5 rounded-xl shadow-lg transition-all transform hover:shadow-violet-400/50 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm md:text-base"
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
@@ -195,8 +202,16 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
-                {dashboardData.kpiMetrics.map((metric: JSX.IntrinsicAttributes & MetricCardProps, i: number) => (
-                    <MetricCard key={metric.title} {...metric} index={i} />
+                {dashboardData.kpiMetrics.map((metric: KpiMetric, i: number) => (
+                    <MetricCard
+                        key={metric.title}
+                        title={metric.title}
+                        value={metric.value}
+                        icon={iconMap[metric.icon] || FilePieChart} // Fallback icon
+                        change={metric.change}
+                        changeType={metric.changeType}
+                        index={i}
+                    />
                 ))}
             </motion.div>
 

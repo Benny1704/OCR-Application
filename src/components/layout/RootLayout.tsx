@@ -1,28 +1,26 @@
 import { useLocation, Outlet } from "react-router-dom";
 import '../../assets/styles/Layout.scss';
 import Sidenav from "./Sidenav";
-              
+import { useAuth } from "../../hooks/useAuth";
+
 const RootLayout = () => {
   const location = useLocation();
-  const isLogin = location.pathname === '/d' || location.pathname === '/login';
+  const { user } = useAuth();
+  const isLogin = location.pathname === '/login' || !user;
+
 
   return (
     <>
       {isLogin ? (
-        
+
         <Outlet />
 
       ) : (
-        
+
         <div className="layout">
           <div className="sidenav"><Sidenav/></div>
           <div className="outlet"><Outlet/></div>
         </div>
-
-        // <>
-        //   <Header/>
-        //   <Outlet />
-        // </>
 
       )}
     </>

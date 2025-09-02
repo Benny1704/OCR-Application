@@ -9,11 +9,20 @@ const fetchWithFallback = async (url: string, options: any = {}, showToast: any)
         if (!response.ok) {
             throw new Error(`API request failed with status ${response.status}`);
         }
-        return response;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            return response;
+        } else {
+            throw new Error("Received non-JSON response from API");
+        }
     } catch (error) {
         console.error("API call failed, falling back to mock data:", error);
         showToast({ type: 'error', message: 'Could not connect to API, using mock data.' });
-        return await fetch(url.replace(API_URL, MOCK_API_URL), options);
+        const mockResponse = await fetch(url.replace(API_URL, MOCK_API_URL), options);
+        if (!mockResponse.ok) {
+            throw new Error(`Mock API request failed with status ${mockResponse.status}`);
+        }
+        return mockResponse;
     }
 };
 
@@ -35,19 +44,37 @@ export const login = async (credentials: {username: string, password: string}):P
         formData.append('username', credentials.username);
         formData.append('password', credentials.password);
 
-        const response = await fetch(`${API_URL}/users/token`, {
-            method: 'POST',
-            body: formData
-        });
+        // Try to login with the live API
+        try {
+            const response = await fetch(`${API_URL}/users/token`, {
+                method: 'POST',
+                body: formData
+            });
 
-        if (!response.ok) {
-            return null;
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            }
+        } catch (error) {
+            console.error("Login API call failed, trying mock API:", error);
         }
 
-        const data = await response.json();
-        return data;
+
+        // Fallback to mock API
+        const mockResponse = await fetch(`${MOCK_API_URL}/users`);
+        const users = await mockResponse.json();
+        const user = users.find((u: any) => u.username === credentials.username && u.password === 'password');
+
+        if (user) {
+            // In a real scenario, you'd generate a mock JWT token here.
+            // For simplicity, we'll return a placeholder.
+            return { access_token: `mock_token_for_${user.username}` };
+        }
+
+
+        return null;
     } catch (error) {
-        console.error("Login API call failed:", error);
+        console.error("Login failed:", error);
         return null;
     }
 }
