@@ -6,7 +6,7 @@ import * as api from '../lib/api/Api';
 
 export interface AuthContextType {
     user: AuthUser | null;
-    login: (credentials: { username: string, password: string }) => Promise<boolean>;
+    login: (credentials: { username: string, password: string }) => Promise<AuthUser | null>;
     logout: () => void;
 }
 
@@ -15,11 +15,9 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<AuthUser | null>(() => {
         const token = localStorage.getItem('token');
-        console.log("token: "+ token);
         if (token) {
             try {
                 const decodedToken: { username: string, role: Role } = jwtDecode(token);
-                console.log(decodedToken.username + " " + decodedToken.role);
                 return { username: decodedToken.username, role: decodedToken.role };
             } catch (error) {
                 return null;
@@ -28,23 +26,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
     });
 
-    const login = async (credentials: {username: string, password: string}): Promise<boolean> => {
+    const login = async (credentials: {username: string, password: string}): Promise<AuthUser | null> => {
         const data = await api.login(credentials);
-        console.log("data "+data?.access_token);
         
         if (data && data.access_token) {
             localStorage.setItem('token', data.access_token);
-            console.log("token: "+ data.access_token);
             try {
                 const decodedToken: { username: string, role: Role } = jwtDecode(data.access_token);
-                console.log(decodedToken.username + " " + decodedToken.role);
-                setUser({ username: decodedToken.username, role: decodedToken.role });
-                return true;
+                const user = { username: decodedToken.username, role: decodedToken.role };
+                setUser(user);
+                return user;
             } catch (error) {
-                return false;
+                return null;
             }
         }
-        return false;
+        return null;
     };
 
     const logout = () => {

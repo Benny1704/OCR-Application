@@ -35,11 +35,10 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-        const loggedIn = await login({ username, password });
+        const user = await login({ username, password });
         
-        if (loggedIn) {
-            const role = username.includes('Admin1') ? 'admin' : 'user';
-            navigate(role === 'admin' ? '/dashboard' : '/queue');
+        if (user) {
+            navigate(user.role === 'admin' ? '/dashboard' : '/queue');
         } else {
             setError('Invalid credentials. Please try again.');
         }

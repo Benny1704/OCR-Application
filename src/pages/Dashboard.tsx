@@ -140,7 +140,7 @@ const Dashboard = () => {
         };
         setTimeout(() => {
             fetchData();
-        },5000);
+        },2000);
     }, []);
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
