@@ -31,13 +31,17 @@ const getAuthToken = () => {
     return localStorage.getItem('token');
 };
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (contentType?: string) => {
     const token = getAuthToken();
-    return {
-        'Content-Type': 'application/json',
+    const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`,
         'accept': 'application/json'
     };
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+
+    return headers;
 };
 
 export const login = async (credentials: {username: string, password: string}):Promise<{access_token: string} | null> => {
@@ -121,13 +125,15 @@ export const uploadFiles = async (files: File[], showToast: any): Promise<{ succ
     try {
         const response = await fetch(`${API_URL}/upload/upload-invoice`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(), 
             body: formData,
         });
 
         if (response.ok) {
             return { success: true };
         } else {
+            const errorData = await response.json();
+            console.error("Server responded with error:", errorData);
             throw new Error(`Upload failed with status ${response.status}`);
         }
     } catch (error) {
