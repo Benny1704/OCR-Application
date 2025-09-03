@@ -1,7 +1,8 @@
 import type { Document, ExtractedData, Log, ProductWithDetails } from './../../interfaces/Types';
 
 const MOCK_API_URL = "http://localhost:8000";
-const API_URL = "https://069254027035.ngrok-free.app";
+const ARUN_API_URL = "http://10.3.0.52:8000";
+const API_URL = "https://29ccf1fd86f6.ngrok-free.app";
 
 const fetchWithFallback = async (url: string, options: any = {}, showToast: any) => {
     try {
@@ -34,7 +35,8 @@ const getAuthHeaders = () => {
     const token = getAuthToken();
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'accept': 'application/json'
     };
 };
 
@@ -44,7 +46,6 @@ export const login = async (credentials: {username: string, password: string}):P
         formData.append('username', credentials.username);
         formData.append('password', credentials.password);
 
-        // Try to login with the live API
         try {
             const response = await fetch(`${API_URL}/users/token`, {
                 method: 'POST',
@@ -59,15 +60,11 @@ export const login = async (credentials: {username: string, password: string}):P
             console.error("Login API call failed, trying mock API:", error);
         }
 
-
-        // Fallback to mock API
         const mockResponse = await fetch(`${MOCK_API_URL}/users`);
         const users = await mockResponse.json();
         const user = users.find((u: any) => u.username === credentials.username && u.password === 'password');
 
         if (user) {
-            // In a real scenario, you'd generate a mock JWT token here.
-            // For simplicity, we'll return a placeholder.
             return { access_token: `mock_token_for_${user.username}` };
         }
 
@@ -78,6 +75,68 @@ export const login = async (credentials: {username: string, password: string}):P
         return null;
     }
 }
+
+export const alterImage = async (params: { imageData: string; rotation: number; noise: number }, showToast: any): Promise<{ processedImage: { processed_image_base64: string; } | null; processed_image_base64: string } | null> => {
+    try {
+
+        const payload: {
+            image_base64: string;
+            rotate_angle: number;
+            denoise_ksize?: number;
+        } = {
+            image_base64: params.imageData,
+            rotate_angle: params.rotation,
+        };
+
+        if (params.noise > 0) {
+            payload.denoise_ksize = params.noise;
+        }
+
+        const response = await fetch(`${ARUN_API_URL}/ocr_preprocessing/process`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data;
+        }
+        else{
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Image processing failed:", error);
+        showToast({ type: 'error', message: 'Image processing failed.' });
+        return null;
+    }
+};
+
+export const uploadFiles = async (files: File[], showToast: any): Promise<{ success: boolean } | null> => {
+    const formData = new FormData();
+    files.forEach(file => {
+        formData.append('files', file);
+    });
+
+    try {
+        const response = await fetch(`${API_URL}/upload/upload-invoice`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: formData,
+        });
+
+        if (response.ok) {
+            return { success: true };
+        } else {
+            throw new Error(`Upload failed with status ${response.status}`);
+        }
+    } catch (error) {
+        console.error("File upload failed:", error);
+        showToast({ type: 'error', message: 'File upload failed.' });
+        return null;
+    }
+};
+
 
 export const getDocuments = async (showToast: any): Promise<Document[]> => {
   const response = await fetchWithFallback(`${MOCK_API_URL}/documents`, { headers: getAuthHeaders() }, showToast);

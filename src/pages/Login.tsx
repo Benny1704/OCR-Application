@@ -24,8 +24,8 @@ const itemVariants: Variants = {
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('User1');
-  const [password, setPassword] = useState('user@123');
+  const [username, setUsername] = useState('Admin');
+  const [password, setPassword] = useState('password@123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

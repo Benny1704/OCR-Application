@@ -58,7 +58,6 @@ const Queue = () => {
     fetchDocuments();
   }, [])
 
-  // --- Theme-based text colors for convenience ---
   const textHeader = theme === "dark" ? "text-white" : "text-gray-900";
   const textPrimary = theme === "dark" ? "text-gray-200" : "text-gray-700";
   const textSecondary = theme === "dark" ? "text-gray-400" : "text-gray-500";

@@ -1,9 +1,30 @@
 import BrandLogo from '../../assets/images/logo.png';
 import '../../assets/styles/Loader.scss';
+import { useTheme } from '../../hooks/useTheme';
 
 type LoaderProps = {
-  type?: 'ripple' | 'wifi' | 'text' | 'dots';
+  type?: 'ripple' | 'wifi' | 'text' | 'dots' | 'ai';
   text?: string;
+};
+
+const AILoader = () => {
+    const { theme } = useTheme();
+    return (
+        <div className={`ai-loader-wrapper ${theme}`}>
+            <span className="loader-letter">P</span>
+            <span className="loader-letter">r</span>
+            <span className="loader-letter">o</span>
+            <span className="loader-letter">c</span>
+            <span className="loader-letter">e</span>
+            <span className="loader-letter">s</span>
+            <span className="loader-letter">s</span>
+            <span className="loader-letter">i</span>
+            <span className="loader-letter">n</span>
+            <span className="loader-letter">g</span>
+
+            <div className="loader"></div>
+        </div>
+    )
 };
 
 const RippleLoader = () => (
@@ -74,6 +95,7 @@ const Loader = ({ type = 'ripple', text = "Loading" }: LoaderProps) => {
             {type === 'wifi' && <WifiLoader text={text} />}
             {type === 'text' && <TextLoader text={text} />}
             {type === 'dots' && <DotsLoader />}
+            {type === 'ai' && <AILoader />}
         </div>
     );
 };

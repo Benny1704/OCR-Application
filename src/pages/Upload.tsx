@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useDropzone, type Accept } from 'react-dropzone';
 import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../hooks/useToast';
+import * as api from '../lib/api/Api'; // Import the api 
 
 const Upload = () => {
     const { theme } = useTheme();
@@ -39,19 +40,29 @@ const Upload = () => {
         setFiles(files.filter(file => file.name !== fileName));
     };
     
-    const handleProceed = (): void => {
+    const handleProceed = async (): Promise<void> => {
         const filesToUpload = files.slice(0, MAX_FILES);
         showUploadStatus(filesToUpload);
-        setTimeout(() => {
-            addToast({
-                type: 'success',
-                message: 'Upload complete!',
-                action: {
-                    label: 'Show',
-                    onClick: () => navigate('/queue')
-                }
-            });
-        }, 3000); // Simulate upload time
+
+        try {
+            const response = await api.uploadFiles(filesToUpload, addToast);
+            if (response && response.success) {
+                setTimeout(() => {
+                    addToast({
+                        type: 'success',
+                        message: 'Upload complete!',
+                        action: {
+                            label: 'Show',
+                            onClick: () => navigate('/queue')
+                        }
+                    });
+                }, 1000); 
+            } else {
+                 addToast({ type: 'error', message: 'Upload failed. Please try again.'});
+            }
+        } catch (error) {
+            addToast({ type: 'error', message: 'An error occurred during upload.' });
+        }
     };
 
     const formatBytes = (bytes: number, decimals: number = 2): string => {

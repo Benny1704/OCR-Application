@@ -1,9 +1,13 @@
-import { useState, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, Fragment, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { motion, type Variants } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon, ArrowRightIcon } from "lucide-react";
+import { ChevronDownIcon, RefreshCcw, SendHorizontal, WandSparkles } from "lucide-react";
+import Loader from "../components/common/Loader";
+import * as api from '../lib/api/Api';
+import { useToast } from "../hooks/useToast";
+import { MockImageBase24 } from "../lib/MockData";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -24,27 +28,78 @@ const itemVariants: Variants = {
 const ImageAlterations = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { addToast } = useToast();
+
+  const [initialImageData, setInitialImageData] = useState<string | null>(MockImageBase24);
   const [rotation, setRotation] = useState<number>(0);
   const [noiseReduction, setNoiseReduction] = useState<string>('None');
-  const noiseOptions = ['None', 'Low', 'Medium', 'High'];
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.imageData) {
+      setInitialImageData(location.state.imageData);
+    }
+  }, [location.state]);
+
+
+  const noiseOptions: { [key: string]: number } = {
+    'None': 0,
+    'Low': 5,
+    'Medium': 7,
+    'High': 9,
+  };
+
+  const handleProcess = async () => {
+    if (!initialImageData) {
+        addToast({ type: 'error', message: 'No image data available to process.' });
+        return;
+    }
+
+    setIsProcessing(true);
+    try {
+        const response = await api.alterImage({
+            imageData: initialImageData,
+            rotation,
+            noise: noiseOptions[noiseReduction],
+        }, addToast);
+
+        if (response && response.processed_image_base64) {
+            setProcessedImage(`data:image/png;base64,${response.processed_image_base64}`);
+            addToast({ type: 'success', message: 'Image processed successfully!' });
+            setRotation(0);
+            setNoiseReduction('None');
+        } else {
+            addToast({ type: 'error', message: 'Failed to process image.' });
+        }
+    } catch (error) {
+        console.error("Processing error:", error);
+        addToast({ type: 'error', message: 'An error occurred during processing.' });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    navigate('/queue', { state: { processedImage: processedImage || initialImageData } });
+  };
+
+  const handleReset = () => {
+    setRotation(0);
+    setNoiseReduction('None');
+    setProcessedImage(null);
+  };
 
   return (
-    <motion.div
-      className="max-w-6xl mx-auto py-8 px-4"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div className="h-full" variants={containerVariants} initial="hidden" animate="visible" >
       <motion.div
         variants={itemVariants}
-        className={`p-8 rounded-2xl shadow-2xl transition-colors ${
+        className={`h-full p-8 rounded-3xl transition-colors ${
           theme === 'dark' ? 'bg-[#1C1C2E] border border-gray-700/50' : 'bg-white border border-gray-200/80'
         }`}
       >
-        <h2 className={`text-3xl font-bold mb-8 text-center ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-          Prepare Your Image
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
           
           <motion.div
             variants={itemVariants}
@@ -53,7 +108,7 @@ const ImageAlterations = () => {
             }`}
           >
             <h3 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
-              Alterations
+              Image Alterations
             </h3>
             <div className="space-y-8">
               
@@ -88,7 +143,7 @@ const ImageAlterations = () => {
                       }`}
                     >
                       <div className="py-1">
-                        {noiseOptions.map((option) => (
+                        {Object.keys(noiseOptions).map((option) => (
                           <Menu.Item key={option}>
                             {({ active }) => (
                               <button
@@ -108,7 +163,6 @@ const ImageAlterations = () => {
                 </Menu>
               </div>
 
-              {/* Rotation Slider */}
               <div>
                 <label htmlFor="rotation" className={`font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                   Rotation: <span className="font-bold text-emerald-400">{rotation}°</span>
@@ -126,36 +180,63 @@ const ImageAlterations = () => {
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="pt-6 border-t border-gray-700/50">
+              <div className="pt-6 border-t border-gray-700/50 space-y-4">
+                <div className="flex gap-4">
+                    <motion.button
+                      onClick={handleProcess}
+                      disabled={isProcessing}
+                      className="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                      whileHover={{ scale: 1.05, boxShadow: '0px 10px 20px rgba(59, 130, 246, 0.4)' }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      Process
+                      <WandSparkles className="w-5 h-5"/>
+                    </motion.button>
+                     <motion.button
+                      onClick={handleReset}
+                      className="w-full bg-gray-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2"
+                      whileHover={{ scale: 1.05, boxShadow: '0px 10px 20px rgba(107, 114, 128, 0.4)' }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      Reset
+                      <RefreshCcw className="w-5 h-5"/>
+                    </motion.button>
+                </div>
                 <motion.button
-                  onClick={() => navigate('/loading')}
-                  className="w-full bg-violet-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2"
-                  whileHover={{ scale: 1.05, boxShadow: '0px 10px 20px bg-violet-600' }}
+                  onClick={handleSubmit}
+                  disabled={!processedImage}
+                  className="w-full bg-violet-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  whileHover={{ scale: 1.05, boxShadow: '0px 10px 20px rgba(139, 92, 246, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  Submit for Processing
-                  <ArrowRightIcon className="w-5 h-5"/>
+                  Submit
+                  <SendHorizontal className="w-4 h-4"/>
+                  {/* <Send className="w-5 h-5"/> */}
                 </motion.button>
               </div>
             </div>
           </motion.div>
 
-          {/* Image Preview */}
           <motion.div
             variants={itemVariants}
             className={`lg:col-span-2 flex items-center justify-center rounded-xl p-4 min-h-[400px] transition-colors overflow-hidden ${
               theme === 'dark' ? 'bg-gray-900/50 border border-gray-700' : 'bg-gray-100 border border-gray-200'
             }`}
           >
-            <motion.img
-              src="https://placehold.co/600x800/e2e8f0/334155?text=Your+Uploaded%5CnInvoice"
-              alt="Uploaded document"
-              className="max-w-full max-h-full object-contain rounded-md shadow-lg"
-              animate={{ rotate: rotation }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            />
+            {isProcessing ? (
+              <Loader type="ai" />
+            ) : (
+              <motion.img
+                src={processedImage || `data:image/png;base64,${initialImageData}`}
+                alt="Document"
+                className="max-w-full max-h-full object-contain rounded-md shadow-lg"
+                animate={{ rotate: rotation }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              />
+            )}
           </motion.div>
         </div>
       </motion.div>
