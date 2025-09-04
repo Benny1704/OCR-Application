@@ -211,22 +211,47 @@ export interface Log {
   action: string;
   details: string;
 }
-export interface Document {
-  sno: number;
-  uploadedBy: string;
+
+export interface QueuedDocument {
   id: number;
+  sno: number;
+  name: string;
+  size: string;
+  uploadDate: string;
+  uploadedBy: string;
+  messageId: string;
+  isPriority: boolean;
+  status: "Queued" | "Processing";
+}
+
+export interface ProcessedDocument {
+  id: number;
+  sno: number;
   name: string;
   supplierName: string;
-  status: "Queued" | "Processed" | "Failed" | "Processing" | "Reviewed";
+  invoiceId: string;
+  irnNumber: string;
+  uploadedBy: string;
   uploadDate: string;
   invoiceDate: string;
-  size: string;
-  edited: boolean;
-  isPriority: boolean;
-  invoiceId?: string;
-  irnNumber?: string;
-  errorMessage?: string;
+  messageId: string;
+  status: "Processed";
 }
+
+export interface FailedDocument {
+  id: number;
+  sno: number;
+  name: string;
+  size: string;
+  uploadedBy: string;
+  uploadDate: string;
+  messageId: string;
+  errorMessage: string;
+  status: "Failed";
+}
+
+export type Document = QueuedDocument | ProcessedDocument | FailedDocument;
+
 export interface MainLayoutProps {
   children?: ReactNode;
 }

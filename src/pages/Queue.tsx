@@ -9,7 +9,7 @@ import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import type { Document } from "../interfaces/Types";
+import type { Document, QueuedDocument, ProcessedDocument, FailedDocument } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
   Star,
@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { RetryModal, StatusBadge } from "../components/common/Helper";
 import { motion, AnimatePresence } from "framer-motion";
-import { getDocuments } from "../lib/api/Api";
+import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 
@@ -44,7 +44,9 @@ const Queue = () => {
   const tabRef = useRef<HTMLUListElement>(null);
   const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">("Queued");
 
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
+  const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);
+  const [failedDocuments, setFailedDocuments] = useState<FailedDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(
     null
   );
@@ -52,11 +54,15 @@ const Queue = () => {
 
   useEffect(() => {
     const fetchDocuments = async () => {
-        const data = await getDocuments(addToast);
-        setDocuments(data);
+      const queuedData = await getQueuedDocuments(addToast);
+      const processedData = await getProcessedDocuments(addToast);
+      const failedData = await getFailedDocuments(addToast);
+      setQueuedDocuments(queuedData);
+      setProcessedDocuments(processedData);
+      setFailedDocuments(failedData);
     };
     fetchDocuments();
-  }, [])
+  }, [addToast]);
 
   const textHeader = theme === "dark" ? "text-white" : "text-gray-900";
   const textPrimary = theme === "dark" ? "text-gray-200" : "text-gray-700";
@@ -65,30 +71,33 @@ const Queue = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setDocuments((currentDocs) => {
-        const queuedDocs = currentDocs.filter(
-          (d) => d.status === "Queued" && !d.isPriority
-        );
+      setQueuedDocuments((currentDocs) => {
         const priorityDoc = currentDocs.find(
           (d) => d.status === "Queued" && d.isPriority
         );
-        if (!priorityDoc && queuedDocs.length === 0) return currentDocs;
-        
-        const docToProcess = priorityDoc || queuedDocs[0];
+        const docToProcess = priorityDoc || currentDocs.find(d => d.status === "Queued");
+
         if (!docToProcess) return currentDocs;
 
         const updatedDocs = currentDocs.map((d) =>
           d.id === docToProcess.id ? { ...d, status: "Processing" as const } : d
         );
+
         setTimeout(() => {
-          setDocuments((prevDocs) =>
-            prevDocs.map((d) =>
-              d.id === docToProcess.id
-                ? { ...d, status: "Processed" as const, isPriority: false }
-                : d
-            )
+          setQueuedDocuments((prevDocs) =>
+            prevDocs.filter((d) => d.id !== docToProcess.id)
           );
+          const processedDoc: ProcessedDocument = {
+            ...docToProcess,
+            status: "Processed",
+            supplierName: "Sample Supplier",
+            invoiceId: `INV-${docToProcess.id}`,
+            irnNumber: `IRN-${docToProcess.id}`,
+            invoiceDate: new Date().toISOString().split("T")[0],
+          };
+          setProcessedDocuments(prev => [processedDoc, ...prev]);
         }, 2000);
+
         return updatedDocs;
       });
     }, 5000);
@@ -98,10 +107,7 @@ const Queue = () => {
   const documentsForTab = useMemo(() => {
     let list: Document[] = [];
     if (activeTab === "Queued") {
-      list = documents.filter(
-        (d) => d.status === "Queued" || d.status === "Processing"
-      );
-      list.sort((a, b) => {
+      list = [...queuedDocuments].sort((a, b) => {
         if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
         if (a.status === "Processing" && b.status !== "Processing") return -1;
         if (b.status === "Processing" && a.status !== "Processing") return 1;
@@ -110,16 +116,18 @@ const Queue = () => {
         );
       });
     } else if (activeTab === "Processed") {
-      list = documents.filter((d) => d.status === "Processed");
+      list = processedDocuments;
     } else {
-      list = documents.filter((d) => d.status === "Failed");
+      list = failedDocuments;
     }
     return list;
-  }, [documents, activeTab]);
+  }, [queuedDocuments, processedDocuments, failedDocuments, activeTab]);
+
+  const allDocuments = useMemo(() => [...queuedDocuments, ...processedDocuments, ...failedDocuments], [queuedDocuments, processedDocuments, failedDocuments]);
 
   const selectedDocument = useMemo(
-    () => documents.find((d) => d.id === selectedDocumentId),
-    [selectedDocumentId, documents]
+    () => allDocuments.find((d) => d.id === selectedDocumentId),
+    [selectedDocumentId, allDocuments]
   );
 
   useEffect(() => {
@@ -134,7 +142,7 @@ const Queue = () => {
   }, [documentsForTab, selectedDocumentId]);
 
   const handleSetPriority = (id: number) => {
-    setDocuments((docs) =>
+    setQueuedDocuments((docs) =>
       docs.map((doc) =>
         doc.id === id ? { ...doc, isPriority: !doc.isPriority } : doc
       )
@@ -143,7 +151,7 @@ const Queue = () => {
 
   const handleDelete = (id: number) => {
     if (user?.role !== "admin") return;
-    setDocuments((docs) => docs.filter((doc) => doc.id !== id));
+    setQueuedDocuments((docs) => docs.filter((doc) => doc.id !== id));
   };
 
   const openRetryModal = () => setRetryModalOpen(true);
@@ -334,7 +342,7 @@ const Queue = () => {
                               className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}
                             >
                               {doc.name}
-                              {doc.isPriority && (
+                              {'isPriority' in doc && doc.isPriority && (
                                 <Star
                                   className="w-3.5 h-3.5 text-yellow-400"
                                   fill="currentColor"
@@ -376,6 +384,7 @@ const Queue = () => {
 
                         <div className="py-4 space-y-4 flex-grow overflow-y-auto">
                           {activeTab === "Failed" &&
+                            'errorMessage' in selectedDocument &&
                             selectedDocument.errorMessage && (
                               <div
                                 className={`p-3 rounded-lg flex items-start gap-3 text-xs ${
@@ -424,7 +433,7 @@ const Queue = () => {
                               <InfoCard
                                 icon={<Database size={18} />}
                                 label="File Size"
-                                value={selectedDocument.size}
+                                value={'size' in selectedDocument ? selectedDocument.size : 'N/A'}
                               />
                               <InfoCard
                                 icon={<User size={18} />}
@@ -461,12 +470,12 @@ const Queue = () => {
                                   >
                                     <Star
                                       className={`w-3.5 h-3.5 ${
-                                        selectedDocument.isPriority
+                                        'isPriority' in selectedDocument && selectedDocument.isPriority
                                           ? "text-yellow-400"
                                           : ""
                                       }`}
                                       fill={
-                                        selectedDocument.isPriority
+                                        'isPriority' in selectedDocument && selectedDocument.isPriority
                                           ? "currentColor"
                                           : "none"
                                       }

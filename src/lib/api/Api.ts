@@ -2,30 +2,7 @@ import type { Document, ExtractedData, Log, ProductWithDetails } from './../../i
 
 const MOCK_API_URL = "http://localhost:8000";
 const ARUN_API_URL = "http://10.3.0.52:8000";
-const API_URL = "https://29ccf1fd86f6.ngrok-free.app";
-
-const fetchWithFallback = async (url: string, options: any = {}, showToast: any) => {
-    try {
-        const response = await fetch(url.replace(MOCK_API_URL, API_URL), options);
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            return response;
-        } else {
-            throw new Error("Received non-JSON response from API");
-        }
-    } catch (error) {
-        console.error("API call failed, falling back to mock data:", error);
-        showToast({ type: 'error', message: 'Could not connect to API, using mock data.' });
-        const mockResponse = await fetch(url.replace(API_URL, MOCK_API_URL), options);
-        if (!mockResponse.ok) {
-            throw new Error(`Mock API request failed with status ${mockResponse.status}`);
-        }
-        return mockResponse;
-    }
-};
+const API_URL = "https://32460e62c1ca.ngrok-free.app";
 
 const getAuthToken = () => {
     return localStorage.getItem('token');
@@ -125,7 +102,7 @@ export const uploadFiles = async (files: File[], showToast: any): Promise<{ succ
     try {
         const response = await fetch(`${API_URL}/upload/upload-invoice`, {
             method: 'POST',
-            headers: getAuthHeaders(), 
+            headers: getAuthHeaders(),
             body: formData,
         });
 
@@ -145,31 +122,149 @@ export const uploadFiles = async (files: File[], showToast: any): Promise<{ succ
 
 
 export const getDocuments = async (showToast: any): Promise<Document[]> => {
-  const response = await fetchWithFallback(`${MOCK_API_URL}/documents`, { headers: getAuthHeaders() }, showToast);
-  return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/documents`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Could not fetch documents:", error);
+        showToast({ type: 'error', message: 'Could not fetch documents.' });
+        return [];
+    }
 };
 
 export const getDocument = async (id: number, showToast: any): Promise<Document> => {
-  const response = await fetchWithFallback(`${MOCK_API_URL}/documents/${id}`, { headers: getAuthHeaders() }, showToast);
-  return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/documents/${id}`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error(`Could not fetch document with id ${id}:`, error);
+        showToast({ type: 'error', message: `Could not fetch document.` });
+        throw error;
+    }
 };
 
 export const getExtractedData = async (showToast: any): Promise<ExtractedData> => {
-    const response = await fetchWithFallback(`${MOCK_API_URL}/extractedData`, { headers: getAuthHeaders() }, showToast);
-    return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/extractedData`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Could not fetch extracted data:", error);
+        showToast({ type: 'error', message: 'Could not fetch extracted data.' });
+        throw error;
+    }
 };
 
 export const getProductData = async (showToast: any): Promise<ProductWithDetails[]> => {
-    const response = await fetchWithFallback(`${MOCK_API_URL}/productData`, { headers: getAuthHeaders() }, showToast);
-    return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/productData`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Could not fetch product data:", error);
+        showToast({ type: 'error', message: 'Could not fetch product data.' });
+        return [];
+    }
 };
 
 export const getDashboardData = async (showToast: any): Promise<any> => {
-    const response = await fetchWithFallback(`${MOCK_API_URL}/dashboard`, { headers: getAuthHeaders() }, showToast);
-    return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/dashboard`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Could not fetch dashboard data:", error);
+        showToast({ type: 'error', message: 'Could not fetch dashboard data.' });
+        throw error;
+    }
 };
 
 export const getLogs = async (showToast: any): Promise<Log[]> => {
-    const response = await fetchWithFallback(`${MOCK_API_URL}/logs`, { headers: getAuthHeaders() }, showToast);
-    return response.json();
+    try {
+        const response = await fetch(`${MOCK_API_URL}/logs`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Could not fetch logs:", error);
+        showToast({ type: 'error', message: 'Could not fetch logs.' });
+        return [];
+    }
 }
+
+const handleResponse = async (response: Response, addToast: any) => {
+  if (!response.ok) {
+    const error = await response.json();
+    addToast({
+      id: Date.now(),
+      message: error.message || "Something went wrong",
+      type: "error",
+    });
+    throw new Error(error.message || "Something went wrong");
+  }
+  return response.json();
+};
+
+export const getQueuedDocuments = async (addToast: any) => {
+  try {
+    const response = await fetch(`${MOCK_API_URL}/QueuedDocuments`);
+    return await handleResponse(response, addToast);
+  } catch (error) {
+    console.error("Failed to fetch queued documents:", error);
+    return [];
+  }
+};
+
+export const getProcessedDocuments = async (addToast: any) => {
+  try {
+    const response = await fetch(`${MOCK_API_URL}/ProcessedDocuments`);
+    return await handleResponse(response, addToast);
+  } catch (error) {
+    console.error("Failed to fetch processed documents:", error);
+    return [];
+  }
+};
+
+export const getFailedDocuments = async (addToast: any) => {
+  try {
+    const response = await fetch(`${MOCK_API_URL}/FailedDocuments`);
+    return await handleResponse(response, addToast);
+  } catch (error) {
+    console.error("Failed to fetch failed documents:", error);
+    return [];
+  }
+};
+
+export const getFinancialObligations = async (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    const url = filterType === 'monthly'
+        ? `${ARUN_API_URL}/metrics/financial_obligations?year=${year}`
+        : `${ARUN_API_URL}/metrics/financial_obligations?from_year=${year}&to_year=${toYear}`;
+
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    const data = await response.json();
+    return filterType === 'monthly' ? data["Financial obligations"].monthly_expenses : data["Financial obligations"].yearly_expenses;
+};
+
+export const getInvoiceCount = async (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    const url = filterType === 'monthly'
+        ? `${ARUN_API_URL}/metrics/invoice_count?year=${year}`
+        : `${ARUN_API_URL}/metrics/invoice_count?from_year=${year}&to_year=${toYear}`;
+
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    const data = await response.json();
+    console.log(data);
+    return filterType === 'monthly' ? data["No. of Invoices"].monthly_counts : data["No. of Invoices"].yearly_counts;
+};

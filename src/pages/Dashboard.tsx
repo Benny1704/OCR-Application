@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download, FileDiff } from 'lucide-react';
-import { motion, type Variants } from "framer-motion";
-import { Menu, Transition } from "@headlessui/react";
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, Settings, Download, FileDiff, Calendar, BarChart2 } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { itemVariants } from '../components/common/Animation';
-import { containerVariants } from '../components/common/Animation';
-import { getDashboardData } from '../lib/api/Api';
+import { itemVariants, containerVariants } from '../components/common/Animation';
+import { getDashboardData, getFinancialObligations, getInvoiceCount } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import Loader from '../components/common/Loader';
 
@@ -23,7 +22,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 interface KpiMetric {
     title: string;
     value: string;
-    icon: string; 
+    icon: string;
     change?: string;
     changeType?: 'increase' | 'decrease';
 }
@@ -37,10 +36,20 @@ interface MetricCardProps {
     index: number;
 }
 
+// FIX: Made filter-related props optional
 interface ChartCardProps {
     title: string;
     icon: React.ElementType;
     children: React.ReactNode;
+    isLoading: boolean;
+    filterType?: 'monthly' | 'yearly';
+    setFilterType?: (filter: 'monthly' | 'yearly') => void;
+    selectedYear?: number;
+    setSelectedYear?: (year: number) => void;
+    fromYear?: number;
+    setFromYear?: (year: number) => void;
+    toYear?: number;
+    setToYear?: (year: number) => void;
 }
 
 interface CustomTooltipProps {
@@ -49,6 +58,7 @@ interface CustomTooltipProps {
   label?: string | number;
   spendByVendorData: { name: string; value: number }[];
 }
+
 
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
     const { theme } = useTheme();
@@ -84,7 +94,10 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
     );
 };
 
-const DropdownMenu = () => (
+const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedYear, fromYear, setFromYear, toYear, setToYear }: any) => {
+    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+
+    return (
     <Menu as="div" className="relative inline-block text-left">
         <div>
             <Menu.Button className="inline-flex justify-center w-full p-2 text-sm font-medium text-gray-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
@@ -92,7 +105,7 @@ const DropdownMenu = () => (
             </Menu.Button>
         </div>
         <Transition
-            as={React.Fragment}
+            as={Fragment}
             enter="transition ease-out duration-100"
             enterFrom="transform opacity-0 scale-95"
             enterTo="transform opacity-100 scale-100"
@@ -100,27 +113,66 @@ const DropdownMenu = () => (
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
         >
-            <Menu.Items className="absolute right-0 w-48 mt-2 origin-top-right bg-white dark:bg-[#2a2a3e] divide-y divide-gray-100 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none z-10">
-                <div className="px-1 py-1 ">
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button className={`${active ? 'bg-violet-500 text-white' : 'text-gray-900 dark:text-gray-200'} group flex rounded-md items-center w-full px-2 py-2 text-sm`}>
-                                <Download className="w-5 h-5 mr-2" aria-hidden="true" /> Download
-                            </button>
-                        )}
-                    </Menu.Item>
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button className={`${active ? 'bg-violet-500 text-white' : 'text-gray-900 dark:text-gray-200'} group flex rounded-md items-center w-full px-2 py-2 text-sm`}>
-                                <Settings className="w-5 h-5 mr-2" aria-hidden="true" /> Settings
-                            </button>
-                        )}
-                    </Menu.Item>
+            <Menu.Items className="absolute right-0 w-64 mt-2 origin-top-right bg-white dark:bg-[#2a2a3e] divide-y divide-gray-100 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none z-10">
+                <div className="px-4 py-3">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-200">Chart Options</p>
                 </div>
+                { filterType && setFilterType && (
+                    <>
+                        <div className="px-4 py-3">
+                             <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-300">Yearly / Monthly</span>
+                                <Switch
+                                    checked={filterType === 'yearly'}
+                                    onChange={() => setFilterType(filterType === 'monthly' ? 'yearly' : 'monthly')}
+                                    className={`${filterType === 'yearly' ? 'bg-violet-600' : 'bg-gray-400 dark:bg-gray-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                                >
+                                    <span className={`${filterType === 'yearly' ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
+                                </Switch>
+                            </div>
+                        </div>
+                         <AnimatePresence initial={false}>
+                            <motion.div
+                                key={filterType}
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                            >
+                                {filterType === 'monthly' ? (
+                                    <div className="px-4 py-3">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Year</label>
+                                        <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-[#3a3a52] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md">
+                                            {years.map(year => <option key={year} value={year}>{year}</option>)}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-3 space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">From</label>
+                                            <select value={fromYear} onChange={(e) => setFromYear(parseInt(e.target.value))} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-[#3a3a52] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md">
+                                                {years.map(year => <option key={year} value={year}>{year}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">To</label>
+                                            <select value={toYear} onChange={(e) => setToYear(parseInt(e.target.value))} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-[#3a3a52] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md">
+                                                {years.map(year => <option key={year} value={year}>{year}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
+                    </>
+                )}
             </Menu.Items>
         </Transition>
     </Menu>
-);
+    )
+};
+
 
 const CustomPieTooltip = ({ active, payload, spendByVendorData }: CustomTooltipProps) => {
     const { theme } = useTheme();
@@ -146,25 +198,72 @@ const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const { addToast } = useToast();
+    
+    const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
+    const [invoiceCountData, setInvoiceCountData] = useState<any[]>([]);
+
+    const [isFinancialsLoading, setIsFinancialsLoading] = useState(true);
+    const [isInvoiceCountLoading, setIsInvoiceCountLoading] = useState(true);
+
+    const [financialFilterType, setFinancialFilterType] = useState<'monthly' | 'yearly'>('monthly');
+    const [invoiceFilterType, setInvoiceFilterType] = useState<'monthly' | 'yearly'>('monthly');
+
+    const [financialSelectedYear, setFinancialSelectedYear] = useState<number>(new Date().getFullYear());
+    const [financialFromYear, setFinancialFromYear] = useState<number>(new Date().getFullYear() - 5);
+    const [financialToYear, setFinancialToYear] = useState<number>(new Date().getFullYear());
+
+    const [invoiceSelectedYear, setInvoiceSelectedYear] = useState<number>(new Date().getFullYear());
+    const [invoiceFromYear, setInvoiceFromYear] = useState<number>(new Date().getFullYear() - 5);
+    const [invoiceToYear, setInvoiceToYear] = useState<number>(new Date().getFullYear());
+
 
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
+        const fetchInitialData = async () => {
+            setIsInitialLoading(true);
             try {
                 const data = await getDashboardData(addToast);
                 setDashboardData(data);
             } catch (error) {
                 addToast({ type: 'error', message: 'Failed to load dashboard data.' });
             } finally {
-                setIsLoading(false);
+                setIsInitialLoading(false);
             }
         };
-        setTimeout(() => {
-            fetchData();
-        }, 1500);
+       fetchInitialData();
     }, []);
+
+    useEffect(() => {
+        const fetchFinancials = async () => {
+            setIsFinancialsLoading(true);
+            try {
+                const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear);
+                setFinancialObligationsData(financialData || []);
+            } catch (error) {
+                addToast({ type: 'error', message: 'Failed to load financial data.' });
+            } finally {
+                 setIsFinancialsLoading(false);
+            }
+        };
+        fetchFinancials();
+    }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear]);
+
+    useEffect(() => {
+        const fetchInvoiceCount = async () => {
+            setIsInvoiceCountLoading(true);
+            try {
+                const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear);
+                setInvoiceCountData(invoiceData || []);
+            } catch (error) {
+                addToast({ type: 'error', message: 'Failed to load invoice count.' });
+            } finally {
+                setIsInvoiceCountLoading(false);
+            }
+        };
+        fetchInvoiceCount();
+    }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
+
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     const textHeader = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -184,7 +283,7 @@ const Dashboard = () => {
         );
     }
 
-    if (isLoading) {
+    if (isInitialLoading) {
         return <Loader type="wifi"/>;
     }
 
@@ -239,9 +338,21 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
-                <ChartCard title="Financial Obligations" icon={Banknote}>
+                <ChartCard
+                    title="Financial Obligations"
+                    icon={Banknote}
+                    isLoading={isFinancialsLoading}
+                    filterType={financialFilterType}
+                    setFilterType={setFinancialFilterType}
+                    selectedYear={financialSelectedYear}
+                    setSelectedYear={setFinancialSelectedYear}
+                    fromYear={financialFromYear}
+                    setFromYear={setFinancialFromYear}
+                    toYear={financialToYear}
+                    setToYear={setFinancialToYear}
+                >
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={dashboardData.monthlyExpenseData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                        <BarChart data={financialObligationsData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                             <defs>
                                 <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
@@ -249,16 +360,28 @@ const Dashboard = () => {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                            <XAxis dataKey={financialFilterType === 'monthly' ? 'month' : 'year'} stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.75rem' }}/>
                             <Bar dataKey="expense" fill="url(#expenseGradient)" name="Expense" radius={[4, 4, 0, 0]} barSize={16} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartCard>
-                <ChartCard title="Invoice Count" icon={FilePieChart}>
+                <ChartCard
+                    title="Invoice Count"
+                    icon={FilePieChart}
+                    isLoading={isInvoiceCountLoading}
+                    filterType={invoiceFilterType}
+                    setFilterType={setInvoiceFilterType}
+                    selectedYear={invoiceSelectedYear}
+                    setSelectedYear={setInvoiceSelectedYear}
+                    fromYear={invoiceFromYear}
+                    setFromYear={setInvoiceFromYear}
+                    toYear={invoiceToYear}
+                    setToYear={setInvoiceToYear}
+                >
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={dashboardData.invoiceVolumeData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                        <LineChart data={invoiceCountData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                              <defs>
                                 <linearGradient id="countGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
@@ -266,14 +389,14 @@ const Dashboard = () => {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                            <XAxis dataKey={invoiceFilterType === 'monthly' ? 'month' : 'year'} stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <Tooltip cursor={{stroke: 'rgba(139, 92, 246, 0.2)', strokeWidth: 2}} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.75rem' }}/>
                             <Line type="monotone" dataKey="count" stroke="#a78bfa" strokeWidth={2.5} dot={{ r: 4, strokeWidth: 2, fill: theme === 'dark' ? '#1C1C2E' : '#fff' }} activeDot={{ r: 8 }} name="Invoices" />
                         </LineChart>
                     </ResponsiveContainer>
                 </ChartCard>
-                <ChartCard title="Spending by Vendor" icon={TrendingUp}>
+                 <ChartCard title="Spending by Vendor" icon={TrendingUp} isLoading={isInitialLoading}>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie data={dashboardData.spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
@@ -284,7 +407,7 @@ const Dashboard = () => {
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartCard>
-                <ChartCard title="Discounts by Vendor" icon={Wallet}>
+                <ChartCard title="Discounts by Vendor" icon={Wallet} isLoading={isInitialLoading}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={dashboardData.discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
@@ -302,9 +425,9 @@ const Dashboard = () => {
     );
 }
 
-const ChartCard = ({ title, icon: Icon, children }: ChartCardProps) => {
+const ChartCard = ({ title, icon: Icon, children, isLoading, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
-    const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
+    const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border relative ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
 
     return (
@@ -314,9 +437,21 @@ const ChartCard = ({ title, icon: Icon, children }: ChartCardProps) => {
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-violet-500 dark:text-violet-400" />
                     <h3 className={`text-base md:text-lg font-bold ${textPrimary}`}>{title}</h3>
                 </div>
-                <DropdownMenu />
+                <ChartFilterMenu {...filterProps} />
             </div>
             <div className="h-72 md:h-80">
+                <AnimatePresence>
+                {isLoading && (
+                     <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-[#1C1C2E]/50 backdrop-blur-sm z-10 rounded-2xl"
+                    >
+                        <Loader type="wifi"/>
+                    </motion.div>
+                )}
+                </AnimatePresence>
                 {children}
             </div>
         </div>
