@@ -213,7 +213,7 @@ export interface Log {
 }
 
 export interface QueuedDocument {
-  id: number;
+  id: string;
   sno: number;
   name: string;
   size: string;
@@ -225,7 +225,7 @@ export interface QueuedDocument {
 }
 
 export interface ProcessedDocument {
-  id: number;
+  id: string;
   sno: number;
   name: string;
   supplierName: string;
@@ -239,7 +239,7 @@ export interface ProcessedDocument {
 }
 
 export interface FailedDocument {
-  id: number;
+  id: string;
   sno: number;
   name: string;
   size: string;
@@ -258,7 +258,7 @@ export interface MainLayoutProps {
 
 export interface ProductDetailPopupProps {
   isOpen: boolean;
-  onClose: () => void;  
+  onClose: () => void;
   data: ProductWithDetails | null;
 }
 

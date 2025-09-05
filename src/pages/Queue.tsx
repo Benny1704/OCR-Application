@@ -47,7 +47,7 @@ const Queue = () => {
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
   const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);
   const [failedDocuments, setFailedDocuments] = useState<FailedDocument[]>([]);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     null
   );
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
@@ -57,9 +57,44 @@ const Queue = () => {
       const queuedData = await getQueuedDocuments(addToast);
       const processedData = await getProcessedDocuments(addToast);
       const failedData = await getFailedDocuments(addToast);
-      setQueuedDocuments(queuedData);
-      setProcessedDocuments(processedData);
-      setFailedDocuments(failedData);
+
+      setQueuedDocuments(queuedData.map((item: any, index: number) => ({
+        id: item.message_id,
+        sno: index + 1,
+        name: item.file_name,
+        size: item.file_size,
+        uploadDate: item.uploaded_on,
+        uploadedBy: item.uploaded_by,
+        messageId: item.message_id,
+        isPriority: item.priority,
+        status: "Queued",
+      })));
+
+      setProcessedDocuments(processedData.map((item: any, index: number) => ({
+        id: item.message_id,
+        sno: index + 1,
+        name: item.file_name,
+        supplierName: item.supplier_name,
+        invoiceId: item.invoice_id,
+        irnNumber: item.irn,
+        uploadedBy: item.uploaded_by,
+        uploadDate: item.uploaded_at,
+        invoiceDate: item.invoice_date,
+        messageId: item.message_id,
+        status: "Processed",
+      })));
+
+      setFailedDocuments(failedData.map((item: any, index: number) => ({
+        id: item.message_id,
+        sno: index + 1,
+        name: item.file_name,
+        size: item.file_size,
+        uploadedBy: item.uploaded_by,
+        uploadDate: item.uploaded_on,
+        messageId: item.message_id,
+        errorMessage: item.error_message,
+        status: "Failed",
+      })));
     };
     fetchDocuments();
   }, [addToast]);
@@ -141,7 +176,7 @@ const Queue = () => {
     }
   }, [documentsForTab, selectedDocumentId]);
 
-  const handleSetPriority = (id: number) => {
+  const handleSetPriority = (id: string) => {
     setQueuedDocuments((docs) =>
       docs.map((doc) =>
         doc.id === id ? { ...doc, isPriority: !doc.isPriority } : doc
@@ -149,7 +184,7 @@ const Queue = () => {
     );
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (user?.role !== "admin") return;
     setQueuedDocuments((docs) => docs.filter((doc) => doc.id !== id));
   };

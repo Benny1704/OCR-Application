@@ -12,7 +12,8 @@ const getAuthHeaders = (contentType?: string) => {
     const token = getAuthToken();
     const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`,
-        'accept': 'application/json'
+        'accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
     };
     if (contentType) {
         headers['Content-Type'] = contentType;
@@ -30,7 +31,10 @@ export const login = async (credentials: {username: string, password: string}):P
         try {
             const response = await fetch(`${API_URL}/users/token`, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                }
             });
 
             if (response.ok) {
@@ -75,7 +79,7 @@ export const alterImage = async (params: { imageData: string; rotation: number; 
 
         const response = await fetch(`${ARUN_API_URL}/ocr_preprocessing/process`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders('application/json'),
             body: JSON.stringify(payload),
         });
 
@@ -205,22 +209,40 @@ export const getLogs = async (showToast: any): Promise<Log[]> => {
     }
 }
 
+// Corrected function to handle both JSON and non-JSON error responses
 const handleResponse = async (response: Response, addToast: any) => {
-  if (!response.ok) {
-    const error = await response.json();
+    if (response.ok) {
+        return response.json();
+    }
+
+    // Handle error cases
+    const contentType = response.headers.get("content-type");
+    let errorMessage = "Something went wrong";
+
+    if (contentType && contentType.includes("application/json")) {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+    } else {
+        const errorText = await response.text();
+        // Use the text as the error, it might be an HTML page or simple text
+        errorMessage = errorText || `Request failed with status ${response.status}`;
+    }
+
     addToast({
-      id: Date.now(),
-      message: error.message || "Something went wrong",
-      type: "error",
+        id: Date.now(),
+        message: errorMessage,
+        type: "error",
     });
-    throw new Error(error.message || "Something went wrong");
-  }
-  return response.json();
+
+    throw new Error(errorMessage);
 };
+
 
 export const getQueuedDocuments = async (addToast: any) => {
   try {
-    const response = await fetch(`${MOCK_API_URL}/QueuedDocuments`);
+    const response = await fetch(`${API_URL}/document/queued`, {
+      headers: getAuthHeaders(),
+    });
     return await handleResponse(response, addToast);
   } catch (error) {
     console.error("Failed to fetch queued documents:", error);
@@ -230,7 +252,9 @@ export const getQueuedDocuments = async (addToast: any) => {
 
 export const getProcessedDocuments = async (addToast: any) => {
   try {
-    const response = await fetch(`${MOCK_API_URL}/ProcessedDocuments`);
+    const response = await fetch(`${API_URL}/document/processed`, {
+      headers: getAuthHeaders(),
+    });
     return await handleResponse(response, addToast);
   } catch (error) {
     console.error("Failed to fetch processed documents:", error);
@@ -240,13 +264,16 @@ export const getProcessedDocuments = async (addToast: any) => {
 
 export const getFailedDocuments = async (addToast: any) => {
   try {
-    const response = await fetch(`${MOCK_API_URL}/FailedDocuments`);
+    const response = await fetch(`${API_URL}/document/failed`, {
+      headers: getAuthHeaders(),
+    });
     return await handleResponse(response, addToast);
   } catch (error) {
     console.error("Failed to fetch failed documents:", error);
     return [];
   }
 };
+
 
 export const getFinancialObligations = async (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
     const url = filterType === 'monthly'
