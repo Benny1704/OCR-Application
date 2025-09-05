@@ -1,297 +1,288 @@
+import axios, { AxiosError } from 'axios';
 import type { Document, ExtractedData, Log, ProductWithDetails } from './../../interfaces/Types';
 
+// --- Base URLs ---
 const MOCK_API_URL = "http://localhost:8000";
 const ARUN_API_URL = "http://10.3.0.52:8000";
-const API_URL = "https://32460e62c1ca.ngrok-free.app";
+const API_URL = "https://55fa7a9f595a.ngrok-free.app";
 
-const getAuthToken = () => {
-    return localStorage.getItem('token');
-};
+// --- Axios Instances ---
+// Creating separate instances allows for different base URLs and configurations
+const api = axios.create({ baseURL: API_URL });
+const arunApi = axios.create({ baseURL: ARUN_API_URL });
+const mockApi = axios.create({ baseURL: MOCK_API_URL });
 
-const getAuthHeaders = (contentType?: string) => {
-    const token = getAuthToken();
-    const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`,
-        'accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-    };
-    if (contentType) {
-        headers['Content-Type'] = contentType;
+// --- Axios Interceptor for Authentication ---
+// This function runs before every request is sent for any of the instances above.
+[api, arunApi, mockApi].forEach(instance => {
+    instance.interceptors.request.use(
+        (config) => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
+            // Add other common headers here
+            config.headers['accept'] = 'application/json';
+            config.headers['ngrok-skip-browser-warning'] = 'true';
+            return config;
+        },
+        (error) => Promise.reject(error)
+    );
+});
+
+
+// --- Centralized Error Handler ---
+// This helper function standardizes error message extraction and toast notifications.
+const handleError = (error: any, addToast: (toast: { id?: number, message: string, type: "error" }) => void) => {
+    let errorMessage = "An unknown error occurred.";
+
+    if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        if (axiosError.response) {
+            const errorData = axiosError.response.data;
+            errorMessage = errorData.detail || errorData.message || axiosError.message;
+        } else if (axiosError.request) {
+            errorMessage = "No response from server. Check your network connection.";
+        } else {
+            errorMessage = axiosError.message;
+        }
+    } else if (error instanceof Error) {
+        errorMessage = error.message;
     }
 
-    return headers;
+    console.error("API Error:", error);
+    
+    // Only show toast if a function is provided
+    if (addToast) {
+        addToast({ message: errorMessage, type: "error" });
+    }
+    
+    // It's good practice to re-throw the error so the calling component knows the request failed.
+    throw new Error(errorMessage);
 };
 
-export const login = async (credentials: {username: string, password: string}):Promise<{access_token: string} | null> => {
+// --- API Functions (Refactored) ---
+
+export const login = async (credentials: { username: string, password: string }): Promise<{ access_token: string } | null> => {
     try {
         const formData = new FormData();
         formData.append('username', credentials.username);
         formData.append('password', credentials.password);
 
         try {
-            const response = await fetch(`${API_URL}/users/token`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'ngrok-skip-browser-warning': 'true'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                return data;
-            }
+            // Main API login attempt
+            const response = await api.post('/users/token', formData);
+            return response.data;
         } catch (error) {
             console.error("Login API call failed, trying mock API:", error);
+            // Fallback to mock API
+            const mockResponse = await mockApi.get('/users');
+            const users = mockResponse.data;
+            const user = users.find((u: any) => u.username === credentials.username && u.password === 'password');
+
+            if (user) {
+                return { access_token: `mock_token_for_${user.username}` };
+            }
+            return null;
         }
-
-        const mockResponse = await fetch(`${MOCK_API_URL}/users`);
-        const users = await mockResponse.json();
-        const user = users.find((u: any) => u.username === credentials.username && u.password === 'password');
-
-        if (user) {
-            return { access_token: `mock_token_for_${user.username}` };
-        }
-
-
-        return null;
     } catch (error) {
         console.error("Login failed:", error);
         return null;
     }
-}
-
-export const alterImage = async (params: { imageData: string; rotation: number; noise: number }, showToast: any): Promise<{ processedImage: { processed_image_base64: string; } | null; processed_image_base64: string } | null> => {
-    try {
-
-        const payload: {
-            image_base64: string;
-            rotate_angle: number;
-            denoise_ksize?: number;
-        } = {
-            image_base64: params.imageData,
-            rotate_angle: params.rotation,
-        };
-
-        if (params.noise > 0) {
-            payload.denoise_ksize = params.noise;
-        }
-
-        const response = await fetch(`${ARUN_API_URL}/ocr_preprocessing/process`, {
-            method: 'POST',
-            headers: getAuthHeaders('application/json'),
-            body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            return data;
-        }
-        else{
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-    } catch (error) {
-        console.error("Image processing failed:", error);
-        showToast({ type: 'error', message: 'Image processing failed.' });
-        return null;
-    }
 };
 
-export const uploadFiles = async (files: File[], showToast: any): Promise<{ success: boolean } | null> => {
+export const uploadFiles = async (
+    files: File[],
+    onProgress: (percentCompleted: number) => void, // Added for progress tracking
+    addToast: any
+): Promise<{ success: boolean }> => {
     const formData = new FormData();
     files.forEach(file => {
         formData.append('files', file);
     });
 
     try {
-        const response = await fetch(`${API_URL}/upload/upload-invoice`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: formData,
+        await api.post('/upload/upload-invoice', formData, {
+            onUploadProgress: (progressEvent) => {
+                const total = progressEvent.total ?? (files.reduce((acc, file) => acc + file.size, 0));
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
+                onProgress(percentCompleted);
+            },
         });
-
-        if (response.ok) {
-            return { success: true };
-        } else {
-            const errorData = await response.json();
-            console.error("Server responded with error:", errorData);
-            throw new Error(`Upload failed with status ${response.status}`);
-        }
+        return { success: true };
     } catch (error) {
-        console.error("File upload failed:", error);
-        showToast({ type: 'error', message: 'File upload failed.' });
+        handleError(error, addToast);
+        return { success: false };
+    }
+};
+
+export const alterImage = async (params: { imageData: string; rotation: number; noise: number }, showToast: any) => {
+    try {
+        const payload: any = {
+            image_base64: params.imageData,
+            rotate_angle: params.rotation,
+        };
+        if (params.noise > 0) {
+            payload.denoise_ksize = params.noise;
+        }
+        const response = await arunApi.post('/ocr_preprocessing/process', payload);
+        return response.data;
+    } catch (error) {
+        handleError(error, showToast);
         return null;
     }
 };
 
-
-export const getDocuments = async (showToast: any): Promise<Document[]> => {
+export const getQueuedDocuments = async (addToast: any) => {
     try {
-        const response = await fetch(`${MOCK_API_URL}/documents`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
+        const response = await api.get('/document/queued');
+        return response.data;
     } catch (error) {
-        console.error("Could not fetch documents:", error);
-        showToast({ type: 'error', message: 'Could not fetch documents.' });
+        handleError(error, addToast);
         return [];
     }
 };
 
-export const getDocument = async (id: number, showToast: any): Promise<Document> => {
+export const getProcessedDocuments = async (addToast: any) => {
     try {
-        const response = await fetch(`${MOCK_API_URL}/documents/${id}`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
+        const response = await api.get('/document/processed');
+        return response.data;
     } catch (error) {
-        console.error(`Could not fetch document with id ${id}:`, error);
-        showToast({ type: 'error', message: `Could not fetch document.` });
-        throw error;
+        handleError(error, addToast);
+        return [];
     }
 };
 
-export const getExtractedData = async (showToast: any): Promise<ExtractedData> => {
+export const getFailedDocuments = async (addToast: any) => {
     try {
-        const response = await fetch(`${MOCK_API_URL}/extractedData`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
+        const response = await api.get('/document/failed');
+        return response.data;
     } catch (error) {
-        console.error("Could not fetch extracted data:", error);
-        showToast({ type: 'error', message: 'Could not fetch extracted data.' });
-        throw error;
+        handleError(error, addToast);
+        return [];
+    }
+};
+
+export const deleteDocument = async (id: string, addToast: any) => {
+    try {
+        const response = await api.delete(`/document/delete/${id}`);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+    }
+};
+
+export const setDocumentPriority = async (id: string, isPriority: boolean, addToast: any) => {
+    try {
+        // For POST requests with only query params, the second argument (body) is null.
+        const response = await api.post(`/document/set_priority/${id}`, null, {
+            params: { priority: isPriority },
+        });
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+    }
+};
+
+export const getDashboardData = async (addToast: any): Promise<any> => {
+    try {
+        const response = await arunApi.get('/metrics/kpi');
+        return Object.values(response.data)[0];
+    } catch (error) {
+        console.error("Could not fetch dashboard data, falling back to mock:", error);
+        try {
+            const mockResponse = await mockApi.get('/dashboard');
+            return mockResponse.data;
+        } catch (mockError) {
+            handleError(mockError, addToast);
+        }
+    }
+};
+
+// --- Chart Data Functions ---
+const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    const params = filterType === 'monthly'
+        ? { year }
+        : { from_year: year, to_year: toYear };
+    
+    const response = await instance.get(endpoint, { params });
+    const data = response.data;
+    const key = Object.keys(data)[0]; // Handles dynamic response keys
+
+    if (filterType === 'monthly' && data[key]) {
+        return data[key].monthly_counts || data[key].monthly_expenses;
+    }
+    if (filterType === 'yearly' && data[key]) {
+        return data[key].yearly_counts || data[key].yearly_expenses;
+    }
+    return data[key];
+};
+
+export const getFinancialObligations = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    return fetchDataForChart(arunApi, '/metrics/financial_obligations', filterType, year, toYear);
+};
+
+export const getInvoiceCount = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    return fetchDataForChart(arunApi, '/metrics/invoice_count', filterType, year, toYear);
+};
+
+export const getSpendByVendor = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    return fetchDataForChart(arunApi, '/metrics/total_spend_by_vendor', filterType, year, toYear);
+};
+
+export const getDiscountByVendor = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
+    return fetchDataForChart(arunApi, '/metrics/total_discount_by_vendor', filterType, year, toYear);
+};
+
+// --- MOCK API Functions (Refactored) ---
+// These are simple GET requests, now using the mockApi instance.
+
+export const getDocuments = async (showToast: any): Promise<Document[]> => {
+    try {
+        const response = await mockApi.get('/documents');
+        return response.data;
+    } catch (error) {
+        handleError(error, showToast);
+        return [];
+    }
+};
+
+export const getDocument = async (id: number, showToast: any): Promise<Document | null> => {
+    try {
+        const response = await mockApi.get(`/documents/${id}`);
+        return response.data;
+    } catch (error) {
+        handleError(error, showToast);
+        return null;
+    }
+};
+
+export const getExtractedData = async (showToast: any): Promise<ExtractedData | null> => {
+    try {
+        const response = await mockApi.get('/extractedData');
+        return response.data;
+    } catch (error) {
+        handleError(error, showToast);
+        return null;
     }
 };
 
 export const getProductData = async (showToast: any): Promise<ProductWithDetails[]> => {
     try {
-        const response = await fetch(`${MOCK_API_URL}/productData`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
+        const response = await mockApi.get('/productData');
+        return response.data;
     } catch (error) {
-        console.error("Could not fetch product data:", error);
-        showToast({ type: 'error', message: 'Could not fetch product data.' });
+        handleError(error, showToast);
         return [];
-    }
-};
-
-export const getDashboardData = async (showToast: any): Promise<any> => {
-    try {
-        const response = await fetch(`${MOCK_API_URL}/dashboard`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
-    } catch (error) {
-        console.error("Could not fetch dashboard data:", error);
-        showToast({ type: 'error', message: 'Could not fetch dashboard data.' });
-        throw error;
     }
 };
 
 export const getLogs = async (showToast: any): Promise<Log[]> => {
     try {
-        const response = await fetch(`${MOCK_API_URL}/logs`, { headers: getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        return response.json();
+        const response = await mockApi.get('/logs');
+        return response.data;
     } catch (error) {
-        console.error("Could not fetch logs:", error);
-        showToast({ type: 'error', message: 'Could not fetch logs.' });
+        handleError(error, showToast);
         return [];
     }
-}
-
-// Corrected function to handle both JSON and non-JSON error responses
-const handleResponse = async (response: Response, addToast: any) => {
-    if (response.ok) {
-        return response.json();
-    }
-
-    // Handle error cases
-    const contentType = response.headers.get("content-type");
-    let errorMessage = "Something went wrong";
-
-    if (contentType && contentType.includes("application/json")) {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-    } else {
-        const errorText = await response.text();
-        // Use the text as the error, it might be an HTML page or simple text
-        errorMessage = errorText || `Request failed with status ${response.status}`;
-    }
-
-    addToast({
-        id: Date.now(),
-        message: errorMessage,
-        type: "error",
-    });
-
-    throw new Error(errorMessage);
-};
-
-
-export const getQueuedDocuments = async (addToast: any) => {
-  try {
-    const response = await fetch(`${API_URL}/document/queued`, {
-      headers: getAuthHeaders(),
-    });
-    return await handleResponse(response, addToast);
-  } catch (error) {
-    console.error("Failed to fetch queued documents:", error);
-    return [];
-  }
-};
-
-export const getProcessedDocuments = async (addToast: any) => {
-  try {
-    const response = await fetch(`${API_URL}/document/processed`, {
-      headers: getAuthHeaders(),
-    });
-    return await handleResponse(response, addToast);
-  } catch (error) {
-    console.error("Failed to fetch processed documents:", error);
-    return [];
-  }
-};
-
-export const getFailedDocuments = async (addToast: any) => {
-  try {
-    const response = await fetch(`${API_URL}/document/failed`, {
-      headers: getAuthHeaders(),
-    });
-    return await handleResponse(response, addToast);
-  } catch (error) {
-    console.error("Failed to fetch failed documents:", error);
-    return [];
-  }
-};
-
-
-export const getFinancialObligations = async (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    const url = filterType === 'monthly'
-        ? `${ARUN_API_URL}/metrics/financial_obligations?year=${year}`
-        : `${ARUN_API_URL}/metrics/financial_obligations?from_year=${year}&to_year=${toYear}`;
-
-    const response = await fetch(url, { headers: getAuthHeaders() });
-    const data = await response.json();
-    return filterType === 'monthly' ? data["Financial obligations"].monthly_expenses : data["Financial obligations"].yearly_expenses;
-};
-
-export const getInvoiceCount = async (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    const url = filterType === 'monthly'
-        ? `${ARUN_API_URL}/metrics/invoice_count?year=${year}`
-        : `${ARUN_API_URL}/metrics/invoice_count?from_year=${year}&to_year=${toYear}`;
-
-    const response = await fetch(url, { headers: getAuthHeaders() });
-    const data = await response.json();
-    console.log(data);
-    return filterType === 'monthly' ? data["No. of Invoices"].monthly_counts : data["No. of Invoices"].yearly_counts;
 };

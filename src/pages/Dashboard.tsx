@@ -2,15 +2,15 @@ import React, { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
 import { itemVariants, containerVariants } from '../components/common/Animation';
-import { getDashboardData, getFinancialObligations, getInvoiceCount } from '../lib/api/Api';
+import { getDashboardData, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
-import Loader from '../components/common/Loader';
+import { ChartSkeleton, KpiCardSkeleton } from '../components/common/SkeletonLoaders';
 
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
@@ -36,12 +36,12 @@ interface MetricCardProps {
     index: number;
 }
 
-// FIX: Made filter-related props optional
 interface ChartCardProps {
     title: string;
     icon: React.ElementType;
     children: React.ReactNode;
     isLoading: boolean;
+    error: boolean;
     filterType?: 'monthly' | 'yearly';
     setFilterType?: (filter: 'monthly' | 'yearly') => void;
     selectedYear?: number;
@@ -73,11 +73,23 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
 
     const cardVariants: Variants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { delay: index * 0.1, duration: 0.5, ease: "easeOut" } }
+        visible: { 
+            opacity: 1, 
+            y: 0, 
+            transition: { 
+                delay: index * 0.1, 
+                duration: 0.5, 
+                ease: "easeOut" 
+            } 
+        }
     };
 
     return (
-        <motion.div variants={cardVariants} className={cardClasses}>
+        <motion.div 
+            variants={cardVariants}
+            // The initial and animate props are managed by the parent motion.div
+            className={cardClasses}
+        >
             <div className="flex justify-between items-start">
                 <h3 className={`text-sm md:text-md font-semibold ${textSecondary}`}>{title}</h3>
                 <Icon className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
@@ -198,17 +210,29 @@ const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState<any>(null);
+    const [kpiError, setKpiError] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const { addToast } = useToast();
-    
+
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
     const [invoiceCountData, setInvoiceCountData] = useState<any[]>([]);
+    const [spendByVendorData, setSpendByVendorData] = useState<any[]>([]);
+    const [discountByVendorData, setDiscountByVendorData] = useState<any[]>([]);
 
     const [isFinancialsLoading, setIsFinancialsLoading] = useState(true);
     const [isInvoiceCountLoading, setIsInvoiceCountLoading] = useState(true);
+    const [isSpendByVendorLoading, setIsSpendByVendorLoading] = useState(true);
+    const [isDiscountByVendorLoading, setIsDiscountByVendorLoading] = useState(true);
+
+    const [financialsError, setFinancialsError] = useState(false);
+    const [invoiceCountError, setInvoiceCountError] = useState(false);
+    const [spendByVendorError, setSpendByVendorError] = useState(false);
+    const [discountByVendorError, setDiscountByVendorError] = useState(false);
 
     const [financialFilterType, setFinancialFilterType] = useState<'monthly' | 'yearly'>('monthly');
     const [invoiceFilterType, setInvoiceFilterType] = useState<'monthly' | 'yearly'>('monthly');
+    const [spendByVendorFilterType, setSpendByVendorFilterType] = useState<'monthly' | 'yearly'>('monthly');
+    const [discountByVendorFilterType, setDiscountByVendorFilterType] = useState<'monthly' | 'yearly'>('monthly');
 
     const [financialSelectedYear, setFinancialSelectedYear] = useState<number>(new Date().getFullYear());
     const [financialFromYear, setFinancialFromYear] = useState<number>(new Date().getFullYear() - 5);
@@ -218,15 +242,23 @@ const Dashboard = () => {
     const [invoiceFromYear, setInvoiceFromYear] = useState<number>(new Date().getFullYear() - 5);
     const [invoiceToYear, setInvoiceToYear] = useState<number>(new Date().getFullYear());
 
+    const [spendByVendorSelectedYear, setSpendByVendorSelectedYear] = useState<number>(new Date().getFullYear());
+    const [spendByVendorFromYear, setSpendByVendorFromYear] = useState<number>(new Date().getFullYear() - 5);
+    const [spendByVendorToYear, setSpendByVendorToYear] = useState<number>(new Date().getFullYear());
+
+    const [discountByVendorSelectedYear, setDiscountByVendorSelectedYear] = useState<number>(new Date().getFullYear());
+    const [discountByVendorFromYear, setDiscountByVendorFromYear] = useState<number>(new Date().getFullYear() - 5);
+    const [discountByVendorToYear, setDiscountByVendorToYear] = useState<number>(new Date().getFullYear());
 
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsInitialLoading(true);
+            setKpiError(false);
             try {
                 const data = await getDashboardData(addToast);
                 setDashboardData(data);
             } catch (error) {
-                addToast({ type: 'error', message: 'Failed to load dashboard data.' });
+                setKpiError(true);
             } finally {
                 setIsInitialLoading(false);
             }
@@ -237,11 +269,12 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchFinancials = async () => {
             setIsFinancialsLoading(true);
+            setFinancialsError(false);
             try {
                 const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear);
                 setFinancialObligationsData(financialData || []);
             } catch (error) {
-                addToast({ type: 'error', message: 'Failed to load financial data.' });
+                setFinancialsError(true);
             } finally {
                  setIsFinancialsLoading(false);
             }
@@ -252,17 +285,50 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchInvoiceCount = async () => {
             setIsInvoiceCountLoading(true);
+            setInvoiceCountError(false);
             try {
                 const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear);
                 setInvoiceCountData(invoiceData || []);
             } catch (error) {
-                addToast({ type: 'error', message: 'Failed to load invoice count.' });
+                setInvoiceCountError(true);
             } finally {
                 setIsInvoiceCountLoading(false);
             }
         };
         fetchInvoiceCount();
     }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
+
+    useEffect(() => {
+        const fetchSpendByVendor = async () => {
+            setIsSpendByVendorLoading(true);
+            setSpendByVendorError(false);
+            try {
+                const spendData = await getSpendByVendor(spendByVendorFilterType, spendByVendorFilterType === 'monthly' ? spendByVendorSelectedYear : spendByVendorFromYear, spendByVendorToYear);
+                setSpendByVendorData(spendData || []);
+            } catch (error) {
+                setSpendByVendorError(true);
+            } finally {
+                setIsSpendByVendorLoading(false);
+            }
+        };
+        fetchSpendByVendor();
+    }, [spendByVendorFilterType, spendByVendorSelectedYear, spendByVendorFromYear, spendByVendorToYear]);
+
+    useEffect(() => {
+        const fetchDiscountByVendor = async () => {
+            setIsDiscountByVendorLoading(true);
+            setDiscountByVendorError(false);
+            try {
+                const discountData = await getDiscountByVendor(discountByVendorFilterType, discountByVendorFilterType === 'monthly' ? discountByVendorSelectedYear : discountByVendorFromYear, discountByVendorToYear);
+                setDiscountByVendorData(discountData || []);
+            } catch (error) {
+                setDiscountByVendorError(true);
+            } finally {
+                setIsDiscountByVendorLoading(false);
+            }
+        };
+        fetchDiscountByVendor();
+    }, [discountByVendorFilterType, discountByVendorSelectedYear, discountByVendorFromYear, discountByVendorToYear]);
 
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
@@ -278,20 +344,6 @@ const Dashboard = () => {
                 <div className="text-center p-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Access Denied</h2>
                     <p className="mt-2 text-gray-600 dark:text-gray-400">You do not have permission to view this page.</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (isInitialLoading) {
-        return <Loader type="wifi"/>;
-    }
-
-    if (!dashboardData) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="text-center p-8 rounded-lg">
-                    <p className="mt-2 text-gray-600">Error loading data or no data available.</p>
                 </div>
             </div>
         );
@@ -320,17 +372,26 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
-                {dashboardData.kpiMetrics.map((metric: KpiMetric, i: number) => (
-                    <MetricCard
-                        key={metric.title}
-                        title={metric.title}
-                        value={metric.value}
-                        icon={iconMap[metric.icon] || FilePieChart} // Fallback icon
-                        change={metric.change}
-                        changeType={metric.changeType}
-                        index={i}
-                    />
-                ))}
+                {isInitialLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)
+                ) : kpiError || !dashboardData?.kpiMetrics ? (
+                     <div className="sm:col-span-2 lg:col-span-4 p-4 md:p-6 rounded-2xl shadow-lg border bg-red-500/10 border-red-500/20 text-red-400 flex items-center gap-3">
+                        <AlertCircle className="w-6 h-6" />
+                        <p className="font-semibold">Could not load key performance indicators.</p>
+                    </div>
+                ) : (
+                    dashboardData.kpiMetrics.map((metric: KpiMetric, i: number) => (
+                        <MetricCard
+                            key={metric.title}
+                            title={metric.title}
+                            value={metric.value}
+                            icon={iconMap[metric.icon] || FilePieChart} // Fallback icon
+                            change={metric.change}
+                            changeType={metric.changeType}
+                            index={i}
+                        />
+                    ))
+                )}
             </motion.div>
 
             <motion.div variants={itemVariants}>
@@ -342,6 +403,7 @@ const Dashboard = () => {
                     title="Financial Obligations"
                     icon={Banknote}
                     isLoading={isFinancialsLoading}
+                    error={financialsError}
                     filterType={financialFilterType}
                     setFilterType={setFinancialFilterType}
                     selectedYear={financialSelectedYear}
@@ -371,6 +433,7 @@ const Dashboard = () => {
                     title="Invoice Count"
                     icon={FilePieChart}
                     isLoading={isInvoiceCountLoading}
+                    error={invoiceCountError}
                     filterType={invoiceFilterType}
                     setFilterType={setInvoiceFilterType}
                     selectedYear={invoiceSelectedYear}
@@ -396,26 +459,52 @@ const Dashboard = () => {
                         </LineChart>
                     </ResponsiveContainer>
                 </ChartCard>
-                 <ChartCard title="Spending by Vendor" icon={TrendingUp} isLoading={isInitialLoading}>
+                 <ChartCard
+                    title="Spending by Vendor"
+                    icon={TrendingUp}
+                    isLoading={isSpendByVendorLoading}
+                    error={spendByVendorError}
+                    filterType={spendByVendorFilterType}
+                    setFilterType={setSpendByVendorFilterType}
+                    selectedYear={spendByVendorSelectedYear}
+                    setSelectedYear={setSpendByVendorSelectedYear}
+                    fromYear={spendByVendorFromYear}
+                    setFromYear={setSpendByVendorFromYear}
+                    toYear={spendByVendorToYear}
+                    setToYear={setSpendByVendorToYear}
+                >
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                            <Pie data={dashboardData.spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
-                                {dashboardData.spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
+                            <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
+                                {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
                             </Pie>
-                            <Tooltip content={<CustomPieTooltip spendByVendorData={dashboardData.spendByVendorData} />} />
+                            <Tooltip content={<CustomPieTooltip spendByVendorData={spendByVendorData} />} />
                             <Legend iconType="circle" />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartCard>
-                <ChartCard title="Discounts by Vendor" icon={Wallet} isLoading={isInitialLoading}>
+                <ChartCard
+                    title="Discounts by Vendor"
+                    icon={Wallet}
+                    isLoading={isDiscountByVendorLoading}
+                    error={discountByVendorError}
+                    filterType={discountByVendorFilterType}
+                    setFilterType={setDiscountByVendorFilterType}
+                    selectedYear={discountByVendorSelectedYear}
+                    setSelectedYear={setDiscountByVendorSelectedYear}
+                    fromYear={discountByVendorFromYear}
+                    setFromYear={setDiscountByVendorFromYear}
+                    toYear={discountByVendorToYear}
+                    setToYear={setDiscountByVendorToYear}
+                >
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={dashboardData.discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                        <BarChart data={discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                             <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
                             <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.75rem' }}/>
                             <Bar dataKey="value" name="Discount" radius={[0, 4, 4, 0]} barSize={18}>
-                                {dashboardData.discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                                {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -425,7 +514,7 @@ const Dashboard = () => {
     );
 }
 
-const ChartCard = ({ title, icon: Icon, children, isLoading, ...filterProps }: ChartCardProps) => {
+const ChartCard = ({ title, icon: Icon, children, isLoading, error, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border relative ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
@@ -437,22 +526,20 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, ...filterProps }: C
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-violet-500 dark:text-violet-400" />
                     <h3 className={`text-base md:text-lg font-bold ${textPrimary}`}>{title}</h3>
                 </div>
-                <ChartFilterMenu {...filterProps} />
+                {!error && <ChartFilterMenu {...filterProps} />}
             </div>
             <div className="h-72 md:h-80">
-                <AnimatePresence>
-                {isLoading && (
-                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-[#1C1C2E]/50 backdrop-blur-sm z-10 rounded-2xl"
-                    >
-                        <Loader type="wifi"/>
-                    </motion.div>
+                {isLoading ? (
+                    <ChartSkeleton />
+                ) : error ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-red-400">
+                         <AlertCircle className="w-12 h-12 mb-4" />
+                         <p className="font-semibold">Could not load chart data</p>
+                         <p className="text-sm">Please try again later.</p>
+                    </div>
+                ) : (
+                    children
                 )}
-                </AnimatePresence>
-                {children}
             </div>
         </div>
     );
