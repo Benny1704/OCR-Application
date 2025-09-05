@@ -163,6 +163,16 @@ export const getFailedDocuments = async (addToast: any) => {
     }
 };
 
+export const getDocumentSummary = async (addToast: any) => {
+    try {
+        const response = await api.get('/document/summary');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return { waiting: 0, processed: 0, failed: 0, completed: 0 };
+    }
+};
+
 export const deleteDocument = async (id: string, addToast: any) => {
     try {
         const response = await api.delete(`/document/delete/${id}`);

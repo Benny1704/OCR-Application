@@ -2,20 +2,34 @@ import { useMemo, type FC, useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { CheckCircle2, FileCheck2, Loader2, XCircle, type LucideProps } from 'lucide-react';
 import { StatusBadge } from './Helper';
-import type { Document } from '../../interfaces/Types';
+import type { Document, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 import { useNavigate } from 'react-router-dom';
-import { getDocuments } from '../../lib/api/Api';
+import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments, getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 
-const StatusColumn: FC<{ 
-    title: string, 
-    docs: Document[], 
+const StatusColumn: FC<{
+    title: string,
+    docs: Document[],
     count: number,
     icon: React.ElementType<LucideProps>,
-    accentColor: string 
+    accentColor: string
 }> = ({ title, docs, count, icon: Icon, accentColor }) => {
     const { theme } = useTheme();
     const textPrimary = theme === 'dark' ? 'text-gray-200' : 'text-gray-700';
+
+    const getDocumentDetail = (doc: Document) => {
+        switch (doc.status) {
+            case 'Processed':
+                return (doc as ProcessedDocument).supplierName;
+            case 'Queued':
+            case 'Processing':
+                return (doc as QueuedDocument).uploadedBy;
+            case 'Failed':
+                return (doc as FailedDocument).uploadedBy;
+            default:
+                return 'N/A';
+        }
+    }
 
     return (
         <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50/80'}`}>
@@ -30,16 +44,16 @@ const StatusColumn: FC<{
             </div>
             <div className="space-y-2">
                 {docs.length > 0 ? docs.map(doc => (
-                    <div 
-                        key={doc.id} 
+                    <div
+                        key={doc.id}
                         className={`p-3 rounded-lg transition-transform transform hover:-translate-y-1 cursor-pointer ${theme === 'dark' ? 'bg-gray-900/50 hover:bg-gray-900' : 'bg-white hover:bg-gray-50'}`}
                     >
                         <p className={`font-semibold text-sm truncate ${textPrimary}`}>
-                            {doc.name} 
+                            {doc.name}
                         </p>
                         <div className="flex justify-between items-center mt-1">
                             <p className={`text-xs truncate pr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {title === 'Processed' ? doc.supplierName : doc.uploadedBy}
+                                {getDocumentDetail(doc)}
                             </p>
                             <StatusBadge status={doc.status} theme={theme} />
                         </div>
@@ -58,15 +72,32 @@ const StatusColumn: FC<{
 const DashboardStatusTable = () => {
     const { theme } = useTheme();
     const navigate = useNavigate();
-    const [documents, setDocuments] = useState<Document[]>([]);
     const { addToast } = useToast();
+    const [counts, setCounts] = useState({ queued: 0, processed: 0, failed: 0 });
+    const [queuedDocs, setQueuedDocs] = useState<Document[]>([]);
+    const [processedDocs, setProcessedDocs] = useState<Document[]>([]);
+    const [failedDocs, setFailedDocs] = useState<Document[]>([]);
+
 
     useEffect(() => {
-        const fetchDocs = async () => {
-            const docs = await getDocuments(addToast);
-            setDocuments(docs);
+        const fetchSummaryAndDocs = async () => {
+            const summary = await getDocumentSummary(addToast);
+            setCounts({
+                queued: summary.waiting || 0,
+                processed: summary.processed || 0,
+                failed: summary.failed || 0
+            });
+
+            const [queued, processed, failed] = await Promise.all([
+                getQueuedDocuments(addToast),
+                getProcessedDocuments(addToast),
+                getFailedDocuments(addToast)
+            ]);
+            setQueuedDocs(queued);
+            setProcessedDocs(processed);
+            setFailedDocs(failed);
         };
-        fetchDocs();
+        fetchSummaryAndDocs();
     }, []);
 
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-md border transition-colors ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700' : 'bg-white border-gray-200/80'}`;
@@ -74,19 +105,19 @@ const DashboardStatusTable = () => {
     const { queued, processed, failed } = useMemo(() => {
         return {
             queued: {
-                docs: documents.filter(d => d.status === 'Queued' || d.status === 'Processing').slice(0, 4),
-                count: documents.filter(d => d.status === 'Queued' || d.status === 'Processing').length
+                docs: queuedDocs.slice(0, 5),
+                count: counts.queued
             },
             processed: {
-                docs: documents.filter(d => d.status === 'Processed').slice(0, 4),
-                count: documents.filter(d => d.status === 'Processed').length
+                docs: processedDocs.slice(0, 5),
+                count: counts.processed
             },
             failed: {
-                docs: documents.filter(d => d.status === 'Failed').slice(0, 4),
-                count: documents.filter(d => d.status === 'Failed').length
+                docs: failedDocs.slice(0, 5),
+                count: counts.failed
             }
         };
-    }, [documents]);
+    }, [queuedDocs, processedDocs, failedDocs, counts]);
 
     return (
         <div className={cardClasses}>
