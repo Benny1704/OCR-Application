@@ -4,7 +4,7 @@ import type { Document, ExtractedData, Log, ProductWithDetails } from './../../i
 // --- Base URLs ---
 const MOCK_API_URL = "http://localhost:8000";
 const ARUN_API_URL = "http://10.3.0.52:8000";
-const API_URL = "https://55fa7a9f595a.ngrok-free.app";
+const API_URL = "/api"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
@@ -173,26 +173,24 @@ export const getDocumentSummary = async (addToast: any) => {
     }
 };
 
-export const deleteDocument = async (id: string, addToast: any) => {
+export const deleteMessage = async (id: string, addToast: any) => {
     try {
-        const response = await api.delete(`/document/delete/${id}`);
+        const response = await api.patch(`/messages/${id}/delete`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
     }
 };
 
-export const setDocumentPriority = async (id: string, isPriority: boolean, addToast: any) => {
+export const togglePriority = async (id: string, addToast: any) => {
     try {
-        // For POST requests with only query params, the second argument (body) is null.
-        const response = await api.post(`/document/set_priority/${id}`, null, {
-            params: { priority: isPriority },
-        });
+        const response = await api.patch(`/messages/${id}/prioritize`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
     }
 };
+
 
 export const getDashboardData = async (addToast: any): Promise<any> => {
     try {
