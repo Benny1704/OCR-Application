@@ -1,44 +1,27 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import DataTable from "../components/common/DataTable";
 import { useTheme } from "../hooks/useTheme";
 import { motion } from "framer-motion";
 import { containerVariants, itemVariants } from "../components/common/Animation";
 import { useNavigate } from "react-router-dom";
 import { type DataItem, type Document } from "../interfaces/Types";
-import { getDocuments } from "../lib/api/Api";
+import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [documents, setDocuments] = useState<Document[]>([]);
   const { addToast } = useToast();
 
   useEffect(() => {
     const fetchDocuments = async () => {
-        const data = await getDocuments(addToast);
+        const data = await getCompletedDocuments(addToast);
         setDocuments(data);
     };
     fetchDocuments();
   }, [])
-
-  const reviewedDocuments = useMemo(() => {
-    let docs = documents.filter(
-      (doc) => doc.status === "Reviewed"
-    );
-
-    if (startDate && endDate) {
-      docs = docs.filter(doc => {
-        const docDate = new Date(doc.invoiceDate);
-        return docDate >= new Date(startDate) && docDate <= new Date(endDate);
-      });
-    }
-
-    return docs;
-  }, [documents, startDate, endDate]);
 
   const renderActionCell = (row: DataItem) => {
     return (
@@ -47,7 +30,6 @@ const Documents = () => {
       </button>
     );
   };
-
 
   return (
     <motion.div
@@ -65,26 +47,11 @@ const Documents = () => {
         <h1 className={`text-xl md:text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
           Reviewed Documents
         </h1>
-        <div className="flex items-center gap-4 mt-4 sm:mt-0">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-md focus:ring-violet-500 focus:border-violet-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
-          />
-          <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>to</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-md focus:ring-violet-500 focus:border-violet-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
-          />
-        </div>
       </motion.div>
 
       <motion.div variants={itemVariants} className="flex-grow overflow-auto">
         <DataTable
-          tableData={reviewedDocuments}
+          tableData={documents}
           isSearchable={true}
           isEditable={false}
           tableConfig={documentConfig}

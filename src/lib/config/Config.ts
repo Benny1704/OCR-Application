@@ -58,7 +58,7 @@ export const formConfig: FormSection[] = [
 
 export const documentConfig = {
   columns: [
-    { key: 'id', header: 'ID', editable: true },
+    // { key: 'id', header: 'ID', editable: true },
     { key: 'name', header: 'File Name', editable: true },
     { key: 'supplierName', header: 'Supplier Name', editable: true },
     { key: 'invoiceId', header: 'Invoice ID', editable: true },

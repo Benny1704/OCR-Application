@@ -163,6 +163,16 @@ export const getFailedDocuments = async (addToast: any) => {
     }
 };
 
+export const getCompletedDocuments = async (addToast: any) => {
+    try {
+        const response = await api.get('/document/completed');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return [];
+    }
+};
+
 export const getDocumentSummary = async (addToast: any) => {
     try {
         const response = await api.get('/document/summary');
