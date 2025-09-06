@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment, useEffect } from "react";
+import { useMemo, useState, Fragment, useEffect, useCallback } from "react";
 import { useTheme } from "../hooks/useTheme";
 import { BrainCircuit, FileCheck2, FileX2, ChevronDown, CheckCircle } from "lucide-react";
 import {
@@ -15,6 +15,9 @@ import { motion } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
 import { getDashboardData } from "../lib/api/Api";
 import { useToast } from "../hooks/useToast";
+import ErrorDisplay from "../components/common/ErrorDisplay";
+// import { ChartSkeleton, KpiCardSkeleton } from "../components/common/SkeletonLoaders";
+import Loader from "../components/common/Loader";
 
 interface StatCardProps {
   title: string;
@@ -119,15 +122,26 @@ const Logs = () => {
   const { theme } = useTheme();
   const [selectedRange, setSelectedRange] = useState(timeRanges[0]);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
         const data = await getDashboardData(addToast);
         setAnalyticsData(data);
-    };
+    } catch (err: any) {
+        setError(err.message || "Failed to fetch analytics data.");
+    } finally {
+        setIsLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const chartColors = useMemo(() => (
     theme === 'dark' ? {
@@ -156,9 +170,111 @@ const Logs = () => {
     },
   };
 
-  if (!analyticsData) {
-    return <div>Loading...</div>
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        // <div className="p-4 sm:p-6 space-y-8">
+        //   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        //     {Array.from({ length: 3 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+        //   </div>
+        //   <div className="h-96"><ChartSkeleton /></div>
+        // </div>
+        <div className="flex-grow flex items-center justify-center"><Loader type="wifi"/></div>
+
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="p-4 sm:p-6">
+          <ErrorDisplay message={error} onRetry={fetchData} />
+        </div>
+      );
+    }
+
+    return (
+        <main className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-8">
+            {/* --- STATS CARDS --- */}
+            <motion.section
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {statsData.map((stat) => (
+                <StatCard key={stat.title} {...stat} />
+                ))}
+            </div>
+            </motion.section>
+
+            {/* --- COMPARISON CHART --- */}
+            <motion.section
+            variants={{
+                hidden: { y: 20, opacity: 0 },
+                visible: { y: 0, opacity: 1, transition: { delay: 0.3, duration: 0.5 } },
+            }}
+            initial="hidden"
+            animate="visible"
+            >
+            <div className={`p-4 sm:p-6 rounded-2xl border ${
+                theme === "dark"
+                ? "bg-[#1C1C2E] border-gray-700"
+                : "bg-white border-neutral-200 shadow-sm"
+            }`}>
+                <h2 className="text-lg font-semibold mb-1">Weekly Processing Breakdown</h2>
+                <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                Comparison of invoices processed automatically, with edits, or failed.
+                </p>
+                <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer>
+                    <BarChart data={analyticsData.weeklyProcessingData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    {/* --- GRADIENT DEFINITIONS FOR BARS --- */}
+                    <defs>
+                        <linearGradient id="colorAutomatedDark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="colorEditedDark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="colorFailedDark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.9}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                        </linearGradient>
+                        <linearGradient id="colorAutomatedLight" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0284c7" stopOpacity={0.9}/>
+                        <stop offset="95%" stopColor="#0284c7" stopOpacity={0.4}/>
+                        </linearGradient>
+                        <linearGradient id="colorEditedLight" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#d97706" stopOpacity={0.9}/>
+                        <stop offset="95%" stopColor="#d97706" stopOpacity={0.4}/>
+                        </linearGradient>
+                        <linearGradient id="colorFailedLight" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#e11d48" stopOpacity={0.9}/>
+                        <stop offset="95%" stopColor="#e11d48" stopOpacity={0.4}/>
+                        </linearGradient>
+                    </defs>
+
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                    <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip
+                        cursor={{ fill: theme === 'dark' ? 'rgba(163, 163, 163, 0.1)' : 'rgba(39, 39, 42, 0.1)' }}
+                        content={<CustomTooltip />}
+                    />
+                    <Legend wrapperStyle={{fontSize: "14px", paddingTop: "20px"}}/>
+                    <Bar dataKey="automated" name="Automated" stackId="a" fill={chartColors.automated} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="edited" name="With Edits" stackId="a" fill={chartColors.edited} />
+                    <Bar dataKey="failed" name="Failed (Manual)" stackId="a" fill={chartColors.failed} />
+                    </BarChart>
+                </ResponsiveContainer>
+                </div>
+            </div>
+            </motion.section>
+        </main>
+    );
+  };
 
   return (
     <div
@@ -237,86 +353,7 @@ const Logs = () => {
       </motion.header>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-8">
-        {/* --- STATS CARDS --- */}
-        <motion.section
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {statsData.map((stat) => (
-              <StatCard key={stat.title} {...stat} />
-            ))}
-          </div>
-        </motion.section>
-
-        {/* --- COMPARISON CHART --- */}
-        <motion.section
-           variants={{
-            hidden: { y: 20, opacity: 0 },
-            visible: { y: 0, opacity: 1, transition: { delay: 0.3, duration: 0.5 } },
-          }}
-          initial="hidden"
-          animate="visible"
-        >
-          <div className={`p-4 sm:p-6 rounded-2xl border ${
-            theme === "dark"
-              ? "bg-[#1C1C2E] border-gray-700"
-              : "bg-white border-neutral-200 shadow-sm"
-          }`}>
-            <h2 className="text-lg font-semibold mb-1">Weekly Processing Breakdown</h2>
-            <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-neutral-400' : 'text-neutral-600'}`}>
-              Comparison of invoices processed automatically, with edits, or failed.
-            </p>
-            <div style={{ width: '100%', height: 350 }}>
-              <ResponsiveContainer>
-                <BarChart data={analyticsData.weeklyProcessingData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  {/* --- GRADIENT DEFINITIONS FOR BARS --- */}
-                  <defs>
-                    <linearGradient id="colorAutomatedDark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.2}/>
-                    </linearGradient>
-                    <linearGradient id="colorEditedDark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.2}/>
-                    </linearGradient>
-                    <linearGradient id="colorFailedDark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                    </linearGradient>
-                    <linearGradient id="colorAutomatedLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0284c7" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#0284c7" stopOpacity={0.4}/>
-                    </linearGradient>
-                    <linearGradient id="colorEditedLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#d97706" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#d97706" stopOpacity={0.4}/>
-                    </linearGradient>
-                     <linearGradient id="colorFailedLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#e11d48" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#e11d48" stopOpacity={0.4}/>
-                    </linearGradient>
-                  </defs>
-
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
-                  <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    cursor={{ fill: theme === 'dark' ? 'rgba(163, 163, 163, 0.1)' : 'rgba(39, 39, 42, 0.1)' }}
-                    content={<CustomTooltip />}
-                  />
-                  <Legend wrapperStyle={{fontSize: "14px", paddingTop: "20px"}}/>
-                  <Bar dataKey="automated" name="Automated" stackId="a" fill={chartColors.automated} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="edited" name="With Edits" stackId="a" fill={chartColors.edited} />
-                  <Bar dataKey="failed" name="Failed (Manual)" stackId="a" fill={chartColors.failed} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </motion.section>
-      </main>
+      {renderContent()}
     </div>
   );
 };

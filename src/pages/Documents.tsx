@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DataTable from "../components/common/DataTable";
 import { useTheme } from "../hooks/useTheme";
 import { motion } from "framer-motion";
@@ -8,26 +8,65 @@ import { type DataItem, type Document } from "../interfaces/Types";
 import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
+import ErrorDisplay from "../components/common/ErrorDisplay";
+import { TableSkeleton } from "../components/common/SkeletonLoaders";
+import Loader from "../components/common/Loader";
 
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
         const data = await getCompletedDocuments(addToast);
         setDocuments(data);
-    };
+    } catch (err: any) {
+        setError(err.message || "Failed to fetch documents.");
+    } finally {
+        setIsLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
     fetchDocuments();
-  }, [])
+  }, [fetchDocuments]);
 
   const renderActionCell = (row: DataItem) => {
     return (
       <button onClick={() => navigate(`/review/${row.id}`)} className="edit-btn">
         <i className="fi fi-rr-file-edit"></i> Review
       </button>
+    );
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return <TableSkeleton />;
+      // return <div className="flex-grow flex items-center justify-center"><Loader type="wifi"/></div>;
+
+    }
+
+    if (error) {
+      return <ErrorDisplay message={error} onRetry={fetchDocuments} />;
+    }
+
+    return (
+      <DataTable
+        tableData={documents}
+        isSearchable={true}
+        isEditable={false}
+        tableConfig={documentConfig}
+        pagination={{ enabled: true, pageSize: 25, pageSizeOptions: [5, 10, 25, 50, 100] }}
+        maxHeight="100%"
+        renderActionCell={renderActionCell}
+        actionColumnHeader="Actions"
+      />
     );
   };
 
@@ -50,16 +89,7 @@ const Documents = () => {
       </motion.div>
 
       <motion.div variants={itemVariants} className="flex-grow overflow-auto">
-        <DataTable
-          tableData={documents}
-          isSearchable={true}
-          isEditable={false}
-          tableConfig={documentConfig}
-          pagination={{ enabled: true, pageSize: 25, pageSizeOptions: [5, 10, 25, 50, 100] }}
-          maxHeight="100%"
-          renderActionCell={renderActionCell}
-          actionColumnHeader="Actions"
-        />
+        {renderContent()}
       </motion.div>
     </motion.div>
   );

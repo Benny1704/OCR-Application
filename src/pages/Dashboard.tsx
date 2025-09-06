@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
@@ -11,6 +11,8 @@ import { itemVariants, containerVariants } from '../components/common/Animation'
 import { getDashboardData, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import { ChartSkeleton, KpiCardSkeleton } from '../components/common/SkeletonLoaders';
+import ErrorDisplay from '../components/common/ErrorDisplay';
+import Loader from '../components/common/Loader';
 
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
@@ -41,7 +43,8 @@ interface ChartCardProps {
     icon: React.ElementType;
     children: React.ReactNode;
     isLoading: boolean;
-    error: boolean;
+    error: string | null;
+    onRetry: () => void;
     filterType?: 'monthly' | 'yearly';
     setFilterType?: (filter: 'monthly' | 'yearly') => void;
     selectedYear?: number;
@@ -210,8 +213,8 @@ const Dashboard = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState<any>(null);
-    const [kpiError, setKpiError] = useState(false);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [kpiError, setKpiError] = useState<string | null>(null);
+    const [isPageLoading, setIsPageLoading] = useState(true); // Renamed for clarity
     const { addToast } = useToast();
 
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
@@ -224,10 +227,10 @@ const Dashboard = () => {
     const [isSpendByVendorLoading, setIsSpendByVendorLoading] = useState(true);
     const [isDiscountByVendorLoading, setIsDiscountByVendorLoading] = useState(true);
 
-    const [financialsError, setFinancialsError] = useState(false);
-    const [invoiceCountError, setInvoiceCountError] = useState(false);
-    const [spendByVendorError, setSpendByVendorError] = useState(false);
-    const [discountByVendorError, setDiscountByVendorError] = useState(false);
+    const [financialsError, setFinancialsError] = useState<string | null>(null);
+    const [invoiceCountError, setInvoiceCountError] = useState<string | null>(null);
+    const [spendByVendorError, setSpendByVendorError] = useState<string | null>(null);
+    const [discountByVendorError, setDiscountByVendorError] = useState<string | null>(null);
 
     const [financialFilterType, setFinancialFilterType] = useState<'monthly' | 'yearly'>('monthly');
     const [invoiceFilterType, setInvoiceFilterType] = useState<'monthly' | 'yearly'>('monthly');
@@ -250,93 +253,99 @@ const Dashboard = () => {
     const [discountByVendorFromYear, setDiscountByVendorFromYear] = useState<number>(new Date().getFullYear() - 5);
     const [discountByVendorToYear, setDiscountByVendorToYear] = useState<number>(new Date().getFullYear());
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            setIsInitialLoading(true);
-            setKpiError(false);
-            try {
-                const data = await getDashboardData(addToast);
-                setDashboardData(data);
-            } catch (error) {
-                setKpiError(true);
-            } finally {
-                setIsInitialLoading(false);
-            }
-        };
-       fetchInitialData();
-    }, []);
+    const fetchInitialData = useCallback(async () => {
+        // This function now only fetches the KPI data
+        // The page loading state is handled separately
+        try {
+            const data = await getDashboardData(addToast);
+            setDashboardData(data);
+        } catch (err: any) {
+            setKpiError(err.message || "Could not load key performance indicators.");
+        }
+    }, [addToast]);
 
-    useEffect(() => {
-        const fetchFinancials = async () => {
-            setIsFinancialsLoading(true);
-            setFinancialsError(false);
-            try {
-                const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear);
-                setFinancialObligationsData(financialData || []);
-            } catch (error) {
-                setFinancialsError(true);
-            } finally {
-                 setIsFinancialsLoading(false);
-            }
-        };
-        fetchFinancials();
+    const fetchFinancials = useCallback(async () => {
+        setIsFinancialsLoading(true);
+        setFinancialsError(null);
+        try {
+            const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear);
+            setFinancialObligationsData(financialData || []);
+        } catch (err: any) {
+            setFinancialsError(err.message || "Could not load financial obligations data.");
+        } finally {
+             setIsFinancialsLoading(false);
+        }
     }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear]);
 
-    useEffect(() => {
-        const fetchInvoiceCount = async () => {
-            setIsInvoiceCountLoading(true);
-            setInvoiceCountError(false);
-            try {
-                const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear);
-                setInvoiceCountData(invoiceData || []);
-            } catch (error) {
-                setInvoiceCountError(true);
-            } finally {
-                setIsInvoiceCountLoading(false);
-            }
-        };
-        fetchInvoiceCount();
+    const fetchInvoiceCount = useCallback(async () => {
+        setIsInvoiceCountLoading(true);
+        setInvoiceCountError(null);
+        try {
+            const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear);
+            setInvoiceCountData(invoiceData || []);
+        } catch (err: any) {
+            setInvoiceCountError(err.message || "Could not load invoice count data.");
+        } finally {
+            setIsInvoiceCountLoading(false);
+        }
     }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
 
-    useEffect(() => {
-        const fetchSpendByVendor = async () => {
-            setIsSpendByVendorLoading(true);
-            setSpendByVendorError(false);
-            try {
-                const spendData = await getSpendByVendor(spendByVendorFilterType, spendByVendorFilterType === 'monthly' ? spendByVendorSelectedYear : spendByVendorFromYear, spendByVendorToYear);
-                setSpendByVendorData(spendData || []);
-            } catch (error) {
-                setSpendByVendorError(true);
-            } finally {
-                setIsSpendByVendorLoading(false);
-            }
-        };
-        fetchSpendByVendor();
+    const fetchSpendByVendor = useCallback(async () => {
+        setIsSpendByVendorLoading(true);
+        setSpendByVendorError(null);
+        try {
+            const spendData = await getSpendByVendor(spendByVendorFilterType, spendByVendorFilterType === 'monthly' ? spendByVendorSelectedYear : spendByVendorFromYear, spendByVendorToYear);
+            setSpendByVendorData(spendData || []);
+        } catch (err: any) {
+            setSpendByVendorError(err.message || "Could not load spending by vendor data.");
+        } finally {
+            setIsSpendByVendorLoading(false);
+        }
     }, [spendByVendorFilterType, spendByVendorSelectedYear, spendByVendorFromYear, spendByVendorToYear]);
 
-    useEffect(() => {
-        const fetchDiscountByVendor = async () => {
-            setIsDiscountByVendorLoading(true);
-            setDiscountByVendorError(false);
-            try {
-                const discountData = await getDiscountByVendor(discountByVendorFilterType, discountByVendorFilterType === 'monthly' ? discountByVendorSelectedYear : discountByVendorFromYear, discountByVendorToYear);
-                setDiscountByVendorData(discountData || []);
-            } catch (error) {
-                setDiscountByVendorError(true);
-            } finally {
-                setIsDiscountByVendorLoading(false);
-            }
-        };
-        fetchDiscountByVendor();
+    const fetchDiscountByVendor = useCallback(async () => {
+        setIsDiscountByVendorLoading(true);
+        setDiscountByVendorError(null);
+        try {
+            const discountData = await getDiscountByVendor(discountByVendorFilterType, discountByVendorFilterType === 'monthly' ? discountByVendorSelectedYear : discountByVendorFromYear, discountByVendorToYear);
+            setDiscountByVendorData(discountData || []);
+        } catch (err: any) {
+            setDiscountByVendorError(err.message || "Could not load discounts by vendor data.");
+        } finally {
+            setIsDiscountByVendorLoading(false);
+        }
     }, [discountByVendorFilterType, discountByVendorSelectedYear, discountByVendorFromYear, discountByVendorToYear]);
+
+    useEffect(() => {
+        const loadAllDashboardData = async () => {
+            setIsPageLoading(true);
+            // Fetch all data in parallel for the initial load
+            await Promise.all([
+                fetchInitialData(),
+                fetchFinancials(),
+                fetchInvoiceCount(),
+                fetchSpendByVendor(),
+                fetchDiscountByVendor()
+            ]);
+            setIsPageLoading(false);
+        };
+        loadAllDashboardData();
+    }, []); // This runs only once on mount
+
+    // These useEffects handle re-fetching when filters change
+    useEffect(() => { fetchFinancials(); }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear]);
+    useEffect(() => { fetchInvoiceCount(); }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
+    useEffect(() => { fetchSpendByVendor(); }, [spendByVendorFilterType, spendByVendorSelectedYear, spendByVendorFromYear, spendByVendorToYear]);
+    useEffect(() => { fetchDiscountByVendor(); }, [discountByVendorFilterType, discountByVendorSelectedYear, discountByVendorFromYear, discountByVendorToYear]);
 
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     const textHeader = theme === 'dark' ? 'text-white' : 'text-gray-900';
+    const vendorColors = theme === 'dark' ? ['#a78bfa', '#7e22ce', '#581c87', '#a855f7'] : ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
 
-    const VENDOR_COLORS_DARK = ['#a78bfa', '#7e22ce', '#581c87', '#a855f7'];
-    const VENDOR_COLORS_LIGHT = ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
-    const vendorColors = theme === 'dark' ? VENDOR_COLORS_DARK : VENDOR_COLORS_LIGHT;
+    if (isPageLoading) {
+        return <Loader type="wifi"/>;
+    }
 
     if (user?.role !== 'admin') {
         return (
@@ -372,20 +381,18 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
-                {isInitialLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)
-                ) : kpiError || !dashboardData?.kpiMetrics ? (
-                     <div className="sm:col-span-2 lg:col-span-4 p-4 md:p-6 rounded-2xl shadow-lg border bg-red-500/10 border-red-500/20 text-red-400 flex items-center gap-3">
-                        <AlertCircle className="w-6 h-6" />
-                        <p className="font-semibold">Could not load key performance indicators.</p>
+                {/* Note: KPI cards will now appear with the page, no skeleton for initial load */}
+                { kpiError ? (
+                     <div className="sm:col-span-2 lg:col-span-4">
+                        <ErrorDisplay message={kpiError} onRetry={fetchInitialData} />
                     </div>
                 ) : (
-                    dashboardData.kpiMetrics.map((metric: KpiMetric, i: number) => (
+                    dashboardData?.kpiMetrics?.map((metric: any, i: number) => (
                         <MetricCard
                             key={metric.title}
                             title={metric.title}
                             value={metric.value}
-                            icon={iconMap[metric.icon] || FilePieChart} // Fallback icon
+                            icon={iconMap[metric.icon] || FilePieChart}
                             change={metric.change}
                             changeType={metric.changeType}
                             index={i}
@@ -404,6 +411,7 @@ const Dashboard = () => {
                     icon={Banknote}
                     isLoading={isFinancialsLoading}
                     error={financialsError}
+                    onRetry={fetchFinancials}
                     filterType={financialFilterType}
                     setFilterType={setFinancialFilterType}
                     selectedYear={financialSelectedYear}
@@ -434,6 +442,7 @@ const Dashboard = () => {
                     icon={FilePieChart}
                     isLoading={isInvoiceCountLoading}
                     error={invoiceCountError}
+                    onRetry={fetchInvoiceCount}
                     filterType={invoiceFilterType}
                     setFilterType={setInvoiceFilterType}
                     selectedYear={invoiceSelectedYear}
@@ -464,6 +473,7 @@ const Dashboard = () => {
                     icon={TrendingUp}
                     isLoading={isSpendByVendorLoading}
                     error={spendByVendorError}
+                    onRetry={fetchSpendByVendor}
                     filterType={spendByVendorFilterType}
                     setFilterType={setSpendByVendorFilterType}
                     selectedYear={spendByVendorSelectedYear}
@@ -488,6 +498,7 @@ const Dashboard = () => {
                     icon={Wallet}
                     isLoading={isDiscountByVendorLoading}
                     error={discountByVendorError}
+                    onRetry={fetchDiscountByVendor}
                     filterType={discountByVendorFilterType}
                     setFilterType={setDiscountByVendorFilterType}
                     selectedYear={discountByVendorSelectedYear}
@@ -514,7 +525,7 @@ const Dashboard = () => {
     );
 }
 
-const ChartCard = ({ title, icon: Icon, children, isLoading, error, ...filterProps }: ChartCardProps) => {
+const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border relative ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
@@ -532,10 +543,8 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, ...filterPro
                 {isLoading ? (
                     <ChartSkeleton />
                 ) : error ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-red-400">
-                         <AlertCircle className="w-12 h-12 mb-4" />
-                         <p className="font-semibold">Could not load chart data</p>
-                         <p className="text-sm">Please try again later.</p>
+                    <div className="w-full h-full flex items-center justify-center">
+                        <ErrorDisplay message={error} onRetry={onRetry} />
                     </div>
                 ) : (
                     children

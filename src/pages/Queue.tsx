@@ -176,8 +176,8 @@ const Queue = () => {
         errorMessage: item.error_message,
         status: "Failed",
       })));
-    } catch (error) {
-      setError("Failed to fetch documents. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch documents. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -347,6 +347,7 @@ const Queue = () => {
   const renderContent = () => {
     if (isLoading) {
       return <QueueListSkeleton />;
+      // return <div className="flex-grow flex items-center justify-center"><Loader type="wifi"/></div>;
     }
 
     if (error) {
