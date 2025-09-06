@@ -184,10 +184,30 @@ const DashboardStatusTable = () => {
             
             const [queued, processed, failed] = await Promise.all(promises);
 
-            // Important: Add status property to each doc for filtering in the column
-            setQueuedDocs(queued.map((item: any) => ({...item, status: item.status || 'Queued'})));
-            setProcessedDocs(processed.map((item: any) => ({...item, status: 'Processed'})));
-            setFailedDocs(failed.map((item: any) => ({...item, status: 'Failed'})));
+            setQueuedDocs(queued.map((item: any) => ({
+                name: item.file_name,
+                uploadDate: item.uploaded_on,
+                uploadedBy: item.uploaded_by,
+                status: item.status || "Queued",
+            })));
+    
+            setProcessedDocs(processed.map((item: any) => ({
+                name: item.file_name,
+                supplierName: item.supplier_name,
+                invoiceId: item.invoice_id,
+                irnNumber: item.irn,
+                uploadedBy: item.uploaded_by,
+                uploadDate: item.uploaded_at,
+                invoiceDate: item.invoice_date,
+                status: "Processed",
+            })));
+    
+            setFailedDocs(failed.map((item: any) => ({
+                name: item.file_name,
+                uploadedBy: item.uploaded_by,
+                uploadDate: item.uploaded_on,
+                status: "Failed",
+            })));
 
         } catch (err) {
             setError("Failed to load document overview. Please try again later.");

@@ -35,6 +35,7 @@ import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
+import Loader from "../components/common/Loader";
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, message: string }) => {
   const { theme } = useTheme();
@@ -103,6 +104,17 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isO
   )
 }
 
+// Helper function to format bytes into a readable string
+const formatBytes = (bytes: number, decimals = 2) => {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -143,7 +155,7 @@ const Queue = () => {
         id: item.message_id,
         sno: index + 1,
         name: item.file_name,
-        size: item.file_size,
+        size: formatBytes(item.file_size), // Correctly format the file size
         uploadDate: item.uploaded_on,
         uploadedBy: item.uploaded_by,
         messageId: item.message_id,
@@ -169,7 +181,7 @@ const Queue = () => {
         id: item.message_id,
         sno: index + 1,
         name: item.file_name,
-        size: item.file_size,
+        size: formatBytes(item.file_size), // Correctly format the file size
         uploadedBy: item.uploaded_by,
         uploadDate: item.uploaded_on,
         messageId: item.message_id,
@@ -347,7 +359,7 @@ const Queue = () => {
   const renderContent = () => {
     if (isLoading) {
       return <QueueListSkeleton />;
-      // return <div className="flex-grow flex items-center justify-center"><Loader type="wifi"/></div>;
+      // return <div className="flex-grow flex items-center justify-center"><Loader /></div>;
     }
 
     if (error) {
@@ -378,7 +390,7 @@ const Queue = () => {
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow overflow-hidden h-full">
           <aside
             className={`rounded-xl border flex flex-col ${theme === "dark" ? "bg-gray-800/20" : "bg-white"
-              } ${borderPrimary} overflow-hidden`} // Added overflow-hidden
+              } ${borderPrimary} overflow-hidden`}
           >
             <div className={`p-3 border-b ${borderPrimary} flex-shrink-0`}>
               <h3 className={`font-semibold text-base ${textHeader}`}>
@@ -502,7 +514,7 @@ const Queue = () => {
                       <InfoCard
                         icon={<Database size={18} />}
                         label="File Size"
-                        value={'size' in selectedDocument ? selectedDocument.size : 'N/A'}
+                        value={'size' in selectedDocument ? (selectedDocument as QueuedDocument | FailedDocument).size : 'N/A'}
                       />
                       <InfoCard
                         icon={<User size={18} />}
