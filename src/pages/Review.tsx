@@ -50,7 +50,7 @@ const Review = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [invoiceId, addToast]);
+    }, [invoiceId]);
 
     useEffect(() => {
         fetchData();

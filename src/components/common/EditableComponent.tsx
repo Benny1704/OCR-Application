@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -32,10 +32,14 @@ const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
 
 type EditableComponentProps = {
     isManual?: boolean;
-    initialInvoiceDetails?: InvoiceDetails;
-    initialProductDetails?: ProductDetails[];
-    initialAmountAndTaxDetails?: AmountAndTaxDetails;
+    initialInvoiceDetails?: InvoiceDetails | null;
+    initialProductDetails?: ProductDetails[] | null;
+    initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
     isReadOnly?: boolean;
+    invoiceError?: string | null;
+    productError?: string | null;
+    amountError?: string | null;
+    onRetry?: () => void;
 };
 
 const EditableComponent = ({
@@ -43,7 +47,11 @@ const EditableComponent = ({
     initialInvoiceDetails,
     initialProductDetails,
     initialAmountAndTaxDetails,
-    isReadOnly = false
+    isReadOnly = false,
+    invoiceError = null,
+    productError = null,
+    amountError = null,
+    onRetry,
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();

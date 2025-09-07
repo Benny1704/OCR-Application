@@ -53,10 +53,10 @@ const router = createBrowserRouter(
       <Route path="/document" element={<Documents />} />
       <Route path="/upload" element={<Upload />} />
       <Route path="/imageAlteration" element={<ImageAlterations />} />
-      <Route path="/edit/:invoice_id" element={<Edit />} />
-      <Route path="/review/:invoice_id" element={<Review />} />
+      <Route path="/edit/:invoiceId" element={<Edit />} />
+      <Route path="/review/:invoiceId" element={<Review />} />
       <Route path="/preview" element={<Preview />} />
-      <Route path="/manualEntry:invoice_id" element={<ManualEntry />} />
+      <Route path="/manualEntry/:invoiceId" element={<ManualEntry />} />
     </Route>
   )
 );

@@ -1,3 +1,5 @@
+// src/pages/Edit.tsx
+
 import EditableComponent from '../components/common/EditableComponent';
 import { useEffect, useState, useCallback } from 'react';
 import { getInvoiceDetails, getProductDetails, getAmountAndTaxDetails } from '../lib/api/Api';
@@ -11,78 +13,111 @@ const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
     const [productDetails, setProductDetails] = useState<ProductDetails[] | null>(null);
     const [amountAndTaxDetails, setAmountAndTaxDetails] = useState<AmountAndTaxDetails | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    
+    const [isInvoiceLoading, setIsInvoiceLoading] = useState(true);
+    const [isProductLoading, setIsProductLoading] = useState(true);
+    const [isAmountLoading, setIsAmountLoading] = useState(true);
+
+    const [invoiceError, setInvoiceError] = useState<string | null>(null);
+    const [productError, setProductError] = useState<string | null>(null);
+    const [amountError, setAmountError] = useState<string | null>(null);
+
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
-            setError("No invoice ID provided in the URL.");
-            setIsLoading(false);
+            const errorMsg = "No invoice ID provided in the URL.";
+            setInvoiceError(errorMsg);
+            setProductError(errorMsg);
+            setAmountError(errorMsg);
+            setIsInvoiceLoading(false);
+            setIsProductLoading(false);
+            setIsAmountLoading(false);
             return;
         }
 
-        setIsLoading(true);
-        setError(null);
-        try {
-            const invoiceIdNum = parseInt(invoiceId, 10);
-            if (isNaN(invoiceIdNum)) {
-                throw new Error("The invoice ID in the URL is invalid.");
-            }
-
-            // Fetch all three data sources in parallel for efficiency
-            const [invoiceData, productData, amountData] = await Promise.all([
-                getInvoiceDetails(invoiceIdNum, addToast),
-                getProductDetails(invoiceIdNum, addToast),
-                getAmountAndTaxDetails(invoiceIdNum, addToast)
-            ]);
-
-            // Check if any of the crucial data fetches failed
-            if (!invoiceData || !productData || !amountData) {
-                throw new Error("Failed to fetch all necessary details for the invoice.");
-            }
-
-            setInvoiceDetails(invoiceData);
-            setProductDetails(productData);
-            setAmountAndTaxDetails(amountData);
-
-        } catch (err: any) {
-            setError(err.message || "An unknown error occurred while fetching invoice data.");
-            // Clear out any partial data to avoid an inconsistent state
-            setInvoiceDetails(null);
-            setProductDetails(null);
-            setAmountAndTaxDetails(null);
-        } finally {
-            setIsLoading(false);
+        const invoiceIdNum = parseInt(invoiceId, 10);
+        if (isNaN(invoiceIdNum)) {
+            const errorMsg = "The invoice ID in the URL is invalid.";
+            setInvoiceError(errorMsg);
+            setProductError(errorMsg);
+            setAmountError(errorMsg);
+            setIsInvoiceLoading(false);
+            setIsProductLoading(false);
+            setIsAmountLoading(false);
+            return;
         }
-    }, [invoiceId, addToast]);
+        
+        // Reset states on refetch
+        setIsInvoiceLoading(true);
+        setIsProductLoading(true);
+        setIsAmountLoading(true);
+        setInvoiceError(null);
+        setProductError(null);
+        setAmountError(null);
+        setInvoiceDetails(null);
+        setProductDetails(null);
+        setAmountAndTaxDetails(null);
+
+
+        const [invoiceResult, productResult, amountResult] = await Promise.allSettled([
+            getInvoiceDetails(invoiceIdNum, addToast),
+            getProductDetails(invoiceIdNum, addToast),
+            getAmountAndTaxDetails(invoiceIdNum, addToast)
+        ]);
+
+        // Handle Invoice Details
+        if (invoiceResult.status === 'fulfilled' && invoiceResult.value) {
+            setInvoiceDetails(invoiceResult.value);
+        } else {
+            const reason = invoiceResult.status === 'rejected' ? invoiceResult.reason : { message: "Failed to fetch invoice details." };
+            setInvoiceError(reason?.message || "An unknown error occurred.");
+        }
+        setIsInvoiceLoading(false);
+
+        // Handle Product Details
+        if (productResult.status === 'fulfilled' && productResult.value) {
+            setProductDetails(productResult.value);
+        } else {
+            const reason = productResult.status === 'rejected' ? productResult.reason : { message: "Failed to fetch product details." };
+            setProductError(reason?.message || "An unknown error occurred.");
+        }
+        setIsProductLoading(false);
+        
+        // Handle Amount and Tax Details
+        if (amountResult.status === 'fulfilled' && amountResult.value) {
+            setAmountAndTaxDetails(amountResult.value);
+        } else {
+            const reason = amountResult.status === 'rejected' ? amountResult.reason : { message: "Failed to fetch amount and tax details." };
+            setAmountError(reason?.message || "An unknown error occurred.");
+        }
+        setIsAmountLoading(false);
+
+    }, [invoiceId]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    const isLoading = isInvoiceLoading || isProductLoading || isAmountLoading;
+
     if (isLoading) {
         return <Loader type="wifi" />;
     }
 
-    if (error) {
-        return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
-    }
-
-    // Render the EditableComponent only when all data is successfully loaded
-    if (invoiceDetails && productDetails && amountAndTaxDetails) {
-        return (
-            <EditableComponent
-                initialInvoiceDetails={invoiceDetails}
-                initialProductDetails={productDetails}
-                initialAmountAndTaxDetails={amountAndTaxDetails}
-            />
-        );
-    }
-
-    // Fallback for a state where data isn't fully loaded but there's no error
-    return <div className="p-4"><ErrorDisplay message="Could not display invoice data." onRetry={fetchData} /></div>;
+    // Render EditableComponent once loading is complete, passing data and errors
+    return (
+        <EditableComponent
+            initialInvoiceDetails={invoiceDetails}
+            initialProductDetails={productDetails}
+            initialAmountAndTaxDetails={amountAndTaxDetails}
+            invoiceError={invoiceError}
+            productError={productError}
+            amountError={amountError}
+            onRetry={fetchData}
+        />
+    );
 };
 
 export default Edit;
