@@ -51,43 +51,31 @@ const handleError = (error: any, addToast: (toast: { id?: number, message: strin
     }
 
     console.error("API Error:", error);
-    
+
     // Only show toast if a function is provided
     if (addToast) {
         addToast({ message: errorMessage, type: "error" });
     }
-    
+
     // It's good practice to re-throw the error so the calling component knows the request failed.
     throw new Error(errorMessage);
 };
 
 // --- API Functions (Refactored) ---
 
-export const login = async (credentials: { username: string, password: string }): Promise<{ access_token: string } | null> => {
+export const login = async (credentials: { username: string, password: string }, addToast: any): Promise<{ access_token: string }> => {
     try {
         const formData = new FormData();
         formData.append('username', credentials.username);
         formData.append('password', credentials.password);
 
-        try {
-            // Main API login attempt
-            const response = await api.post('/users/token', formData);
-            return response.data;
-        } catch (error) {
-            console.error("Login API call failed, trying mock API:", error);
-            // Fallback to mock API
-            const mockResponse = await mockApi.get('/users');
-            const users = mockResponse.data;
-            const user = users.find((u: any) => u.username === credentials.username && u.password === 'password');
-
-            if (user) {
-                return { access_token: `mock_token_for_${user.username}` };
-            }
-            return null;
-        }
+        // Main API login attempt
+        const response = await api.post('/users/token', formData);
+        return response.data;
     } catch (error) {
-        console.error("Login failed:", error);
-        return null;
+        handleError(error, addToast);
+        // This part is unreachable because handleError throws, but it's here to satisfy TypeScript's control flow analysis
+        throw error;
     }
 };
 
@@ -207,13 +195,8 @@ export const getDashboardData = async (addToast: any): Promise<any> => {
         const response = await arunApi.get('/metrics/kpi');
         return Object.values(response.data)[0];
     } catch (error) {
-        console.error("Could not fetch dashboard data, falling back to mock:", error);
-        try {
-            const mockResponse = await mockApi.get('/dashboard');
-            return mockResponse.data;
-        } catch (mockError) {
-            handleError(mockError, addToast);
-        }
+        handleError(error, addToast);
+        throw error; // Re-throw after handling
     }
 };
 

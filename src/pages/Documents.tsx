@@ -31,7 +31,7 @@ const Documents = () => {
     } finally {
         setIsLoading(false);
     }
-  }, [addToast]);
+  }, []);
 
   useEffect(() => {
     fetchDocuments();

@@ -262,7 +262,7 @@ const Dashboard = () => {
         } catch (err: any) {
             setKpiError(err.message || "Could not load key performance indicators.");
         }
-    }, [addToast]);
+    }, []);
 
     const fetchFinancials = useCallback(async () => {
         setIsFinancialsLoading(true);

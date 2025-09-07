@@ -28,7 +28,7 @@ const Review = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast, id]); // id is a dependency now
+    }, [id]); // id is a dependency now
 
     useEffect(() => {
         fetchData();

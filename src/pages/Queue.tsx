@@ -193,7 +193,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, []);
 
   useEffect(() => {
     fetchDocuments();

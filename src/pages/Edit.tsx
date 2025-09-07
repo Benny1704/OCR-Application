@@ -26,7 +26,7 @@ const Edit = () => {
     } finally {
         setIsLoading(false);
     }
-  }, [addToast]);
+  }, []);
 
   useEffect(() => {
     fetchData();

@@ -137,7 +137,7 @@ const Logs = () => {
     } finally {
         setIsLoading(false);
     }
-  }, [addToast]);
+  }, []);
 
   useEffect(() => {
     fetchData();

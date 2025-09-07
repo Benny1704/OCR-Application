@@ -13,24 +13,27 @@ const getAccentColors = (color: string, theme: string) => {
     switch (color) {
         case 'blue':
             return {
-                text: isDark ? 'text-violet-400' : 'text-violet-500',
-                bg: isDark ? 'bg-violet-900/50' : 'bg-violet-100',
-                textAccent: isDark ? 'text-violet-300' : 'text-violet-800',
+                text: 'text-blue-500',
+                bg: isDark ? 'bg-blue-900/50' : 'bg-blue-100',
+                textAccent: isDark ? 'text-blue-300' : 'text-blue-800',
+                hoverBorder: 'hover:border-blue-500/50',
             };
         case 'green':
             return {
-                text: isDark ? 'text-green-400' : 'text-green-500',
+                text: 'text-green-500',
                 bg: isDark ? 'bg-green-900/50' : 'bg-green-100',
                 textAccent: isDark ? 'text-green-300' : 'text-green-800',
+                hoverBorder: 'hover:border-green-500/50',
             };
         case 'red':
              return {
-                text: isDark ? 'text-red-400' : 'text-red-500',
+                text: 'text-red-500',
                 bg: isDark ? 'bg-red-900/50' : 'bg-red-100',
                 textAccent: isDark ? 'text-red-300' : 'text-red-800',
+                hoverBorder: 'hover:border-red-500/50',
             };
         default:
-            return { text: '', bg: '', textAccent: '' };
+            return { text: '', bg: '', textAccent: '', hoverBorder: '' };
     }
 }
 
@@ -88,7 +91,7 @@ const StatusColumn: FC<{
                             <Loader2 className={`w-8 h-8 animate-spin ${colors.text}`} />
                         </motion.div>
                     ) : docs.length > 0 ? (
-                        <motion.div
+                        <motion.ul
                             key="docs"
                             variants={containerVariants}
                             initial="hidden"
@@ -98,10 +101,10 @@ const StatusColumn: FC<{
                             {docs.map(doc => {
                                 const docBase = doc as QueuedDocument | ProcessedDocument | FailedDocument;
                                 return (
-                                <motion.div
+                                <motion.li
                                     key={doc.id}
                                     variants={itemVariants}
-                                    className={`p-3 rounded-lg transition-all cursor-pointer border ${theme === 'dark' ? 'bg-gray-900/30 border-gray-700/50 hover:bg-gray-900/80 hover:border-violet-500/50' : 'bg-white hover:bg-gray-50 border-gray-200/80 hover:border-violet-400'}`}
+                                    className={`p-3 rounded-lg transition-all cursor-pointer border ${theme === 'dark' ? `bg-gray-900/30 border-gray-700/50 hover:bg-gray-900/80 ${colors.hoverBorder}` : `bg-white hover:bg-gray-50 border-gray-200/80 hover:border-violet-400`}`}
                                     whileHover={{ y: -3, scale: 1.02, transition: { type: 'spring', stiffness: 300 } }}
                                     onClick={() => handleCardClick(doc)}
                                 >
@@ -127,14 +130,16 @@ const StatusColumn: FC<{
                                                 </>
                                             )}
                                         </div>
-                                        <div className={`flex-shrink-0 flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-200'} ${textSecondary}`}>
+                                         <div className={`flex-shrink-0 flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                                                theme === 'dark' ? 'bg-teal-900/70 text-teal-300' : 'bg-teal-100 text-teal-800'
+                                            } ${textSecondary}`}>
                                             <User className="w-3 h-3" />
                                             <span className="truncate" title={docBase.uploadedBy}>{docBase.uploadedBy || 'Admin'}</span>
                                         </div>
                                     </div>
-                                </motion.div>
+                                </motion.li>
                             )})}
-                        </motion.div>
+                        </motion.ul>
                     ) : (
                         <motion.div
                             key="empty"
@@ -181,17 +186,19 @@ const DashboardStatusTable = () => {
                 summary.processed > 0 ? getProcessedDocuments(addToast) : Promise.resolve([]),
                 summary.failed > 0 ? getFailedDocuments(addToast) : Promise.resolve([])
             ];
-            
+
             const [queued, processed, failed] = await Promise.all(promises);
 
             setQueuedDocs(queued.map((item: any) => ({
+                id: item.id,
                 name: item.file_name,
                 uploadDate: item.uploaded_on,
                 uploadedBy: item.uploaded_by,
                 status: item.status || "Queued",
             })));
-    
+
             setProcessedDocs(processed.map((item: any) => ({
+                id: item.id,
                 name: item.file_name,
                 supplierName: item.supplier_name,
                 invoiceId: item.invoice_id,
@@ -201,8 +208,9 @@ const DashboardStatusTable = () => {
                 invoiceDate: item.invoice_date,
                 status: "Processed",
             })));
-    
+
             setFailedDocs(failed.map((item: any) => ({
+                id: item.id,
                 name: item.file_name,
                 uploadedBy: item.uploaded_by,
                 uploadDate: item.uploaded_on,
@@ -218,12 +226,12 @@ const DashboardStatusTable = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchSummaryAndDocs();
     }, [fetchSummaryAndDocs]);
-    
+
     // This logic ensures the loader shows until the details for that column have arrived.
     const isColumnLoading = (count: number, docs: Document[]) => isLoading || (count > 0 && docs.length === 0);
 
@@ -262,7 +270,7 @@ const DashboardStatusTable = () => {
                      <span className="font-semibold">{error}</span>
                  </div>
             )}
-            <motion.div 
+            <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 variants={containerVariants}
                 initial="hidden"
