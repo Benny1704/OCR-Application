@@ -17,7 +17,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     const [uploadFiles, setUploadFiles] = useState<File[] | null>(null);
 
     const addToast = (toast: Omit<ToastType, 'id'>) => {
-        setToasts(prev => [...prev, { ...toast, id: Date.now() }]);
+        setToasts(prev => [...prev, { ...toast, id: Date.now() + Math.random() }]);
     };
 
     const removeToast = (id: number) => {

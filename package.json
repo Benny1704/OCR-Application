@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "json-server --watch data/db.json --port 8000"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@flaticon/flaticon-uicons": "^3.3.1",
@@ -33,7 +32,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "json-server": "^0.17.4",
     "react-router-dom": "^7.7.1",
     "sass-embedded": "^1.90.0",
     "typescript": "~5.8.3",

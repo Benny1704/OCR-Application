@@ -176,34 +176,34 @@ export interface ChildProduct {
   brand: string;
 }
 
-export interface ProductWithDetails {
-  id: string;
-  s_no: number;
-  product_group: string;
-  uom: string;
-  qty: number;
-  pcs: number;
-  cost_price: number;
-  discount_amount: number;
-  discount_percent: string;
-  price_code: string;
-  supplier_description: string;
-  mrp: number;
-  hsn_code: string;
-  igst: string;
-  rounded_off: number;
-  total: number;
-  by_no: string;
-  gst_rate: string;
-  po_no: string;
-  child_products: ChildProduct[];
-  summary: {
-    total_pcs: number;
-    entered_pcs: number;
-    total_qty: number;
-    entered_qty: number;
-  };
-}
+// export interface ProductWithDetails {
+//   id: string;
+//   s_no: number;
+//   product_group: string;
+//   uom: string;
+//   qty: number;
+//   pcs: number;
+//   cost_price: number;
+//   discount_amount: number;
+//   discount_percent: string;
+//   price_code: string;
+//   supplier_description: string;
+//   mrp: number;
+//   hsn_code: string;
+//   igst: string;
+//   rounded_off: number;
+//   total: number;
+//   by_no: string;
+//   gst_rate: string;
+//   po_no: string;
+//   child_products: ChildProduct[];
+//   summary: {
+//     total_pcs: number;
+//     entered_pcs: number;
+//     total_qty: number;
+//     entered_qty: number;
+//   };
+// }
 export interface Log {
   id: number;
   timestamp: string;
@@ -270,4 +270,101 @@ export interface Toast {
         label: string;
         onClick: () => void;
     };
+}
+
+// export interface Document {
+// 	id: number;
+// 	name: string;
+// 	size: number;
+// 	type: string;
+// 	status: 'Uploaded' | 'Processing' | 'Completed' | 'Failed';
+// 	uploadedAt: string;
+// 	processedAt?: string;
+// }
+
+export interface Product {
+	id: number;
+	name: string;
+	quantity: number;
+	price: number;
+}
+
+export interface ExtractedData {
+	invoiceNumber: string;
+	date: string;
+	vendor: string;
+	totalAmount: number;
+	products: Product[];
+}
+
+export interface ProductWithDetails extends Product {
+	details: {
+		manufacturer: string;
+		sku: string;
+	};
+}
+
+export interface Log {
+	id: number;
+	timestamp: string;
+	level: 'info' | 'warn' | 'error';
+	message: string;
+}
+
+export interface Supplier {
+	supplier_id: number;
+	supplier_name: string;
+	supplier_address: string;
+	supplier_gst: string;
+}
+
+export interface InvoiceDetails {
+	invoice_id: number;
+	invoice_number: string;
+	irn: string;
+	invoice_date: string | null;
+	way_bill: string;
+	acknowledgement_number: string;
+	acknowledgement_date: string;
+	order_number: string | null;
+	order_date: string | null;
+	supplier: Supplier;
+}
+
+export interface ProductDetails {
+	item_id: number;
+	invoice_id: number;
+	category: string;
+	UOM: string;
+	item_description: string;
+	design_code: string;
+	total_quantity: number;
+	total_amount: number;
+	HSN: string;
+}
+
+export interface AmountAndTaxDetails {
+	meta_id: number;
+	invoice_amount: number;
+	taxable_value: number;
+	cgst_amount: number;
+	sgst_amount: number;
+	igst_amount: number;
+	igst_percentage: number | null;
+	total_tax_amount: number;
+	other_deductions: number;
+	freight_charges: number;
+	other_charges: number;
+	round_off_amount: number;
+}
+
+export interface LineItem {
+	attribute_id: number;
+	size: string;
+	total_count: number;
+	color_code: string;
+	single_unit_price: number;
+	single_unit_mrp: number;
+	no_item_split: number;
+	attributes: null;
 }
