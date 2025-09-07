@@ -4,13 +4,12 @@ import { useTheme } from "../hooks/useTheme";
 import { motion } from "framer-motion";
 import { containerVariants, itemVariants } from "../components/common/Animation";
 import { useNavigate } from "react-router-dom";
-import { type DataItem, type Document } from "../interfaces/Types";
+import { type DataItem, type Document, type ProcessedDocument } from "../interfaces/Types";
 import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { TableSkeleton } from "../components/common/SkeletonLoaders";
-import Loader from "../components/common/Loader";
 
 const Documents = () => {
   const { theme } = useTheme();
@@ -38,10 +37,11 @@ const Documents = () => {
   }, [fetchDocuments]);
 
   const renderActionCell = (row: DataItem) => {
+    const doc = row as ProcessedDocument;
     return (
-      <button onClick={() => navigate(`/review/${row.invoice_id}`)} className="edit-btn">
-        <i className="fi fi-rr-file-edit"></i> Review
-      </button>
+        <button onClick={() => navigate(`/review/${doc.invoiceId}`)} className="edit-btn" >
+            <i className="fi fi-rr-file-check"></i> Review
+        </button>
     );
   };
 

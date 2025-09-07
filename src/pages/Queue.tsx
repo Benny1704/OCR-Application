@@ -350,9 +350,10 @@ const Queue = () => {
   //   </button>
   // );
   const renderActionCell = (row: DataItem) => {
+    const document = row as ProcessedDocument;
     return (
       <button
-        onClick={() => navigate(`/edit/${row.invoice_id}`)}
+        onClick={() => navigate(`/edit/${document.invoiceId}`)}
         className="edit-btn"
       >
         <i className="fi fi-rr-file-edit"></i> Review

@@ -1,87 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import type { ExtractedData, ProductWithDetails, DataItem } from '../../interfaces/Types';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, Supplier } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
 import { formConfig } from '../../lib/config/Config';
+import { getLineItems } from '../../lib/api/Api';
+import { useToast } from '../../hooks/useToast';
+import { set, get, cloneDeep } from 'lodash';
 
-const initialEmptyData: ExtractedData = {
-    invoice_image_url: '',
-    supplier_code: '',
-    supplier_name_email: '',
-    by_no: '',
-    gstin_no: '',
-    invoice_no: '',
-    grn_no: '',
-    po_no: '',
-    invoice_date: '',
-    pattial_amount: '',
-    merchandise_name: '',
-    product_details: [],
-    total_pcs: '',
-    freight_charges: '',
-    master_discount_percent: '',
-    igst: '',
-    igst_rounded_off: '',
-    product_total: '',
-    misc_additions: '',
-    special_discount_percent: '',
-    tcs_percent: '',
-    tcs_amount: '',
-    discount: '',
-    misc_deductions: '',
-    credit_days: '',
-    tcs_rounded_off: '',
-    rounded_off: '',
-    taxable_value: '',
-    e_invoice: '',
-    total_amount: '',
+// --- Default Empty States for Manual Entry ---
+const initialEmptySupplier: Supplier = {
+    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
+};
+const initialEmptyInvoiceDetails: InvoiceDetails = {
+    invoice_id: 0, invoice_number: '', irn: '', invoice_date: null, way_bill: '',
+    acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
+    supplier: initialEmptySupplier,
+};
+const initialEmptyProductDetails: ProductDetails[] = [];
+const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
+    meta_id: 0, invoice_amount: 0, taxable_value: 0, cgst_amount: 0, sgst_amount: 0,
+    igst_amount: 0, igst_percentage: null, total_tax_amount: 0, other_deductions: 0,
+    freight_charges: 0, other_charges: 0, round_off_amount: 0,
 };
 
 type EditableComponentProps = {
     isManual?: boolean;
-    initialData?: ExtractedData;
+    initialInvoiceDetails?: InvoiceDetails;
+    initialProductDetails?: ProductDetails[];
+    initialAmountAndTaxDetails?: AmountAndTaxDetails;
     isReadOnly?: boolean;
 };
 
-const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }: EditableComponentProps) => {
+const EditableComponent = ({
+    isManual = false,
+    initialInvoiceDetails,
+    initialProductDetails,
+    initialAmountAndTaxDetails,
+    isReadOnly = false
+}: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { invoiceId } = useParams<{ invoiceId: string }>();
+    const { addToast } = useToast();
 
-    const [data, setData] = useState<ExtractedData>(
-        isManual ? initialEmptyData : initialData || initialEmptyData
+    // Use initial data if provided, otherwise fall back to empty states for manual entry
+    const [invoiceDetails, setInvoiceDetails] = useState(() =>
+        isManual ? initialEmptyInvoiceDetails : cloneDeep(initialInvoiceDetails!)
     );
+    const [productDetails, setProductDetails] = useState(() =>
+        isManual ? initialEmptyProductDetails : cloneDeep(initialProductDetails!)
+    );
+    const [amountDetails, setAmountDetails] = useState(() =>
+        isManual ? initialEmptyAmountAndTaxDetails : cloneDeep(initialAmountAndTaxDetails!)
+    );
+
 
     const [isRetryModalOpen, setRetryModalOpen] = useState(false);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
+    const [lineItems, setLineItems] = useState<LineItem[]>([]);
+    const [isLoadingLineItems, setIsLoadingLineItems] = useState(false);
     const [openAccordion, setOpenAccordion] = useState<string | null>(formConfig[0]?.id || null);
 
-    useEffect(() => {
-        if (isManual) {
-            setData(initialEmptyData);
-        } else if (initialData) {
-            setData(initialData);
-        }
-    }, [initialData, isManual]);
+    const combinedData = useMemo(() => ({
+        ...invoiceDetails,
+        ...amountDetails,
+        supplier: invoiceDetails.supplier,
+        product_details: productDetails,
+    }), [invoiceDetails, productDetails, amountDetails]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setData((prev) => ({ ...prev, [name]: value }));
+        const [section, ...fieldParts] = name.split('.');
+        const fieldPath = fieldParts.join('.');
+
+        const updateState = (setter: React.Dispatch<React.SetStateAction<any>>, originalState: any) => {
+            const newState = cloneDeep(originalState);
+            set(newState, fieldPath, value);
+            setter(newState);
+        };
+
+        if (name.startsWith('invoice')) {
+            updateState(setInvoiceDetails, invoiceDetails);
+        } else if (name.startsWith('amount')) {
+            updateState(setAmountDetails, amountDetails);
+        }
     };
 
     const handleViewImage = () => {
-        if (data.invoice_image_url) {
-            window.open(data.invoice_image_url, '_blank', 'noopener,noreferrer');
-        }
+        addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     };
+
     const openRetryModal = () => setRetryModalOpen(true);
     const handleSimpleRetry = () => { setRetryModalOpen(false); navigate('/loading'); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
@@ -96,20 +112,30 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'
         }`;
 
-    const renderActionCell = (row: DataItem) => {
-        const productRow = row as ProductWithDetails;
-
-        const handleOpenPopup = () => {
-            // const fullProductData:any = mockProductData.find(p => p.id === productRow.id);
-            // setSelectedProduct(fullProductData);
-            setIsPopupOpen(true);
+    const handleOpenPopup = async (itemId: number) => {
+        if (!invoiceId || isManual) {
+            addToast({ type: 'error', message: 'Cannot view details for an unsaved invoice.' });
+            return;
         };
+        setIsLoadingLineItems(true);
+        setIsPopupOpen(true);
+        try {
+            const invoiceIdNum = parseInt(invoiceId, 10);
+            const items = await getLineItems(invoiceIdNum, itemId, addToast);
+            setLineItems(items);
+        } finally {
+            setIsLoadingLineItems(false);
+        }
+    };
 
+    const renderActionCell = (row: DataItem) => {
+        const productRow = row as ProductDetails;
         return (
             <button
-                onClick={() => handleOpenPopup()}
+                onClick={() => handleOpenPopup(productRow.id)}
                 className="p-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 title="View Details"
+                disabled={isManual}
             >
                 <Eye size={16} />
             </button>
@@ -120,6 +146,8 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
         collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
     };
+
+    const getValue = (path: string) => get(combinedData, path, '');
 
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
@@ -132,7 +160,7 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
                             </h1>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <button onClick={handleViewImage} className={secondaryButtonClasses} disabled={!data.invoice_image_url}>
+                            <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
                                 <Eye className="w-4 h-4" /> View Image
                             </button>
                             {!finalIsReadOnly && user?.role === 'admin' && (
@@ -167,7 +195,7 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
                                                 <div className={`px-4 md:px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
-                                                            tableData={data.product_details}
+                                                            tableData={productDetails}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
                                                             renderActionCell={renderActionCell}
@@ -182,7 +210,7 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
                                                                     key={field.key}
                                                                     label={field.label}
                                                                     name={field.key}
-                                                                    value={data[field.key as keyof ExtractedData] as string}
+                                                                    value={getValue(field.key.split('.').slice(1).join('.'))}
                                                                     onChange={handleInputChange}
                                                                     readOnly={finalIsReadOnly}
                                                                     theme={theme}
@@ -205,7 +233,7 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
               <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
                   <div className="px-4 sm:px-6 flex justify-end">
                       <button
-                          onClick={() => navigate('/preview')}
+                          // onClick={handleSaveChanges}
                           className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
                       >
                           <Save className="w-4 h-4" /> Save and Preview
@@ -223,7 +251,8 @@ const EditableComponent = ({ isManual = false, initialData, isReadOnly = false }
             <ProductDetailPopup
                 isOpen={isPopupOpen}
                 onClose={() => setIsPopupOpen(false)}
-                data={selectedProduct}
+                data={lineItems}
+                isLoading={isLoadingLineItems}
             />
         </div>
     );

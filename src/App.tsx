@@ -54,9 +54,9 @@ const router = createBrowserRouter(
       <Route path="/upload" element={<Upload />} />
       <Route path="/imageAlteration" element={<ImageAlterations />} />
       <Route path="/edit/:invoice_id" element={<Edit />} />
-      <Route path="/review/:id" element={<Review />} />
+      <Route path="/review/:invoice_id" element={<Review />} />
       <Route path="/preview" element={<Preview />} />
-      <Route path="/manualEntry" element={<ManualEntry />} />
+      <Route path="/manualEntry:invoice_id" element={<ManualEntry />} />
     </Route>
   )
 );

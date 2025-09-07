@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import type { Document, ExtractedData, Log, ProductWithDetails } from './../../interfaces/Types';
+import type { Document, Log } from './../../interfaces/Types';
 
 // --- Base URLs ---
 const MOCK_API_URL = "http://localhost:8000";
@@ -260,7 +260,7 @@ export const getDocument = async (id: number, showToast: any): Promise<Document 
     }
 };
 
-export const getExtractedData = async (showToast: any): Promise<ExtractedData | null> => {
+export const getExtractedData = async (showToast: any): Promise<any | null> => {
     try {
         const response = await mockApi.get('/extractedData');
         return response.data;
@@ -270,7 +270,7 @@ export const getExtractedData = async (showToast: any): Promise<ExtractedData | 
     }
 };
 
-export const getProductData = async (showToast: any): Promise<ProductWithDetails[]> => {
+export const getProductData = async (showToast: any): Promise<any[]> => {
     try {
         const response = await mockApi.get('/productData');
         return response.data;
