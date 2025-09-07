@@ -20,7 +20,7 @@ export const containerVariants: Variants = { // <-- ADDED TYPE ANNOTATION
   }
 };
 
-const pageVariants: Variants = {
+export const pageVariants: Variants = {
   hidden: {
     opacity: 0,
     x: "-100vw",
@@ -44,6 +44,26 @@ const pageVariants: Variants = {
         duration: 0.5 
     },
   },
+};
+
+export const imageTransitionVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 100 : -100,
+    opacity: 0,
+    scale: 0.9,
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1,
+    scale: 1,
+  },
+  exit: (direction: number) => ({
+    zIndex: 0,
+    x: direction < 0 ? 100 : -100,
+    opacity: 0,
+    scale: 0.9,
+  }),
 };
 
 interface AnimationProps {

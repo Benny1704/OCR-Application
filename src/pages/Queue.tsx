@@ -35,7 +35,6 @@ import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
-import Loader from "../components/common/Loader";
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, message: string }) => {
   const { theme } = useTheme();
