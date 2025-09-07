@@ -39,7 +39,7 @@ const Documents = () => {
 
   const renderActionCell = (row: DataItem) => {
     return (
-      <button onClick={() => navigate(`/review/${row.id}`)} className="edit-btn">
+      <button onClick={() => navigate(`/review/${row.invoice_id}`)} className="edit-btn">
         <i className="fi fi-rr-file-edit"></i> Review
       </button>
     );
@@ -48,8 +48,6 @@ const Documents = () => {
   const renderContent = () => {
     if (isLoading) {
       return <TableSkeleton />;
-      // return <div className="flex-grow flex items-center justify-center"><Loader type="wifi"/></div>;
-
     }
 
     if (error) {

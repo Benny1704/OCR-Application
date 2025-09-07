@@ -4,15 +4,15 @@ import type { Document, ExtractedData, Log, ProductWithDetails } from './../../i
 // --- Base URLs ---
 const MOCK_API_URL = "http://localhost:8000";
 const ARUN_API_URL = "http://10.3.0.52:8000";
-const INVOICE_API_URL = "http://10.3.0.19:8000"; // New API for invoices
+const CLARE_API_URL = "http://10.3.0.19:8000"; // New API for invoices
 const API_URL = "/api"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
-const api = axios.create({ baseURL: API_URL });
+const api = axios.create({ baseURL: CLARE_API_URL });
 const arunApi = axios.create({ baseURL: ARUN_API_URL });
 const mockApi = axios.create({ baseURL: MOCK_API_URL });
-const invoiceApi = axios.create({ baseURL: INVOICE_API_URL }); // New instance for the new API
+const invoiceApi = axios.create({ baseURL: CLARE_API_URL }); // New instance for the new API
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.

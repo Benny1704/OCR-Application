@@ -11,7 +11,7 @@ import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import type { Document, QueuedDocument, ProcessedDocument, FailedDocument } from "../interfaces/Types";
+import type { Document, QueuedDocument, ProcessedDocument, FailedDocument, DataItem } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
   Star,
@@ -344,11 +344,21 @@ const Queue = () => {
     </div>
   );
 
-  const EditButton = () => (
-    <button className="edit-btn" onClick={() => navigate("/edit")}>
-      <i className="fi fi-rr-file-edit"></i> Review
-    </button>
-  );
+  // const EditButton = () => (
+  //   <button className="edit-btn" onClick={() => navigate("/edit")}>
+  //     <i className="fi fi-rr-file-edit"></i> Review
+  //   </button>
+  // );
+  const renderActionCell = (row: DataItem) => {
+    return (
+      <button
+        onClick={() => navigate(`/edit/${row.invoice_id}`)}
+        className="edit-btn"
+      >
+        <i className="fi fi-rr-file-edit"></i> Review
+      </button>
+    );
+  };
 
   const tabIcons = {
     Queued: <ClipboardClock size={16} />,
@@ -372,7 +382,7 @@ const Queue = () => {
           tableData={processedDocuments}
           tableConfig={documentConfig}
           isSearchable={true}
-          renderActionCell={EditButton}
+          renderActionCell={renderActionCell}
           actionColumnHeader="Review"
           pagination={{
             enabled: true,
