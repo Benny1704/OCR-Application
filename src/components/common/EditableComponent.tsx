@@ -4,7 +4,7 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, Supplier } from '../../interfaces/Types';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
@@ -15,13 +15,10 @@ import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 
 // --- Default Empty States for Manual Entry ---
-const initialEmptySupplier: Supplier = {
-    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
-};
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     invoice_id: 0, invoice_number: '', irn: '', invoice_date: null, way_bill: '',
     acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
-    supplier: initialEmptySupplier,
+    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
 };
 const initialEmptyProductDetails: ProductDetails[] = [];
 const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
@@ -80,25 +77,27 @@ const EditableComponent = ({
     const combinedData = useMemo(() => ({
         ...invoiceDetails,
         ...amountDetails,
-        supplier: invoiceDetails.supplier,
         product_details: productDetails,
     }), [invoiceDetails, productDetails, amountDetails]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        const [section, ...fieldParts] = name.split('.');
-        const fieldPath = fieldParts.join('.');
 
-        const updateState = (setter: React.Dispatch<React.SetStateAction<any>>, originalState: any) => {
-            const newState = cloneDeep(originalState);
-            set(newState, fieldPath, value);
-            setter(newState);
-        };
+        const isInvoiceField = Object.keys(initialEmptyInvoiceDetails).includes(name);
+        const isAmountField = Object.keys(initialEmptyAmountAndTaxDetails).includes(name);
 
-        if (name.startsWith('invoice')) {
-            updateState(setInvoiceDetails, invoiceDetails);
-        } else if (name.startsWith('amount')) {
-            updateState(setAmountDetails, amountDetails);
+        if (isInvoiceField) {
+            setInvoiceDetails(prevState => {
+                const newState = cloneDeep(prevState);
+                set(newState, name, value);
+                return newState;
+            });
+        } else if (isAmountField) {
+            setAmountDetails(prevState => {
+                const newState = cloneDeep(prevState);
+                set(newState, name, value);
+                return newState;
+            });
         }
     };
 
@@ -140,7 +139,7 @@ const EditableComponent = ({
         const productRow = row as ProductDetails;
         return (
             <button
-                onClick={() => handleOpenPopup(productRow.id)}
+                onClick={() => handleOpenPopup(productRow.item_id)}
                 className="p-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 title="View Details"
                 disabled={isManual}
@@ -218,7 +217,7 @@ const EditableComponent = ({
                                                                     key={field.key}
                                                                     label={field.label}
                                                                     name={field.key}
-                                                                    value={getValue(field.key.split('.').slice(1).join('.'))}
+                                                                    value={getValue(field.key)}
                                                                     onChange={handleInputChange}
                                                                     readOnly={finalIsReadOnly}
                                                                     theme={theme}

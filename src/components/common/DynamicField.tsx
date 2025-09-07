@@ -1,55 +1,53 @@
-import { type ChangeEvent } from 'react';
+import React from 'react';
 
 interface DynamicFieldProps {
   label: string;
   name: string;
-  value: string;
-  onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  readOnly: boolean;
-  theme: 'light' | 'dark';
+  value: string | number | null | undefined;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  readOnly?: boolean;
+  theme?: string;
 }
 
-export const DynamicField = ({ label, name, value, onChange, readOnly, theme }: DynamicFieldProps) => {
-  const isTextarea = value.length > 30;
+export const DynamicField: React.FC<DynamicFieldProps> = ({
+  label,
+  name,
+  value,
+  onChange,
+  readOnly = false,
+  theme = 'light',
+}) => {
+  // The original error was likely caused by trying to access a property on a null value.
+  // By checking for null/undefined and defaulting to an empty string, we prevent this.
+  const displayValue = value ?? '';
+  const isTextArea = typeof displayValue === 'string' && displayValue.length > 100; // Example condition for using a textarea
 
-  const commonClasses = `w-full px-2.5 py-1.5 rounded-md border transition-colors duration-200 focus:outline-none focus:ring-2 text-sm`;
-
-  const themeClasses = theme === 'dark'
-    ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus:ring-violet-400 focus:border-violet-400'
-    : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-violet-500 focus:border-violet-500';
-  
-  const readOnlyClasses = readOnly 
-    ? (theme === 'dark' ? 'bg-slate-800/60 cursor-not-allowed' : 'bg-slate-100 cursor-not-allowed')
-    : '';
+  const commonProps = {
+    id: name,
+    name: name,
+    value: displayValue,
+    onChange: onChange,
+    readOnly: readOnly,
+    className: `w-full px-3 py-2 text-sm md:text-base rounded-lg border focus:outline-none focus:ring-2 transition-colors ${
+      readOnly
+        ? 'cursor-not-allowed bg-opacity-50'
+        : 'focus:ring-violet-500'
+    } ${
+      theme === 'dark'
+        ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400'
+        : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+    }`,
+  };
 
   return (
-    <div className="flex flex-col space-y-1">
-      <label
-        htmlFor={name}
-        className={`text-xs font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}
-      >
+    <div className="w-full">
+      <label htmlFor={name} className="block text-xs md:text-sm font-medium mb-1">
         {label}
       </label>
-      {isTextarea ? (
-        <textarea
-          id={name}
-          name={name}
-          value={value}
-          onChange={onChange}
-          readOnly={readOnly}
-          rows={3}
-          className={`${commonClasses} ${readOnly ? readOnlyClasses : themeClasses} resize-y`}
-        />
+      {isTextArea ? (
+        <textarea {...commonProps} rows={3} />
       ) : (
-        <input
-          type="text"
-          id={name}
-          name={name}
-          value={value}
-          onChange={onChange}
-          readOnly={readOnly}
-          className={`${commonClasses} ${readOnly ? readOnlyClasses : themeClasses}`}
-        />
+        <input type="text" {...commonProps} />
       )}
     </div>
   );

@@ -314,7 +314,7 @@ export const getProductDetails = async (invoiceId: number, addToast: any) => {
 
 export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await invoiceApi.get(`/invoices/${invoiceId}/invoice-meta`);
+        const response = await invoiceApi.get(`/invoices/${invoiceId}/meta-discount`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);

@@ -92,13 +92,13 @@ export interface FailedDocument {
 
 export type Document = QueuedDocument | ProcessedDocument | FailedDocument;
 
-// --- API Data Structures (from CLARE_API_URL) ---
-export interface Supplier {
-	supplier_id: number;
-	supplier_name: string;
-	supplier_address: string;
-	supplier_gst: string;
-}
+// // --- API Data Structures (from CLARE_API_URL) ---
+// export interface Supplier {
+// 	supplier_id: number;
+// 	supplier_name: string;
+// 	supplier_address: string;
+// 	supplier_gst: string;
+// }
 
 export interface InvoiceDetails {
 	invoice_id: number;
@@ -110,7 +110,10 @@ export interface InvoiceDetails {
 	acknowledgement_date: string;
 	order_number: string | null;
 	order_date: string | null;
-	supplier: Supplier;
+	supplier_id: number;
+	supplier_name: string;
+	supplier_address: string;
+	supplier_gst: string;
 }
 
 export interface ProductDetails {

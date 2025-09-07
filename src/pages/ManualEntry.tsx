@@ -3,28 +3,12 @@ import {
     type InvoiceDetails,
     type ProductDetails,
     type AmountAndTaxDetails,
-    type Supplier
 } from '../interfaces/Types';
 
-const initialEmptySupplier: Supplier = {
-    supplier_id: 0,
-    supplier_name: '',
-    supplier_address: '',
-    supplier_gst: '',
-};
-
-
 const initialEmptyInvoiceDetails: InvoiceDetails = {
-    invoice_id: 0,
-    invoice_number: '',
-    irn: '',
-    invoice_date: null,
-    way_bill: '',
-    acknowledgement_number: '',
-    acknowledgement_date: '',
-    order_number: null,
-    order_date: null,
-    supplier: initialEmptySupplier,
+    invoice_id: 0, invoice_number: '', irn: '', invoice_date: null, way_bill: '',
+    acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
+    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
 };
 
 const initialEmptyProductDetails: ProductDetails[] = [];

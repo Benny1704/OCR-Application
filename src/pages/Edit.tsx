@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { getInvoiceDetails, getProductDetails, getAmountAndTaxDetails } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails } from '../interfaces/Types';
 import { useToast } from '../hooks/useToast';
-import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import { useParams } from 'react-router-dom';
 
