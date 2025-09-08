@@ -1,22 +1,19 @@
 import axios, { AxiosError } from 'axios';
-import type { Document, Log } from './../../interfaces/Types';
 
 // --- Base URLs ---
-const MOCK_API_URL = "http://localhost:8000";
 const ARUN_API_URL = "http://10.3.0.52:8000";
 const CLARE_API_URL = "http://10.3.0.19:8000"; // New API for invoices
 const API_URL = "/api"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
-const api = axios.create({ baseURL: CLARE_API_URL });
+const api = axios.create({ baseURL: API_URL });
 const arunApi = axios.create({ baseURL: ARUN_API_URL });
-const mockApi = axios.create({ baseURL: MOCK_API_URL });
 const invoiceApi = axios.create({ baseURL: CLARE_API_URL }); // New instance for the new API
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.
-[api, arunApi, mockApi, invoiceApi].forEach(instance => { // Added invoiceApi to the interceptor
+[api, arunApi, invoiceApi].forEach(instance => { // Added invoiceApi to the interceptor
     instance.interceptors.request.use(
         (config) => {
             const token = localStorage.getItem('token');
@@ -235,59 +232,6 @@ export const getSpendByVendor = (filterType: 'monthly' | 'yearly', year: number,
 
 export const getDiscountByVendor = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
     return fetchDataForChart(arunApi, '/metrics/total_discount_by_vendor', filterType, year, toYear);
-};
-
-// --- MOCK API Functions (Refactored) ---
-// These are simple GET requests, now using the mockApi instance.
-
-export const getDocuments = async (showToast: any): Promise<Document[]> => {
-    try {
-        const response = await mockApi.get('/documents');
-        return response.data;
-    } catch (error) {
-        handleError(error, showToast);
-        return [];
-    }
-};
-
-export const getDocument = async (id: number, showToast: any): Promise<Document | null> => {
-    try {
-        const response = await mockApi.get(`/documents/${id}`);
-        return response.data;
-    } catch (error) {
-        handleError(error, showToast);
-        return null;
-    }
-};
-
-export const getExtractedData = async (showToast: any): Promise<any | null> => {
-    try {
-        const response = await mockApi.get('/extractedData');
-        return response.data;
-    } catch (error) {
-        handleError(error, showToast);
-        return null;
-    }
-};
-
-export const getProductData = async (showToast: any): Promise<any[]> => {
-    try {
-        const response = await mockApi.get('/productData');
-        return response.data;
-    } catch (error) {
-        handleError(error, showToast);
-        return [];
-    }
-};
-
-export const getLogs = async (showToast: any): Promise<Log[]> => {
-    try {
-        const response = await mockApi.get('/logs');
-        return response.data;
-    } catch (error) {
-        handleError(error, showToast);
-        return [];
-    }
 };
 
 // --- Invoice Details API Functions ---

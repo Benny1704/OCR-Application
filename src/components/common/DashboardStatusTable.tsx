@@ -1,4 +1,4 @@
-import { useMemo, type FC, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import { CheckCircle2, FileCheck2, Loader2, XCircle, type LucideProps, FileClock, AlertCircle, ArrowRight, User } from 'lucide-react';
 import type { Document, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
@@ -51,14 +51,14 @@ const formatDateTime = (dateString: string) => {
 };
 
 
-const StatusColumn: FC<{
+const StatusColumn = ({ title, docs, count, icon: Icon, accentColor, isLoading }: {
     title: string,
     docs: Document[],
     count: number,
     icon: React.ElementType<LucideProps>,
     accentColor: string,
     isLoading: boolean
-}> = ({ title, docs, count, icon: Icon, accentColor, isLoading }) => {
+}) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';

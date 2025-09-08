@@ -9,14 +9,14 @@ interface DynamicFieldProps {
   theme?: string;
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({
+export const DynamicField = ({
   label,
   name,
   value,
   onChange,
   readOnly = false,
   theme = 'light',
-}) => {
+}: DynamicFieldProps) => {
   // The original error was likely caused by trying to access a property on a null value.
   // By checking for null/undefined and defaulting to an empty string, we prevent this.
   const displayValue = value ?? '';
