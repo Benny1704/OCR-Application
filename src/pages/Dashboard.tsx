@@ -383,7 +383,11 @@ const Dashboard = () => {
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
                 {/* Note: KPI cards will now appear with the page, no skeleton for initial load */}
                 { kpiError ? (
-                     <div className="sm:col-span-2 lg:col-span-4">
+                    <div className={`sm:col-span-2 lg:col-span-4 p-4 md:p-6 rounded-2xl shadow-lg border ${
+                        theme === 'dark'
+                        ? 'bg-[#1C1C2E] border-gray-700/50'
+                        : 'bg-white border-gray-200/80'
+                    }`}>
                         <ErrorDisplay message={kpiError} onRetry={fetchInitialData} />
                     </div>
                 ) : (

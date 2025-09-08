@@ -70,9 +70,14 @@ const Sidenav = () => {
                                 to={nav.link} 
                                 className={({ isActive }) => {
                                     if (nav.name === 'Queue') {
-                                        const queuePaths = ['/queue', '/edit', '/preview', '/imageAlteration'];
+                                        const queuePaths = ['/queue', '/edit', '/preview', '/imageAlteration', '/manualEntry'];
                                         const isQueueActive = queuePaths.some(path => location.pathname.startsWith(path));
                                         return isQueueActive ? 'nav-item active' : 'nav-item';
+                                    }
+                                    if (nav.name === 'Documents') {
+                                        const docPaths = ['/document', '/review'];
+                                        const isDocActive = docPaths.some(path => location.pathname.startsWith(path));
+                                        return isDocActive ? 'nav-item active' : 'nav-item';
                                     }
                                     return isActive ? 'nav-item active' : 'nav-item';
                                 }}

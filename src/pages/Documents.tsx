@@ -24,7 +24,19 @@ const Documents = () => {
     setError(null);
     try {
         const data = await getCompletedDocuments(addToast);
-        setDocuments(data);
+        setDocuments(data.map((item: any, index: number) => ({
+          id: item.message_id,
+          sno: index + 1,
+          name: item.file_name,
+          supplierName: item.supplier_name,
+          invoiceId: item.invoice_id,
+          irnNumber: item.irn,
+          uploadedBy: item.uploaded_by,
+          uploadDate: item.uploaded_at,
+          invoiceDate: item.invoice_date,
+          messageId: item.message_id,
+          status: "Processed",
+        })));
     } catch (err: any) {
         setError(err.message || "Failed to fetch documents.");
     } finally {

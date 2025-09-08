@@ -622,10 +622,23 @@ const DataTable = ({
                 <tbody>
                     <tr>
                         <td colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} className="text-center p-8">
-                            <div className="flex flex-col items-center gap-2 text-gray-500">
+                            <div className="flex flex-col items-center gap-4 text-gray-500">
                                 <Inbox size={48} className="text-gray-400" />
                                 <h3 className={`font-semibold text-lg ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>No Data Found</h3>
                                 <p className="text-sm">There are no records to display for your current search.</p>
+                                {isEditable && (
+                                     <button 
+                                        onClick={handleAddRow} 
+                                        className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
+                                        ${theme === 'dark' 
+                                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100' 
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'}`
+                                        }
+                                        title="Insert New Row"
+                                    >
+                                        <Plus size={16} /> Insert Row
+                                    </button>
+                                )}
                             </div>
                         </td>
                     </tr>

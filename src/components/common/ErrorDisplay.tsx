@@ -10,10 +10,10 @@ const ErrorDisplay = ({ message, onRetry }: ErrorDisplayProps) => {
   const { theme } = useTheme();
   const textHeader = theme === "dark" ? "text-white" : "text-gray-900";
   // const borderPrimary = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
-  const bgCard = theme === 'dark' ? 'bg-gray-800/50' : 'bg-white';
+  // const bgCard = theme === 'dark' ? 'bg-gray-800/50' : 'bg-white';
 
   return (
-    <div className={`rounded-xl ${bgCard} p-6 flex flex-col items-center justify-center text-center`}>
+    <div className={`rounded-xl p-6 flex flex-col items-center justify-center text-center`}>
       <AlertCircle className={`w-12 h-12 mb-4 ${theme === 'dark' ? 'text-red-400' : 'text-red-500'}`} />
       <p className={`font-semibold text-base mb-2 ${textHeader}`}>
         An Error Occurred

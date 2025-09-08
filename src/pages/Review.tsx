@@ -38,7 +38,7 @@ const Review = () => {
             ]);
 
             if (!invoiceData || !productData || !amountData) {
-                throw new Error("Failed to fetch all necessary details for the invoice.");
+                throw new Error("Failed to fetch all necessary details for the invoice. One or more API requests failed.");
             }
 
             setInvoiceDetails(invoiceData);

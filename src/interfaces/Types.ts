@@ -114,6 +114,7 @@ export interface InvoiceDetails {
 	supplier_name: string;
 	supplier_address: string;
 	supplier_gst: string;
+  [key: string]: any;
 }
 
 export interface ProductDetails {
@@ -126,6 +127,7 @@ export interface ProductDetails {
 	total_quantity: number;
 	total_amount: number;
 	HSN: string;
+  [key: string]: any;
 }
 
 export interface AmountAndTaxDetails {
@@ -141,6 +143,7 @@ export interface AmountAndTaxDetails {
 	freight_charges: number;
 	other_charges: number;
 	round_off_amount: number;
+  [key: string]: any;
 }
 
 export interface LineItem {
@@ -152,6 +155,19 @@ export interface LineItem {
 	single_unit_mrp: number;
 	no_item_split: number;
 	attributes: null;
+  [key: string]: any;
+}
+
+export interface EditableComponentProps {
+  initialInvoiceDetails: InvoiceDetails;
+  initialProductDetails: ProductDetails[];
+  initialAmountAndTaxDetails: AmountAndTaxDetails;
+  isReadOnly: boolean;
+  onPreview?: (
+      invoiceDetails: InvoiceDetails,
+      productDetails: ProductDetails[],
+      amountAndTaxDetails: AmountAndTaxDetails
+  ) => void;
 }
 
 // --- Component Prop Interfaces ---
