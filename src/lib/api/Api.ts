@@ -1,19 +1,22 @@
 import axios, { AxiosError } from 'axios';
+import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const ARUN_API_URL = "http://10.3.0.52:8000";
-const CLARE_API_URL = "http://10.3.0.19:8000"; // New API for invoices
+const ARUN_API_URL = "https://a6081e5597b9.ngrok-free.app";
+const CLARE_API_URL = "http://10.3.0.19:8000";
+const Pharam_API_URL = "http://10.3.0.19:8000";
 const API_URL = "/api"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
 const arunApi = axios.create({ baseURL: ARUN_API_URL });
-const invoiceApi = axios.create({ baseURL: CLARE_API_URL }); // New instance for the new API
+const getApi = axios.create({ baseURL: CLARE_API_URL });
+const saveApi = axios.create({ baseURL: Pharam_API_URL });
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.
-[api, arunApi, invoiceApi].forEach(instance => { // Added invoiceApi to the interceptor
+[api, arunApi, getApi,saveApi].forEach(instance => { // Added getApi to the interceptor
     instance.interceptors.request.use(
         (config) => {
             const token = localStorage.getItem('token');
@@ -238,7 +241,7 @@ export const getDiscountByVendor = (filterType: 'monthly' | 'yearly', year: numb
 
 export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await invoiceApi.get(`/invoices/${invoiceId}`);
+        const response = await getApi.get(`/invoices/${invoiceId}`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -248,7 +251,7 @@ export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
 
 export const getProductDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await invoiceApi.get(`/invoices/${invoiceId}/line-items`);
+        const response = await getApi.get(`/invoices/${invoiceId}/line-items`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -258,7 +261,7 @@ export const getProductDetails = async (invoiceId: number, addToast: any) => {
 
 export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await invoiceApi.get(`/invoices/${invoiceId}/meta-discount`);
+        const response = await getApi.get(`/invoices/${invoiceId}/meta-discount`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -268,7 +271,49 @@ export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) =
 
 export const getLineItems = async (invoiceId: number, itemId: number, addToast: any) => {
     try {
-        const response = await invoiceApi.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
+        const response = await getApi.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return [];
+    }
+};
+
+// --- Update API Functions ---
+
+export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
+    try {
+        const response = await saveApi.put(`/invoices/${invoiceId}`, data);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return null;
+    }
+};
+
+export const updateProductDetails = async (invoiceId: number, data: ProductDetails[], addToast: any) => {
+    try {
+        const response = await saveApi.put(`/invoices/${invoiceId}/item-summary`, data);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return null;
+    }
+};
+
+export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
+    try {
+        const response = await saveApi.put(`/invoices/${invoiceId}/meta`, data);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return null;
+    }
+};
+
+export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
+    try {
+        const response = await saveApi.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);

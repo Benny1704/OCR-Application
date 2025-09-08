@@ -16,7 +16,7 @@ import Logs from "./pages/Logs";
 import Login from "./pages/Login";
 import ImageAlterations from "./pages/ImageAlterations";
 import Edit from "./pages/Edit";
-// import Preview from "./pages/Preview";
+import Preview from "./pages/Preview";
 import ManualEntry from "./pages/ManualEntry";
 import { type Role } from "./interfaces/Types";
 import { useContext } from "react";
@@ -55,7 +55,7 @@ const router = createBrowserRouter(
       <Route path="/imageAlteration" element={<ImageAlterations />} />
       <Route path="/edit/:invoiceId" element={<Edit />} />
       <Route path="/review/:invoiceId" element={<Review />} />
-      {/* <Route path="/preview" element={<Preview />} /> */}
+      <Route path="/preview/:invoiceId" element={<Preview />} />
       <Route path="/manualEntry/:invoiceId" element={<ManualEntry />} />
     </Route>
   )

@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem } from '../../interfaces/Types';
@@ -10,7 +10,6 @@ import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
 import { formConfig } from '../../lib/config/Config';
-import { getLineItems } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 
@@ -27,6 +26,7 @@ const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
     freight_charges: 0, other_charges: 0, round_off_amount: 0,
 };
 
+
 type EditableComponentProps = {
     isManual?: boolean;
     initialInvoiceDetails?: InvoiceDetails | null;
@@ -37,6 +37,11 @@ type EditableComponentProps = {
     productError?: string | null;
     amountError?: string | null;
     onRetry?: () => void;
+    onPreview?: (
+        invoiceDetails: InvoiceDetails,
+        productDetails: ProductDetails[],
+        amountAndTaxDetails: AmountAndTaxDetails
+    ) => void;
 };
 
 const EditableComponent = ({
@@ -45,18 +50,14 @@ const EditableComponent = ({
     initialProductDetails,
     initialAmountAndTaxDetails,
     isReadOnly = false,
-    invoiceError = null,
-    productError = null,
-    amountError = null,
     onRetry,
+    onPreview,
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { invoiceId } = useParams<{ invoiceId: string }>();
     const { addToast } = useToast();
 
-    // Use initial data if provided, otherwise fall back to empty states for manual entry
     const [invoiceDetails, setInvoiceDetails] = useState(() =>
         isManual ? initialEmptyInvoiceDetails : cloneDeep(initialInvoiceDetails!)
     );
@@ -67,11 +68,8 @@ const EditableComponent = ({
         isManual ? initialEmptyAmountAndTaxDetails : cloneDeep(initialAmountAndTaxDetails!)
     );
 
-
     const [isRetryModalOpen, setRetryModalOpen] = useState(false);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [lineItems, setLineItems] = useState<LineItem[]>([]);
-    const [isLoadingLineItems, setIsLoadingLineItems] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [openAccordion, setOpenAccordion] = useState<string | null>(formConfig[0]?.id || null);
 
     const combinedData = useMemo(() => ({
@@ -100,13 +98,13 @@ const EditableComponent = ({
             });
         }
     };
-
+    
     const handleViewImage = () => {
         addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     };
 
     const openRetryModal = () => setRetryModalOpen(true);
-    const handleSimpleRetry = () => { setRetryModalOpen(false); navigate('/loading'); };
+    const handleSimpleRetry = () => { setRetryModalOpen(false); if (onRetry) onRetry(); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
 
     const finalIsReadOnly = isReadOnly || user?.role !== 'admin';
@@ -119,27 +117,35 @@ const EditableComponent = ({
             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'
         }`;
 
-    const handleOpenPopup = async (itemId: number) => {
-        if (!invoiceId || isManual) {
+    const handleOpenPopup = (product: ProductDetails) => {
+        if (isManual) {
             addToast({ type: 'error', message: 'Cannot view details for an unsaved invoice.' });
             return;
-        };
-        setIsLoadingLineItems(true);
-        setIsPopupOpen(true);
-        try {
-            const invoiceIdNum = parseInt(invoiceId, 10);
-            const items = await getLineItems(invoiceIdNum, itemId, addToast);
-            setLineItems(items);
-        } finally {
-            setIsLoadingLineItems(false);
         }
+        setSelectedProduct(product);
+    };
+    
+    const handleSaveLineItems = (updatedLineItems: LineItem[]) => {
+        if (!selectedProduct) return;
+
+        setProductDetails(currentProducts => {
+            const newProducts = cloneDeep(currentProducts);
+            const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
+            if (productIndex !== -1) {
+                newProducts[productIndex].line_items = updatedLineItems;
+            }
+            return newProducts;
+        });
+
+        addToast({ type: 'success', message: `Line items for product ${selectedProduct.id} updated.` });
+        setSelectedProduct(null);
     };
 
     const renderActionCell = (row: DataItem) => {
         const productRow = row as ProductDetails;
         return (
             <button
-                onClick={() => handleOpenPopup(productRow.item_id)}
+                onClick={() => handleOpenPopup(productRow)}
                 className="p-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 title="View Details"
                 disabled={isManual}
@@ -148,14 +154,20 @@ const EditableComponent = ({
             </button>
         );
     };
-
+    
     const accordionVariants: Variants = {
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
         collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
     };
 
     const getValue = (path: string) => get(combinedData, path, '');
-
+    
+    const handleSaveChanges = () => {
+        if (onPreview) {
+            onPreview(invoiceDetails, productDetails, amountDetails);
+        }
+    };
+    
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
             <main className="flex-grow py-4 md:py-6 overflow-y-auto">
@@ -202,7 +214,7 @@ const EditableComponent = ({
                                                 <div className={`px-4 md:px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
-                                                            tableData={productDetails}
+                                                            tableData={productDetails || []}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
                                                             renderActionCell={renderActionCell}
@@ -240,7 +252,7 @@ const EditableComponent = ({
               <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
                   <div className="px-4 sm:px-6 flex justify-end">
                       <button
-                          // onClick={handleSaveChanges}
+                          onClick={handleSaveChanges}
                           className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
                       >
                           <Save className="w-4 h-4" /> Save and Preview
@@ -256,10 +268,11 @@ const EditableComponent = ({
                 onRetryWithAlterations={handleRetryWithAlterations}
             />
             <ProductDetailPopup
-                isOpen={isPopupOpen}
-                onClose={() => setIsPopupOpen(false)}
-                data={lineItems}
-                isLoading={isLoadingLineItems}
+                isOpen={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                product={selectedProduct}
+                onSave={handleSaveLineItems}
+                isLoading={false}
             />
         </div>
     );

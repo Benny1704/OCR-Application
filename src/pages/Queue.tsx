@@ -609,17 +609,6 @@ const Queue = () => {
                             >
                               <RefreshCw className="w-3.5 h-3.5" /> Retry
                             </button>
-                            <button
-                              onClick={() =>
-                                handleDelete(selectedDocument.id)
-                              }
-                              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
-                                  ? "bg-red-900/40 border-red-700/60 text-red-300 hover:bg-red-900/60"
-                                  : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-                                }`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Delete
-                            </button>
                           </>
                         )}
                       </>

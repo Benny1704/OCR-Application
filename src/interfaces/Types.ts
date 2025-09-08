@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import type { ReactNode, Dispatch, SetStateAction } from "react";
 
 // --- Generic & Reusable Interfaces ---
 export interface DataItem {
@@ -20,6 +20,8 @@ export interface DataTableProps {
   isMasterData?: boolean;
   isEditable?: boolean;
   isSearchable?: boolean;
+  onDataChange?: Dispatch<SetStateAction<any[]>>;
+  [key: string]: any; // Allow other props
 }
 
 // --- Application State & Navigation ---
@@ -127,6 +129,7 @@ export interface ProductDetails {
 	total_quantity: number;
 	total_amount: number;
 	HSN: string;
+  line_items?: LineItem[];
   [key: string]: any;
 }
 
@@ -178,7 +181,8 @@ export interface MainLayoutProps {
 export interface ProductDetailPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  data: LineItem[] | null;
+  product: ProductDetails | null;
+  onSave: (updatedLineItems: LineItem[]) => void; // To save changes back to parent
   isLoading: boolean;
 }
 
