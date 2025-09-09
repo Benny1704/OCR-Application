@@ -17,7 +17,7 @@ export interface TableColumnConfig {
 
 export interface TableConfig {
     columns: TableColumnConfig[];
-    fixedColumn?: string; // Note: This will be ignored in favor of 'sno'.
+    fixedColumn?: string;
 }
 
 export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
@@ -31,7 +31,8 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
         pageSizeOptions?: number[];
     };
     maxHeight?: string;
-    isLoading?: boolean; // New prop for loading state
+    isLoading?: boolean;
+    onDataChange?: (data: DataItem[]) => void;
 }
 
 type ProcessedDataItem = DataItem & {
@@ -49,10 +50,10 @@ const DataTable = ({
     actionColumnHeader = 'Action',
     pagination = { enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] },
     maxHeight = '100%',
-    isLoading = false // Default isLoading to false
+    isLoading = false,
+    onDataChange
 }: DataTableProps) => {
     const { theme } = useTheme();
-    const [data, setData] = useState<DataItem[]>(tableData);
     const [history, setHistory] = useState<DataItem[][]>([tableData]);
     const [historyIndex, setHistoryIndex] = useState(0);
     const [selectedCells, setSelectedCells] = useState<CellIdentifier[]>([]);
@@ -69,7 +70,6 @@ const DataTable = ({
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
 
     useEffect(() => {
-        setData(tableData);
         setHistory([tableData]);
         setHistoryIndex(0);
     }, [tableData]);
@@ -88,8 +88,8 @@ const DataTable = ({
         if (tableConfig && tableConfig.columns.length > 0) {
             const userColumns = tableConfig.columns.filter(col => col.key !== 'sno');
             finalColumns = [snoColumn, ...userColumns];
-        } else if (data && data.length > 0) {
-            const allHeaders = Object.keys(data[0]).filter(h => h !== 'sno' && h !== 'id');
+        } else if (tableData && tableData.length > 0) {
+            const allHeaders = Object.keys(tableData[0]).filter(h => h !== 'sno' && h !== 'id');
             const derivedColumns = allHeaders.map(header => ({
                 key: header,
                 header: header.replace(/_/g, ' '),
@@ -114,10 +114,10 @@ const DataTable = ({
             movableHeaders: movable, 
             columnConfig: configMap 
         };
-    }, [data, tableConfig]);
+    }, [tableData, tableConfig]);
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
-        let processed: ProcessedDataItem[] = data.map((row, index) => {
+        let processed: ProcessedDataItem[] = tableData.map((row, index) => {
             const processedRow: ProcessedDataItem = { 
                 ...row, 
                 sno: index + 1,
@@ -143,7 +143,7 @@ const DataTable = ({
         }
 
         return processed;
-    }, [data, searchQuery, isSearchable, tableConfig]);
+    }, [tableData, searchQuery, isSearchable, tableConfig]);
 
     const totalItems = processedData.length;
     const totalPages = pagination.enabled ? Math.ceil(totalItems / pageSize) : 1;
@@ -156,12 +156,12 @@ const DataTable = ({
     }, [searchQuery, pageSize]);
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
-        if (!isEditable) return;
+        if (!isEditable || !onDataChange) return;
         const newHistory = history.slice(0, historyIndex + 1);
         newHistory.push(newData);
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
-        setData(newData);
+        onDataChange(newData);
         if (newSelectedCells) {
             setSelectedCells(newSelectedCells);
             if (newSelectedCells.length > 0) {
@@ -170,25 +170,25 @@ const DataTable = ({
                 setLastSelected(null);
             }
         }
-    }, [history, historyIndex, isEditable]);
+    }, [history, historyIndex, isEditable, onDataChange]);
 
     const undo = useCallback(() => {
-        if (!isEditable || historyIndex === 0) return;
+        if (!isEditable || historyIndex === 0 || !onDataChange) return;
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
-        setData(history[newIndex]);
+        onDataChange(history[newIndex]);
         setSelectedCells([]);
         setEditingCell(null);
-    }, [history, historyIndex, isEditable]);
+    }, [history, historyIndex, isEditable, onDataChange]);
 
     const redo = useCallback(() => {
-        if (!isEditable || historyIndex >= history.length - 1) return;
+        if (!isEditable || historyIndex >= history.length - 1 || !onDataChange) return;
         const newIndex = historyIndex + 1;
         setHistoryIndex(newIndex);
-        setData(history[newIndex]);
+        onDataChange(history[newIndex]);
         setSelectedCells([]);
         setEditingCell(null);
-    }, [history, historyIndex, isEditable]);
+    }, [history, historyIndex, isEditable, onDataChange]);
     
     const handleAddRow = useCallback(() => {
         if (!isEditable) return;
@@ -208,7 +208,7 @@ const DataTable = ({
             }
         });
 
-        const newData = [...data, newRow];
+        const newData = [...tableData, newRow];
         updateData(newData);
         
         if (pagination.enabled) {
@@ -224,7 +224,7 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, columnConfig, data, updateData, pagination.enabled, pageSize, movableHeaders]);
+    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders]);
     
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
@@ -232,7 +232,7 @@ const DataTable = ({
         
         if (originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(data);
+        const newData: DataItem[] = structuredClone(tableData);
         if (newData[originalRowIndex]) {
             newData[originalRowIndex][colKey] = value;
         }
@@ -264,7 +264,7 @@ const DataTable = ({
 
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
-        const newData: DataItem[] = structuredClone(data);
+        const newData: DataItem[] = structuredClone(tableData);
         const newSelectedCells: CellIdentifier[] = [];
 
         const sortedSelected = [...selectedCells].sort((a, b) => {
@@ -311,7 +311,7 @@ const DataTable = ({
         });
 
         updateData(newData, newSelectedCells);
-    }, [data, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -320,7 +320,7 @@ const DataTable = ({
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         if(originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(data);
+        const newData: DataItem[] = structuredClone(tableData);
         let newSelectedCells = [...selectedCells];
 
         const colIndex = movableHeaders.indexOf(colKey);
@@ -335,13 +335,13 @@ const DataTable = ({
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex - 1 }));
-        } else if (direction === 'down' && originalRowIndex < data.length - 1) {
+        } else if (direction === 'down' && originalRowIndex < tableData.length - 1) {
             [newData[originalRowIndex], newData[originalRowIndex + 1]] = [newData[originalRowIndex + 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
 
         updateData(newData, newSelectedCells);
-    }, [data, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
@@ -354,7 +354,7 @@ const DataTable = ({
                     const { rowIndex, colKey } = selectedCells[0];
                     const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
                     if (originalRowIndex !== undefined) {
-                        const value = data[originalRowIndex]?.[colKey];
+                        const value = tableData[originalRowIndex]?.[colKey];
                         setCopiedCell({ rowIndex, colKey, value });
                     }
                 }
@@ -362,7 +362,7 @@ const DataTable = ({
             else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
-                    const newData: DataItem[] = structuredClone(data);
+                    const newData: DataItem[] = structuredClone(tableData);
                     selectedCells.forEach(targetCell => {
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.editable === false) return;
                         
@@ -403,7 +403,7 @@ const DataTable = ({
             });
         }
     }, [
-        editingCell, isEditable, undo, redo, selectedCells, copiedCell, data, 
+        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData, 
         updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, 
         fixedHeaderKey, paginatedData, columnConfig
     ]);
@@ -422,7 +422,7 @@ const DataTable = ({
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
         
-        const newData: DataItem[] = structuredClone(data);
+        const newData: DataItem[] = structuredClone(tableData);
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
         

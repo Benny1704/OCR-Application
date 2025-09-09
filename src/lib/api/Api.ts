@@ -2,16 +2,16 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const ARUN_API_URL = "https://a6081e5597b9.ngrok-free.app";
-const CLARE_API_URL = "http://10.3.0.19:8000";
-const Pharam_API_URL = "http://10.3.0.19:8000";
+const ARUN_API_URL = "https://2e73ed2b936f.ngrok-free.app";
+// const CLARE_API_URL = "http://10.3.0.19:8000";
+const Pharam_API_URL = "http://10.3.0.61:8080";
 const API_URL = "/api"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
 const arunApi = axios.create({ baseURL: ARUN_API_URL });
-const getApi = axios.create({ baseURL: CLARE_API_URL });
+const getApi = axios.create({ baseURL: API_URL });
 const saveApi = axios.create({ baseURL: Pharam_API_URL });
 
 // --- Axios Interceptor for Authentication ---
@@ -229,12 +229,22 @@ export const getInvoiceCount = (filterType: 'monthly' | 'yearly', year: number, 
     return fetchDataForChart(arunApi, '/metrics/invoice_count', filterType, year, toYear);
 };
 
-export const getSpendByVendor = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(arunApi, '/metrics/total_spend_by_vendor', filterType, year, toYear);
+export const getSpendByVendor = async (year: number, month?: number) => {
+    const params: any = { year };
+    if (month) {
+        params.month = month;
+    }
+    const response = await arunApi.get('/metrics/spend_by_vendor', { params });
+    return response.data.spend_by_vendor.vendors;
 };
 
-export const getDiscountByVendor = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(arunApi, '/metrics/total_discount_by_vendor', filterType, year, toYear);
+export const getDiscountByVendor = async (year: number, month?: number) => {
+    const params: any = { year };
+    if (month) {
+        params.month = month;
+    }
+    const response = await arunApi.get('/metrics/discount_percent_per_vendor', { params });
+    return response.data.discount_percent_per_vendor.vendors;
 };
 
 // --- Invoice Details API Functions ---

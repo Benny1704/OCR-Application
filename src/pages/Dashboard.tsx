@@ -1,8 +1,8 @@
 import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, Legend, Pie, PieChart } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff, AlertCircle } from 'lucide-react';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell } from 'recharts';
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
@@ -10,7 +10,6 @@ import { useAuth } from '../hooks/useAuth';
 import { itemVariants, containerVariants } from '../components/common/Animation';
 import { getDashboardData, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
-import { ChartSkeleton, KpiCardSkeleton } from '../components/common/SkeletonLoaders';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 
@@ -21,13 +20,13 @@ const iconMap: { [key: string]: React.ElementType } = {
     TrendingUp,
 };
 
-interface KpiMetric {
-    title: string;
-    value: string;
-    icon: string;
-    change?: string;
-    changeType?: 'increase' | 'decrease';
-}
+// interface KpiMetric {
+//     title: string;
+//     value: string;
+//     icon: string;
+//     change?: string;
+//     changeType?: 'increase' | 'decrease';
+// }
 
 interface MetricCardProps {
     title: string;
@@ -53,13 +52,15 @@ interface ChartCardProps {
     setFromYear?: (year: number) => void;
     toYear?: number;
     setToYear?: (year: number) => void;
+    selectedMonth?: number;
+    setSelectedMonth?: (month: number) => void;
+    isVendorChart?: boolean;
 }
 
 interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string | number;
-  spendByVendorData: { name: string; value: number }[];
 }
 
 
@@ -76,21 +77,20 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
 
     const cardVariants: Variants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { 
-            opacity: 1, 
-            y: 0, 
-            transition: { 
-                delay: index * 0.1, 
-                duration: 0.5, 
-                ease: "easeOut" 
-            } 
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: index * 0.1,
+                duration: 0.5,
+                ease: "easeOut"
+            }
         }
     };
 
     return (
-        <motion.div 
+        <motion.div
             variants={cardVariants}
-            // The initial and animate props are managed by the parent motion.div
             className={cardClasses}
         >
             <div className="flex justify-between items-start">
@@ -108,6 +108,57 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
         </motion.div>
     );
 };
+
+const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, setSelectedMonth }: any) => {
+    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+    const months = [
+        { value: 0, label: 'All Months' },
+        { value: 1, label: 'January' }, { value: 2, label: 'February' }, { value: 3, label: 'March' },
+        { value: 4, label: 'April' }, { value: 5, label: 'May' }, { value: 6, label: 'June' },
+        { value: 7, label: 'July' }, { value: 8, label: 'August' }, { value: 9, label: 'September' },
+        { value: 10, label: 'October' }, { value: 11, label: 'November' }, { value: 12, label: 'December' }
+    ];
+
+    return (
+        <Menu as="div" className="relative inline-block text-left">
+            <div>
+                <Menu.Button className="inline-flex justify-center w-full p-2 text-sm font-medium text-gray-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                    <MoreVertical className="w-5 h-5" />
+                </Menu.Button>
+            </div>
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items className="absolute right-0 w-64 mt-2 origin-top-right bg-white dark:bg-[#2a2a3e] divide-y divide-gray-100 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-none z-10">
+                    <div className="px-4 py-3">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-200">Chart Options</p>
+                    </div>
+                    <div className="px-4 py-3 space-y-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Year</label>
+                            <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-[#3a3a52] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md">
+                                {years.map(year => <option key={year} value={year}>{year}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Month</label>
+                            <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-[#3a3a52] text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md">
+                                {months.map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </Menu.Items>
+            </Transition>
+        </Menu>
+    );
+};
+
 
 const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedYear, fromYear, setFromYear, toYear, setToYear }: any) => {
     const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
@@ -189,19 +240,14 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
 };
 
 
-const CustomPieTooltip = ({ active, payload, spendByVendorData }: CustomTooltipProps) => {
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     const { theme } = useTheme();
 
     if (active && payload && payload.length) {
-        const data = payload[0].payload;
-        const total = spendByVendorData.reduce((acc, entry) => acc + entry.value, 0);
-        const percent = ((data.value / total) * 100).toFixed(2);
-
         return (
             <div className={`p-3 rounded-xl shadow-lg border ${theme === 'dark' ? 'bg-[#2a2a3e] border-gray-700' : 'bg-white border-gray-200'}`}>
-                <p className="font-bold text-gray-900 dark:text-gray-100">{`${data.name}`}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{`Spend: ₹${data.value.toLocaleString()}`}</p>
-                <p className="text-sm text-violet-500 dark:text-violet-400">{`Contribution: ${percent}%`}</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100">{`${payload[0].payload.name}`}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{`Value: ${payload[0].value}`}</p>
             </div>
         );
     }
@@ -214,7 +260,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [kpiError, setKpiError] = useState<string | null>(null);
-    const [isPageLoading, setIsPageLoading] = useState(true); // Renamed for clarity
+    const [isPageLoading, setIsPageLoading] = useState(true);
     const { addToast } = useToast();
 
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
@@ -234,8 +280,6 @@ const Dashboard = () => {
 
     const [financialFilterType, setFinancialFilterType] = useState<'monthly' | 'yearly'>('monthly');
     const [invoiceFilterType, setInvoiceFilterType] = useState<'monthly' | 'yearly'>('monthly');
-    const [spendByVendorFilterType, setSpendByVendorFilterType] = useState<'monthly' | 'yearly'>('monthly');
-    const [discountByVendorFilterType, setDiscountByVendorFilterType] = useState<'monthly' | 'yearly'>('monthly');
 
     const [financialSelectedYear, setFinancialSelectedYear] = useState<number>(new Date().getFullYear());
     const [financialFromYear, setFinancialFromYear] = useState<number>(new Date().getFullYear() - 5);
@@ -246,16 +290,12 @@ const Dashboard = () => {
     const [invoiceToYear, setInvoiceToYear] = useState<number>(new Date().getFullYear());
 
     const [spendByVendorSelectedYear, setSpendByVendorSelectedYear] = useState<number>(new Date().getFullYear());
-    const [spendByVendorFromYear, setSpendByVendorFromYear] = useState<number>(new Date().getFullYear() - 5);
-    const [spendByVendorToYear, setSpendByVendorToYear] = useState<number>(new Date().getFullYear());
+    const [spendByVendorSelectedMonth, setSpendByVendorSelectedMonth] = useState<number>(0);
 
     const [discountByVendorSelectedYear, setDiscountByVendorSelectedYear] = useState<number>(new Date().getFullYear());
-    const [discountByVendorFromYear, setDiscountByVendorFromYear] = useState<number>(new Date().getFullYear() - 5);
-    const [discountByVendorToYear, setDiscountByVendorToYear] = useState<number>(new Date().getFullYear());
+    const [discountByVendorSelectedMonth, setDiscountByVendorSelectedMonth] = useState<number>(0);
 
     const fetchInitialData = useCallback(async () => {
-        // This function now only fetches the KPI data
-        // The page loading state is handled separately
         try {
             const data = await getDashboardData(addToast);
             setDashboardData(data);
@@ -294,32 +334,33 @@ const Dashboard = () => {
         setIsSpendByVendorLoading(true);
         setSpendByVendorError(null);
         try {
-            const spendData = await getSpendByVendor(spendByVendorFilterType, spendByVendorFilterType === 'monthly' ? spendByVendorSelectedYear : spendByVendorFromYear, spendByVendorToYear);
-            setSpendByVendorData(spendData || []);
+            const spendData = await getSpendByVendor(spendByVendorSelectedYear, spendByVendorSelectedMonth || undefined);
+            const transformedData = spendData.map((item: any) => ({ name: item.vendor_name, value: item.spend }));
+            setSpendByVendorData(transformedData || []);
         } catch (err: any) {
             setSpendByVendorError(err.message || "Could not load spending by vendor data.");
         } finally {
             setIsSpendByVendorLoading(false);
         }
-    }, [spendByVendorFilterType, spendByVendorSelectedYear, spendByVendorFromYear, spendByVendorToYear]);
+    }, [spendByVendorSelectedYear, spendByVendorSelectedMonth]);
 
     const fetchDiscountByVendor = useCallback(async () => {
         setIsDiscountByVendorLoading(true);
         setDiscountByVendorError(null);
         try {
-            const discountData = await getDiscountByVendor(discountByVendorFilterType, discountByVendorFilterType === 'monthly' ? discountByVendorSelectedYear : discountByVendorFromYear, discountByVendorToYear);
-            setDiscountByVendorData(discountData || []);
+            const discountData = await getDiscountByVendor(discountByVendorSelectedYear, discountByVendorSelectedMonth || undefined);
+            const transformedData = discountData.map((item: any) => ({ name: item.vendor_name, value: item.discount_pct }));
+            setDiscountByVendorData(transformedData || []);
         } catch (err: any) {
             setDiscountByVendorError(err.message || "Could not load discounts by vendor data.");
         } finally {
             setIsDiscountByVendorLoading(false);
         }
-    }, [discountByVendorFilterType, discountByVendorSelectedYear, discountByVendorFromYear, discountByVendorToYear]);
+    }, [discountByVendorSelectedYear, discountByVendorSelectedMonth]);
 
     useEffect(() => {
         const loadAllDashboardData = async () => {
             setIsPageLoading(true);
-            // Fetch all data in parallel for the initial load
             await Promise.all([
                 fetchInitialData(),
                 fetchFinancials(),
@@ -330,13 +371,12 @@ const Dashboard = () => {
             setIsPageLoading(false);
         };
         loadAllDashboardData();
-    }, []); // This runs only once on mount
+    }, [fetchInitialData, fetchFinancials, fetchInvoiceCount, fetchSpendByVendor, fetchDiscountByVendor]);
 
-    // These useEffects handle re-fetching when filters change
-    useEffect(() => { fetchFinancials(); }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear]);
-    useEffect(() => { fetchInvoiceCount(); }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
-    useEffect(() => { fetchSpendByVendor(); }, [spendByVendorFilterType, spendByVendorSelectedYear, spendByVendorFromYear, spendByVendorToYear]);
-    useEffect(() => { fetchDiscountByVendor(); }, [discountByVendorFilterType, discountByVendorSelectedYear, discountByVendorFromYear, discountByVendorToYear]);
+    useEffect(() => { fetchFinancials(); }, [fetchFinancials]);
+    useEffect(() => { fetchInvoiceCount(); }, [fetchInvoiceCount]);
+    useEffect(() => { fetchSpendByVendor(); }, [fetchSpendByVendor]);
+    useEffect(() => { fetchDiscountByVendor(); }, [fetchDiscountByVendor]);
 
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
@@ -381,7 +421,6 @@ const Dashboard = () => {
             </motion.div>
 
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" variants={itemVariants}>
-                {/* Note: KPI cards will now appear with the page, no skeleton for initial load */}
                 { kpiError ? (
                     <div className={`sm:col-span-2 lg:col-span-4 p-4 md:p-6 rounded-2xl shadow-lg border ${
                         theme === 'dark'
@@ -472,29 +511,30 @@ const Dashboard = () => {
                         </LineChart>
                     </ResponsiveContainer>
                 </ChartCard>
+            </motion.div>
+            <motion.div className="grid grid-cols-1 gap-6 md:gap-8" variants={itemVariants}>
                  <ChartCard
                     title="Spending by Vendor"
                     icon={TrendingUp}
                     isLoading={isSpendByVendorLoading}
                     error={spendByVendorError}
                     onRetry={fetchSpendByVendor}
-                    filterType={spendByVendorFilterType}
-                    setFilterType={setSpendByVendorFilterType}
                     selectedYear={spendByVendorSelectedYear}
                     setSelectedYear={setSpendByVendorSelectedYear}
-                    fromYear={spendByVendorFromYear}
-                    setFromYear={setSpendByVendorFromYear}
-                    toYear={spendByVendorToYear}
-                    setToYear={setSpendByVendorToYear}
+                    selectedMonth={spendByVendorSelectedMonth}
+                    setSelectedMonth={setSpendByVendorSelectedMonth}
+                    isVendorChart={true}
                 >
                     <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} labelLine={false}>
-                                {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} stroke={theme === 'dark' ? '#1C1C2E' : '#fff'} strokeWidth={2} />)}
-                            </Pie>
-                            <Tooltip content={<CustomPieTooltip spendByVendorData={spendByVendorData} />} />
-                            <Legend iconType="circle" />
-                        </PieChart>
+                        <BarChart data={spendByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                            <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
+                            <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} content={<CustomTooltip />} />
+                            <Bar dataKey="value" name="Spend" radius={[0, 4, 4, 0]} barSize={18}>
+                                {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                            </Bar>
+                        </BarChart>
                     </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard
@@ -503,21 +543,18 @@ const Dashboard = () => {
                     isLoading={isDiscountByVendorLoading}
                     error={discountByVendorError}
                     onRetry={fetchDiscountByVendor}
-                    filterType={discountByVendorFilterType}
-                    setFilterType={setDiscountByVendorFilterType}
                     selectedYear={discountByVendorSelectedYear}
                     setSelectedYear={setDiscountByVendorSelectedYear}
-                    fromYear={discountByVendorFromYear}
-                    setFromYear={setDiscountByVendorFromYear}
-                    toYear={discountByVendorToYear}
-                    setToYear={setDiscountByVendorToYear}
+                    selectedMonth={discountByVendorSelectedMonth}
+                    setSelectedMonth={setDiscountByVendorSelectedMonth}
+                    isVendorChart={true}
                 >
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                             <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
-                            <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.75rem' }}/>
+                            <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} content={<CustomTooltip />} />
                             <Bar dataKey="value" name="Discount" radius={[0, 4, 4, 0]} barSize={18}>
                                 {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                             </Bar>
@@ -529,7 +566,7 @@ const Dashboard = () => {
     );
 }
 
-const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, ...filterProps }: ChartCardProps) => {
+const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isVendorChart = false, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
     const cardClasses = `p-4 md:p-6 rounded-2xl shadow-lg border relative ${theme === 'dark' ? 'bg-[#1C1C2E] border-gray-700/50' : 'bg-white border-gray-200/80'}`;
     const textPrimary = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
@@ -541,11 +578,11 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, ...
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-violet-500 dark:text-violet-400" />
                     <h3 className={`text-base md:text-lg font-bold ${textPrimary}`}>{title}</h3>
                 </div>
-                {!error && <ChartFilterMenu {...filterProps} />}
+                {!error && (isVendorChart ? <VendorChartFilterMenu {...filterProps} /> : <ChartFilterMenu {...filterProps} />)}
             </div>
             <div className="h-72 md:h-80">
                 {isLoading ? (
-                    <ChartSkeleton />
+                    <Loader type="dots"/>
                 ) : error ? (
                     <div className="w-full h-full flex items-center justify-center">
                         <ErrorDisplay message={error} onRetry={onRetry} />

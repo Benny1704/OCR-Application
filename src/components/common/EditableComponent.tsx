@@ -12,6 +12,8 @@ import ProductDetailPopup from './ProductDetailsPopup';
 import { formConfig } from '../../lib/config/Config';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
+import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails } from '../../lib/api/Api';
+import { useParams } from 'react-router-dom';
 
 // --- Default Empty States for Manual Entry ---
 const initialEmptyInvoiceDetails: InvoiceDetails = {
@@ -37,11 +39,7 @@ type EditableComponentProps = {
     productError?: string | null;
     amountError?: string | null;
     onRetry?: () => void;
-    onPreview?: (
-        invoiceDetails: InvoiceDetails,
-        productDetails: ProductDetails[],
-        amountAndTaxDetails: AmountAndTaxDetails
-    ) => void;
+    onPreview?: () => void;
 };
 
 const EditableComponent = ({
@@ -57,6 +55,7 @@ const EditableComponent = ({
     const navigate = useNavigate();
     const { user } = useAuth();
     const { addToast } = useToast();
+    const { invoiceId } = useParams<{ invoiceId: string }>();
 
     const [invoiceDetails, setInvoiceDetails] = useState(() =>
         isManual ? initialEmptyInvoiceDetails : cloneDeep(initialInvoiceDetails!)
@@ -70,6 +69,8 @@ const EditableComponent = ({
 
     const [isRetryModalOpen, setRetryModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
     const [openAccordion, setOpenAccordion] = useState<string | null>(formConfig[0]?.id || null);
 
     const combinedData = useMemo(() => ({
@@ -117,32 +118,45 @@ const EditableComponent = ({
             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'
         }`;
 
-    const handleOpenPopup = (product: ProductDetails) => {
+    const handleOpenPopup = async (product: ProductDetails) => {
         if (isManual) {
             addToast({ type: 'error', message: 'Cannot view details for an unsaved invoice.' });
             return;
         }
         setSelectedProduct(product);
+        setIsPopupOpen(true);
+        setIsLineItemsLoading(true);
+        try {
+            const invoiceIdNum = parseInt(invoiceId!, 10);
+            const lineItems = await getLineItems(invoiceIdNum, product.item_id, addToast);
+            setSelectedProduct({ ...product, line_items: lineItems || [] });
+        } catch (err: any) {
+            addToast({ type: "error", message: err.message || "Failed to fetch line items."});
+        } finally {
+            setIsLineItemsLoading(false);
+        }
     };
     
-    const handleSaveLineItems = (updatedLineItems: LineItem[]) => {
+    const handleSaveLineItems = async (updatedLineItems: LineItem[]) => {
         if (!selectedProduct) return;
 
-        setProductDetails(currentProducts => {
-            const newProducts = cloneDeep(currentProducts);
-            const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
-            if (productIndex !== -1) {
-                newProducts[productIndex].line_items = updatedLineItems;
-            }
-            return newProducts;
-        });
+        const savedLineItems = await updateLineItems(selectedProduct.item_id, updatedLineItems, addToast);
 
-        addToast({ type: 'success', message: `Line items for product ${selectedProduct.id} updated.` });
-        setSelectedProduct(null);
+        if (savedLineItems) {
+            setProductDetails(currentProducts => {
+                const newProducts = cloneDeep(currentProducts);
+                const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
+                if (productIndex !== -1) {
+                    newProducts[productIndex].line_items = savedLineItems;
+                }
+                return newProducts;
+            });
+        }
+        setIsPopupOpen(false);
     };
 
     const renderActionCell = (row: DataItem) => {
-        const productRow = row as ProductDetails;
+        const productRow = row as unknown as ProductDetails;
         return (
             <button
                 onClick={() => handleOpenPopup(productRow)}
@@ -162,9 +176,23 @@ const EditableComponent = ({
 
     const getValue = (path: string) => get(combinedData, path, '');
     
-    const handleSaveChanges = () => {
+    const handleSaveChanges = async () => {
+        if (!invoiceId) return;
+
+        const invoiceIdNum = parseInt(invoiceId, 10);
+
+        const [savedInvoice, savedProducts, savedAmount] = await Promise.all([
+            updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
+            updateProductDetails(invoiceIdNum, productDetails, addToast),
+            updateAmountAndTaxDetails(invoiceIdNum, amountDetails, addToast),
+        ]);
+
+        if (savedInvoice) setInvoiceDetails(savedInvoice);
+        if (savedProducts) setProductDetails(savedProducts);
+        if (savedAmount) setAmountDetails(savedAmount);
+
         if (onPreview) {
-            onPreview(invoiceDetails, productDetails, amountDetails);
+            onPreview();
         }
     };
     
@@ -221,6 +249,7 @@ const EditableComponent = ({
                                                             actionColumnHeader="Details"
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
+                                                            onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -268,11 +297,11 @@ const EditableComponent = ({
                 onRetryWithAlterations={handleRetryWithAlterations}
             />
             <ProductDetailPopup
-                isOpen={!!selectedProduct}
-                onClose={() => setSelectedProduct(null)}
+                isOpen={isPopupOpen}
+                onClose={() => setIsPopupOpen(false)}
                 product={selectedProduct}
                 onSave={handleSaveLineItems}
-                isLoading={false}
+                isLoading={isLineItemsLoading}
             />
         </div>
     );

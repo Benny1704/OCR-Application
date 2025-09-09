@@ -4,7 +4,7 @@ import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import { useToast } from '../hooks/useToast';
-import { getInvoiceDetails, getProductDetails, getAmountAndTaxDetails, getLineItems } from '../lib/api/Api';
+import { getInvoiceDetails, getProductDetails, getAmountAndTaxDetails } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails } from '../interfaces/Types';
 
 const Edit = () => {
@@ -32,7 +32,6 @@ const Edit = () => {
                 throw new Error("The invoice ID in the URL is invalid.");
             }
 
-            // Step 1: Fetch primary details
             const [invoiceData, productData, amountData] = await Promise.all([
                 getInvoiceDetails(invoiceIdNum, addToast),
                 getProductDetails(invoiceIdNum, addToast),
@@ -43,16 +42,8 @@ const Edit = () => {
                 throw new Error("Failed to fetch all necessary details for the invoice. One or more primary API requests failed.");
             }
 
-            // Step 2: Fetch line items for each product and attach them
-            const productsWithLineItems = await Promise.all(
-                productData.map(async (product: ProductDetails) => {
-                    const lineItems = await getLineItems(invoiceIdNum, product.id, addToast);
-                    return { ...product, line_items: lineItems || [] };
-                })
-            );
-
             setInvoiceDetails(invoiceData);
-            setProductDetails(productsWithLineItems);
+            setProductDetails(productData);
             setAmountAndTaxDetails(amountData);
 
         } catch (err: any) {
@@ -66,18 +57,8 @@ const Edit = () => {
         fetchData();
     }, [fetchData]);
 
-    const handlePreview = (
-        editedInvoiceDetails: InvoiceDetails,
-        editedProductDetails: ProductDetails[],
-        editedAmountAndTaxDetails: AmountAndTaxDetails
-    ) => {
-        navigate(`/preview/${invoiceId}`, {
-            state: {
-                invoiceDetails: editedInvoiceDetails,
-                productDetails: editedProductDetails,
-                amountAndTaxDetails: editedAmountAndTaxDetails,
-            },
-        });
+    const handlePreview = () => {
+        navigate(`/preview/${invoiceId}`);
     };
 
     if (isLoading) {

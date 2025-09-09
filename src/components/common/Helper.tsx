@@ -1,8 +1,81 @@
 import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import type { InfoPillProps, PopupProps, Document, Toast as ToastType } from '../../interfaces/Types';
-import { motion } from 'framer-motion';
+import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
+import { AnimatePresence, motion } from 'framer-motion';
+
+// --- Confirmation Modal ---
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+    icon?: React.ReactNode;
+}
+
+// --- Other Helper Components ---
+interface PopupProps {
+    isOpen: boolean;
+    onClose: () => void;
+    data: DataItem | null;
+}
+
+export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
+    const { theme } = useTheme();
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className={`relative w-full max-w-md rounded-2xl shadow-xl overflow-hidden ring-1 
+                            ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <div className="flex items-start gap-4">
+                                {icon && (
+                                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-yellow-500/10' : 'bg-yellow-100'}`}>
+                                        {icon}
+                                    </div>
+                                )}
+                                <div className="flex-grow">
+                                    <h3 className="text-lg font-semibold">{title}</h3>
+                                    <p className={`mt-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{message}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`px-6 py-4 flex justify-end gap-3 border-t ${theme === 'dark' ? 'bg-black/20 border-white/10' : 'bg-gray-50 border-slate-200'}`}>
+                            <button
+                                onClick={onClose}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={onConfirm}
+                                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
 
 export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: number) => void; }) => {
     const { theme } = useTheme();
@@ -133,7 +206,7 @@ export const Popup = ({ isOpen, onClose, data }: PopupProps) => {
   );
 };
 
-export const InfoPill = ({ children }: InfoPillProps) => (
+export const InfoPill = ({ children }: any) => (
     <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold mr-1.5 px-2 py-0.5 rounded-full">
         {children}
     </span>
