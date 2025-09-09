@@ -368,7 +368,10 @@ const Dashboard = () => {
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     const textHeader = theme === 'dark' ? 'text-white' : 'text-gray-900';
-    const vendorColors = theme === 'dark' ? ['#a78bfa', '#7e22ce', '#581c87', '#a855f7'] : ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
+    const vendorColors = theme === 'dark' 
+        ? ['#a78bfa', '#7e22ce', '#581c87', '#a855f7', '#c084fc', '#d8b4fe', '#f3e8ff'] 
+        : ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#6d28d9', '#5b21b6', '#4c1d95'];
+
 
     if (isPageLoading) {
         return <Loader type="wifi"/>;
@@ -567,7 +570,7 @@ const Dashboard = () => {
                     </ResponsiveContainer>
                 </ChartCard>
             </motion.div>
-            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 lg:grid-cols-1 gap-6 md:gap-8" variants={itemVariants}>
                  <ChartCard
                     title="Spending by Vendor"
                     icon={TrendingUp}
@@ -582,6 +585,8 @@ const Dashboard = () => {
                 >
                     {renderSpendChart()}
                 </ChartCard>
+                </motion.div>
+            <motion.div className="grid grid-cols-1 lg:grid-cols-1 gap-6 md:gap-8" variants={itemVariants}>
                 <ChartCard
                     title="Discounts by Vendor"
                     icon={Wallet}
