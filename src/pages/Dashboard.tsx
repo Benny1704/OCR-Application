@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
@@ -19,14 +19,6 @@ const iconMap: { [key: string]: React.ElementType } = {
     Banknote,
     TrendingUp,
 };
-
-// interface KpiMetric {
-//     title: string;
-//     value: string;
-//     icon: string;
-//     change?: string;
-//     changeType?: 'increase' | 'decrease';
-// }
 
 interface MetricCardProps {
     title: string;
@@ -61,6 +53,7 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string | number;
+  formatter?: (value: any) => string;
 }
 
 
@@ -240,14 +233,14 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
 };
 
 
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+const CustomTooltip = ({ active, payload, formatter }: CustomTooltipProps) => {
     const { theme } = useTheme();
 
     if (active && payload && payload.length) {
         return (
             <div className={`p-3 rounded-xl shadow-lg border ${theme === 'dark' ? 'bg-[#2a2a3e] border-gray-700' : 'bg-white border-gray-200'}`}>
                 <p className="font-bold text-gray-900 dark:text-gray-100">{`${payload[0].payload.name}`}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{`Value: ${payload[0].value}`}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{`Value: ${formatter ? formatter(payload[0].value) : payload[0].value}`}</p>
             </div>
         );
     }
@@ -359,19 +352,13 @@ const Dashboard = () => {
     }, [discountByVendorSelectedYear, discountByVendorSelectedMonth]);
 
     useEffect(() => {
-        const loadAllDashboardData = async () => {
+        const loadPageData = async () => {
             setIsPageLoading(true);
-            await Promise.all([
-                fetchInitialData(),
-                fetchFinancials(),
-                fetchInvoiceCount(),
-                fetchSpendByVendor(),
-                fetchDiscountByVendor()
-            ]);
+            await fetchInitialData();
             setIsPageLoading(false);
         };
-        loadAllDashboardData();
-    }, [fetchInitialData, fetchFinancials, fetchInvoiceCount, fetchSpendByVendor, fetchDiscountByVendor]);
+        loadPageData();
+    }, [fetchInitialData]);
 
     useEffect(() => { fetchFinancials(); }, [fetchFinancials]);
     useEffect(() => { fetchInvoiceCount(); }, [fetchInvoiceCount]);
@@ -396,6 +383,74 @@ const Dashboard = () => {
                 </div>
             </div>
         );
+    }
+
+    const renderSpendChart = () => {
+        if (spendByVendorData.length > 0 && spendByVendorData.length <= 5) {
+            return (
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                            {spendByVendorData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip formatter={(value) => `₹${value.toLocaleString()}`} />} />
+                        <Legend />
+                    </PieChart>
+                </ResponsiveContainer>
+            );
+        }
+        return (
+             <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={spendByVendorData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                    <XAxis dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip
+                        cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
+                        content={<CustomTooltip formatter={(value) => `₹${value.toLocaleString()}`} />}
+                    />
+                    <Bar dataKey="value" name="Spend" radius={[4, 4, 0, 0]} barSize={20}>
+                        {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        )
+    }
+
+    const renderDiscountChart = () => {
+        if (discountByVendorData.length > 0 && discountByVendorData.length <= 5) {
+            return (
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={discountByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                            {discountByVendorData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
+                            ))}
+                        </Pie>
+                         <Tooltip content={<CustomTooltip formatter={(value) => `${value}%`} />} />
+                        <Legend />
+                    </PieChart>
+                </ResponsiveContainer>
+            );
+        }
+        return (
+             <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={discountByVendorData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                    <XAxis dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip
+                        cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
+                        content={<CustomTooltip formatter={(value) => `${value}%`} />}
+                    />
+                    <Bar dataKey="value" name="Discount" radius={[4, 4, 0, 0]} barSize={20}>
+                        {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        )
     }
 
     return (
@@ -512,7 +567,7 @@ const Dashboard = () => {
                     </ResponsiveContainer>
                 </ChartCard>
             </motion.div>
-            <motion.div className="grid grid-cols-1 gap-6 md:gap-8" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
                  <ChartCard
                     title="Spending by Vendor"
                     icon={TrendingUp}
@@ -525,17 +580,7 @@ const Dashboard = () => {
                     setSelectedMonth={setSpendByVendorSelectedMonth}
                     isVendorChart={true}
                 >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={spendByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
-                            <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} content={<CustomTooltip />} />
-                            <Bar dataKey="value" name="Spend" radius={[0, 4, 4, 0]} barSize={18}>
-                                {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {renderSpendChart()}
                 </ChartCard>
                 <ChartCard
                     title="Discounts by Vendor"
@@ -549,17 +594,7 @@ const Dashboard = () => {
                     setSelectedMonth={setDiscountByVendorSelectedMonth}
                     isVendorChart={true}
                 >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={discountByVendorData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis type="number" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} fontSize={12} tickLine={false} axisLine={false} width={100} />
-                            <Tooltip cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} content={<CustomTooltip />} />
-                            <Bar dataKey="value" name="Discount" radius={[0, 4, 4, 0]} barSize={18}>
-                                {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                   {renderDiscountChart()}
                 </ChartCard>
             </motion.div>
         </motion.div>

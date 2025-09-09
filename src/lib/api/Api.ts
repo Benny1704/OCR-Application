@@ -293,7 +293,7 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoices/${invoiceId}`, data);
+        const response = await saveApi.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -303,7 +303,7 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
 
 export const updateProductDetails = async (invoiceId: number, data: ProductDetails[], addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoices/${invoiceId}/item-summary`, data);
+        const response = await saveApi.put(`/invoice/${invoiceId}/item-summary`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -313,7 +313,7 @@ export const updateProductDetails = async (invoiceId: number, data: ProductDetai
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoices/${invoiceId}/meta`, data);
+        const response = await saveApi.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
