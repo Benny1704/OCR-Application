@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Undo, Redo, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps } from '../../interfaces/Types';
+import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
 
 export interface TableColumnConfig {
@@ -33,13 +33,16 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
     maxHeight?: string;
     isLoading?: boolean;
     onDataChange?: (data: DataItem[]) => void;
+    paginationInfo?: PaginationInfo;
+    onPageChange?: (page: number) => void;
+    onPageSizeChange?: (size: number) => void;
+    onSearch?: (query: string) => void;
 }
 
 type ProcessedDataItem = DataItem & {
     sno: number;
     originalIndex: number;
 };
-
 
 const DataTable = ({
     tableData,
@@ -51,11 +54,16 @@ const DataTable = ({
     pagination = { enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25, 50, 100] },
     maxHeight = '100%',
     isLoading = false,
-    onDataChange
+    onDataChange,
+    paginationInfo,
+    onPageChange,
+    onPageSizeChange,
+    onSearch
 }: DataTableProps) => {
     const { theme } = useTheme();
     const [history, setHistory] = useState<DataItem[][]>([tableData]);
     const [historyIndex, setHistoryIndex] = useState(0);
+    const [currentView, setCurrentView] = useState<DataItem[]>(tableData);
     const [selectedCells, setSelectedCells] = useState<CellIdentifier[]>([]);
     const [copiedCell, setCopiedCell] = useState<CopiedCell | null>(null);
     const [draggedCell, setDraggedCell] = useState<CellIdentifier | null>(null);
@@ -65,13 +73,13 @@ const DataTable = ({
     const [showHelp, setShowHelp] = useState(false);
     const [editingCell, setEditingCell] = useState<CellIdentifier | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
 
     useEffect(() => {
         setHistory([tableData]);
         setHistoryIndex(0);
+        setCurrentView(tableData);
     }, [tableData]);
 
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
@@ -88,8 +96,8 @@ const DataTable = ({
         if (tableConfig && tableConfig.columns.length > 0) {
             const userColumns = tableConfig.columns.filter(col => col.key !== 'sno');
             finalColumns = [snoColumn, ...userColumns];
-        } else if (tableData && tableData.length > 0) {
-            const allHeaders = Object.keys(tableData[0]).filter(h => h !== 'sno' && h !== 'id');
+        } else if (currentView.length > 0) {
+            const allHeaders = Object.keys(currentView[0]).filter(h => h !== 'sno' && h !== 'id');
             const derivedColumns = allHeaders.map(header => ({
                 key: header,
                 header: header.replace(/_/g, ' '),
@@ -114,10 +122,12 @@ const DataTable = ({
             movableHeaders: movable, 
             columnConfig: configMap 
         };
-    }, [tableData, tableConfig]);
+    }, [currentView, tableConfig]);
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
-        let processed: ProcessedDataItem[] = tableData.map((row, index) => {
+        let dataToProcess = onDataChange ? currentView : tableData;
+
+        let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
             const processedRow: ProcessedDataItem = { 
                 ...row, 
                 sno: index + 1,
@@ -143,17 +153,28 @@ const DataTable = ({
         }
 
         return processed;
-    }, [tableData, searchQuery, isSearchable, tableConfig]);
+    }, [currentView, tableData, onDataChange, searchQuery, isSearchable, tableConfig]);
 
-    const totalItems = processedData.length;
-    const totalPages = pagination.enabled ? Math.ceil(totalItems / pageSize) : 1;
-    const startIndex = pagination.enabled ? (currentPage - 1) * pageSize : 0;
-    const endIndex = pagination.enabled ? Math.min(startIndex + pageSize, totalItems) : totalItems;
-    const paginatedData = pagination.enabled ? processedData.slice(startIndex, endIndex) : processedData;
+    const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
+    const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
+    const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
+
+    const paginatedData = useMemo(() => {
+        if (pagination.enabled && !paginationInfo) {
+            const startIndex = (finalCurrentPage - 1) * pageSize;
+            return processedData.slice(startIndex, startIndex + pageSize);
+        }
+        return processedData;
+    }, [processedData, pagination.enabled, paginationInfo, finalCurrentPage, pageSize]);
+    
+    const startIndex = (finalCurrentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + paginatedData.length, totalItems);
 
     useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, pageSize]);
+        if (!paginationInfo) {
+            setCurrentPage(1);
+        }
+    }, [searchQuery, pageSize, paginationInfo]);
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
@@ -161,6 +182,7 @@ const DataTable = ({
         newHistory.push(newData);
         setHistory(newHistory);
         setHistoryIndex(newHistory.length - 1);
+        setCurrentView(newData);
         onDataChange(newData);
         if (newSelectedCells) {
             setSelectedCells(newSelectedCells);
@@ -176,6 +198,7 @@ const DataTable = ({
         if (!isEditable || historyIndex === 0 || !onDataChange) return;
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
+        setCurrentView(history[newIndex]);
         onDataChange(history[newIndex]);
         setSelectedCells([]);
         setEditingCell(null);
@@ -185,6 +208,7 @@ const DataTable = ({
         if (!isEditable || historyIndex >= history.length - 1 || !onDataChange) return;
         const newIndex = historyIndex + 1;
         setHistoryIndex(newIndex);
+        setCurrentView(history[newIndex]);
         onDataChange(history[newIndex]);
         setSelectedCells([]);
         setEditingCell(null);
@@ -208,12 +232,16 @@ const DataTable = ({
             }
         });
 
-        const newData = [...tableData, newRow];
+        const newData = [...currentView, newRow];
         updateData(newData);
         
         if (pagination.enabled) {
             const newTotalPages = Math.ceil(newData.length / pageSize);
-            setCurrentPage(newTotalPages);
+            if (paginationInfo && onPageChange) {
+                onPageChange(newTotalPages);
+            } else {
+                setCurrentPage(newTotalPages);
+            }
         }
 
         const firstEditableCol = movableHeaders.find(h => columnConfig[h]?.editable !== false);
@@ -224,7 +252,7 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders]);
+    }, [isEditable, columnConfig, currentView, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange]);
     
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
@@ -232,7 +260,7 @@ const DataTable = ({
         
         if (originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(tableData);
+        const newData: DataItem[] = structuredClone(currentView);
         if (newData[originalRowIndex]) {
             newData[originalRowIndex][colKey] = value;
         }
@@ -264,7 +292,7 @@ const DataTable = ({
 
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
-        const newData: DataItem[] = structuredClone(tableData);
+        const newData: DataItem[] = structuredClone(currentView);
         const newSelectedCells: CellIdentifier[] = [];
 
         const sortedSelected = [...selectedCells].sort((a, b) => {
@@ -311,7 +339,7 @@ const DataTable = ({
         });
 
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -320,7 +348,7 @@ const DataTable = ({
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         if(originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(tableData);
+        const newData: DataItem[] = structuredClone(currentView);
         let newSelectedCells = [...selectedCells];
 
         const colIndex = movableHeaders.indexOf(colKey);
@@ -335,13 +363,13 @@ const DataTable = ({
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex - 1 }));
-        } else if (direction === 'down' && originalRowIndex < tableData.length - 1) {
+        } else if (direction === 'down' && originalRowIndex < currentView.length - 1) {
             [newData[originalRowIndex], newData[originalRowIndex + 1]] = [newData[originalRowIndex + 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
 
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
@@ -354,7 +382,7 @@ const DataTable = ({
                     const { rowIndex, colKey } = selectedCells[0];
                     const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
                     if (originalRowIndex !== undefined) {
-                        const value = tableData[originalRowIndex]?.[colKey];
+                        const value = currentView[originalRowIndex]?.[colKey];
                         setCopiedCell({ rowIndex, colKey, value });
                     }
                 }
@@ -362,7 +390,7 @@ const DataTable = ({
             else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
-                    const newData: DataItem[] = structuredClone(tableData);
+                    const newData: DataItem[] = structuredClone(currentView);
                     selectedCells.forEach(targetCell => {
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.editable === false) return;
                         
@@ -403,7 +431,7 @@ const DataTable = ({
             });
         }
     }, [
-        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData, 
+        editingCell, isEditable, undo, redo, selectedCells, copiedCell, currentView, 
         updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, 
         fixedHeaderKey, paginatedData, columnConfig
     ]);
@@ -422,7 +450,7 @@ const DataTable = ({
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
         
-        const newData: DataItem[] = structuredClone(tableData);
+        const newData: DataItem[] = structuredClone(currentView);
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
         
@@ -527,12 +555,28 @@ const DataTable = ({
     };
 
     const renderPaginationControls = () => {
-        if (!pagination.enabled || totalItems <= (pagination.pageSizeOptions?.[0] || 5) && currentPage === 1) return null;
+        if (!pagination.enabled || totalItems <= (pagination.pageSizeOptions?.[0] || 5)) return null;
+
+        const handlePageChange = (page: number) => {
+            if (paginationInfo && onPageChange) {
+                onPageChange(page);
+            } else {
+                setCurrentPage(page);
+            }
+        };
+
+        const handlePageSizeChange = (size: number) => {
+            if (paginationInfo && onPageSizeChange) {
+                onPageSizeChange(size);
+            } else {
+                setPageSize(size);
+            }
+        };
 
         const getPageNumbers = () => {
             const pages = [];
             const showPages = 5;
-            let start = Math.max(1, currentPage - Math.floor(showPages / 2));
+            let start = Math.max(1, finalCurrentPage - Math.floor(showPages / 2));
             let end = Math.min(totalPages, start + showPages - 1);
             
             if (end - start + 1 < showPages) {
@@ -554,7 +598,7 @@ const DataTable = ({
                 <div className="flex items-center gap-2">
                     <select
                         value={pageSize}
-                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                         className={`px-2 py-1 rounded border text-xs ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
                     >
                         {pagination.pageSizeOptions?.map(size => (
@@ -564,23 +608,23 @@ const DataTable = ({
                     
                     {totalPages > 1 && (
                         <div className="flex items-center gap-1">
-                            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className={`p-1 rounded ${currentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => handlePageChange(1)} disabled={finalCurrentPage === 1} className={`p-1 rounded ${finalCurrentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <SkipBack size={14} />
                             </button>
-                            <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className={`p-1 rounded ${currentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => handlePageChange(finalCurrentPage - 1)} disabled={finalCurrentPage === 1} className={`p-1 rounded ${finalCurrentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <ChevronLeft size={14} />
                             </button>
                             
                             {getPageNumbers().map(page => (
-                                <button key={page} onClick={() => setCurrentPage(page)} className={`px-2 py-0.5 text-xs rounded ${page === currentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
+                                <button key={page} onClick={() => handlePageChange(page)} className={`px-2 py-0.5 text-xs rounded ${page === finalCurrentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
                                     {page}
                                 </button>
                             ))}
                             
-                            <button onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className={`p-1 rounded ${currentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => handlePageChange(finalCurrentPage + 1)} disabled={finalCurrentPage === totalPages} className={`p-1 rounded ${finalCurrentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <ChevronRight size={14} />
                             </button>
-                            <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className={`p-1 rounded ${currentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                            <button onClick={() => handlePageChange(totalPages)} disabled={finalCurrentPage === totalPages} className={`p-1 rounded ${finalCurrentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <SkipForward size={14} />
                             </button>
                         </div>

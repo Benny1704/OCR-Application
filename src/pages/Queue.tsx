@@ -11,7 +11,7 @@ import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import type { Document, QueuedDocument, ProcessedDocument, FailedDocument, DataItem } from "../interfaces/Types";
+import type { Document, QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
   Star,
@@ -131,6 +131,11 @@ const Queue = () => {
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
   const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);
   const [failedDocuments, setFailedDocuments] = useState<FailedDocument[]>([]);
+  
+  const [pagination, setPagination] = useState<Record<string, Pagination>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,27 +149,27 @@ const Queue = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [queuedData, processedData, failedData] = await Promise.all([
-        getQueuedDocuments(addToast),
-        getProcessedDocuments(addToast),
-        getFailedDocuments(addToast),
+      const [queuedResponse, processedResponse, failedResponse] = await Promise.all([
+        getQueuedDocuments(addToast, 1, 100), // Fetch all for local pagination
+        getProcessedDocuments(addToast, currentPage, pageSize),
+        getFailedDocuments(addToast, 1, 100), // Fetch all for local pagination
       ]);
 
-      setQueuedDocuments(queuedData.map((item: any, index: number) => ({
+      setQueuedDocuments(queuedResponse.data.map((item: any, index: number) => ({
         id: item.message_id,
         sno: index + 1,
         name: item.file_name,
-        size: formatBytes(item.file_size), // Correctly format the file size
+        size: formatBytes(item.file_size),
         uploadDate: item.uploaded_on,
         uploadedBy: item.uploaded_by,
         messageId: item.message_id,
         isPriority: item.priority,
         status: item.status || "Queued",
       })));
-
-      setProcessedDocuments(processedData.map((item: any, index: number) => ({
+      
+      setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
         id: item.message_id,
-        sno: index + 1,
+        sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
         name: item.file_name,
         supplierName: item.supplier_name,
         invoiceId: item.invoice_id,
@@ -176,24 +181,29 @@ const Queue = () => {
         status: "Processed",
       })));
 
-      setFailedDocuments(failedData.map((item: any, index: number) => ({
+      setFailedDocuments(failedResponse.data.map((item: any, index: number) => ({
         id: item.message_id,
         sno: index + 1,
         name: item.file_name,
-        size: formatBytes(item.file_size), // Correctly format the file size
+        size: formatBytes(item.file_size),
         uploadedBy: item.uploaded_by,
         uploadDate: item.uploaded_on,
         messageId: item.message_id,
         errorMessage: item.error_message,
         status: "Failed",
       })));
+      
+      setPagination({
+        Processed: processedResponse.pagination,
+      });
+
     } catch (err: any) {
       setError(err.message || "Failed to fetch documents. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
+  }, [currentPage, pageSize]);
+  
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
@@ -204,9 +214,8 @@ const Queue = () => {
   const borderPrimary = theme === "dark" ? "border-gray-700/80" : "border-gray-200/80";
 
   const documentsForTab = useMemo(() => {
-    let list: Document[] = [];
     if (activeTab === "Queued") {
-      list = [...queuedDocuments].sort((a, b) => {
+      return [...queuedDocuments].sort((a, b) => {
         if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
         if (a.status === "Processing" && b.status !== "Processing") return -1;
         if (b.status === "Processing" && a.status !== "Processing") return 1;
@@ -215,11 +224,10 @@ const Queue = () => {
         );
       });
     } else if (activeTab === "Processed") {
-      list = processedDocuments;
+      return processedDocuments;
     } else {
-      list = failedDocuments;
+      return failedDocuments;
     }
-    return list;
   }, [queuedDocuments, processedDocuments, failedDocuments, activeTab]);
 
   const allDocuments = useMemo(() => [...queuedDocuments, ...processedDocuments, ...failedDocuments], [queuedDocuments, processedDocuments, failedDocuments]);
@@ -343,11 +351,6 @@ const Queue = () => {
     </div>
   );
 
-  // const EditButton = () => (
-  //   <button className="edit-btn" onClick={() => navigate("/edit")}>
-  //     <i className="fi fi-rr-file-edit"></i> Review
-  //   </button>
-  // );
   const renderActionCell = (row: DataItem) => {
     const document = row as ProcessedDocument;
     return (
@@ -367,9 +370,8 @@ const Queue = () => {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && documentsForTab.length === 0) {
       return <QueueListSkeleton />;
-      // return <div className="flex-grow flex items-center justify-center"><Loader /></div>;
     }
 
     if (error) {
@@ -389,8 +391,11 @@ const Queue = () => {
             pageSize: 10,
             pageSizeOptions: [5, 10, 25, 50, 100],
           }}
-          maxHeight="calc(100vh - 250px)" // Example height
+          maxHeight="calc(100vh - 250px)"
           isLoading={isLoading}
+          paginationInfo={pagination.Processed}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
         />
       );
     }
@@ -703,7 +708,7 @@ const Queue = () => {
             <div className={`active-tab ${activeTab.toLowerCase()}`}>
               {tabIcons[activeTab]}
               {activeTab}
-              <div className="badge">{documentsForTab.length}</div>
+              <div className="badge">{pagination[activeTab]?.total_items || documentsForTab.length}</div>
             </div>
           </div>
         </div>

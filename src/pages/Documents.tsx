@@ -4,7 +4,7 @@ import { useTheme } from "../hooks/useTheme";
 import { motion } from "framer-motion";
 import { containerVariants, itemVariants } from "../components/common/Animation";
 import { useNavigate } from "react-router-dom";
-import { type DataItem, type Document, type ProcessedDocument } from "../interfaces/Types";
+import { type DataItem, type ProcessedDocument, type Pagination } from "../interfaces/Types";
 import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
@@ -14,19 +14,22 @@ import { TableSkeleton } from "../components/common/SkeletonLoaders";
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (page: number, size: number) => {
     setIsLoading(true);
     setError(null);
     try {
-        const data = await getCompletedDocuments(addToast);
+        const { data, pagination: paginationData } = await getCompletedDocuments(addToast, page, size);
         setDocuments(data.map((item: any, index: number) => ({
           id: item.message_id,
-          sno: index + 1,
+          sno: (page - 1) * size + index + 1,
           name: item.file_name,
           supplierName: item.supplier_name,
           invoiceId: item.invoice_id,
@@ -37,6 +40,7 @@ const Documents = () => {
           messageId: item.message_id,
           status: "Processed",
         })));
+        setPagination(paginationData);
     } catch (err: any) {
         setError(err.message || "Failed to fetch documents.");
     } finally {
@@ -45,8 +49,8 @@ const Documents = () => {
   }, []);
 
   useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
+    fetchDocuments(currentPage, pageSize);
+  }, [fetchDocuments, currentPage, pageSize]);
 
   const renderActionCell = (row: DataItem) => {
     const doc = row as ProcessedDocument;
@@ -58,12 +62,12 @@ const Documents = () => {
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && documents.length === 0) {
       return <TableSkeleton />;
     }
 
     if (error) {
-      return <ErrorDisplay message={error} onRetry={fetchDocuments} />;
+      return <ErrorDisplay message={error} onRetry={() => fetchDocuments(currentPage, pageSize)} />;
     }
 
     return (
@@ -72,10 +76,14 @@ const Documents = () => {
         isSearchable={true}
         isEditable={false}
         tableConfig={documentConfig}
-        pagination={{ enabled: true, pageSize: 25, pageSizeOptions: [5, 10, 25, 50, 100] }}
+        pagination={{ enabled: true, pageSize: pageSize, pageSizeOptions: [5, 10, 25, 50, 100] }}
         maxHeight="100%"
         renderActionCell={renderActionCell}
         actionColumnHeader="Actions"
+        isLoading={isLoading}
+        paginationInfo={pagination || undefined}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
       />
     );
   };

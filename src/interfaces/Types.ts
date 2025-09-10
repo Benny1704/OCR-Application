@@ -24,6 +24,22 @@ export interface DataTableProps {
   [key: string]: any; // Allow other props
 }
 
+// --- Pagination ---
+export interface Pagination {
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: Pagination;
+}
+
+
 // --- Application State & Navigation ---
 export type Page =
   | "login"

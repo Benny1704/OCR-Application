@@ -1,11 +1,11 @@
 import axios, { AxiosError } from 'axios';
-import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails } from '../../interfaces/Types';
+import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const ARUN_API_URL = "https://2e73ed2b936f.ngrok-free.app";
+const ARUN_API_URL = "https://f92db7068b52.ngrok-free.app";
 // const CLARE_API_URL = "http://10.3.0.19:8000";
 const Pharam_API_URL = "http://10.3.0.61:8080";
-const API_URL = "/api"; // Use the proxied URL
+const API_URL = "https://7426a7d1d12e.ngrok-free.app"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
@@ -123,45 +123,46 @@ export const alterImage = async (params: { imageData: string; rotation: number; 
     }
 };
 
-export const getQueuedDocuments = async (addToast: any) => {
+export const getQueuedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<QueuedDocument>> => {
     try {
-        const response = await api.get('/document/queued');
+        const response = await api.get('/document/queued', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
-        return [];
+        return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getProcessedDocuments = async (addToast: any) => {
+export const getProcessedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
-        const response = await api.get('/document/processed');
+        const response = await api.get('/document/processed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
-        return [];
+        return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getFailedDocuments = async (addToast: any) => {
+export const getFailedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<FailedDocument>> => {
     try {
-        const response = await api.get('/document/failed');
+        const response = await api.get('/document/failed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
-        return [];
+        return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getCompletedDocuments = async (addToast: any) => {
+export const getCompletedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
-        const response = await api.get('/document/completed');
+        const response = await api.get('/document/completed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
-        return [];
+        return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
+
 
 export const getDocumentSummary = async (addToast: any) => {
     try {
