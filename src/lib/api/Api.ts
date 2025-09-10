@@ -192,16 +192,26 @@ export const togglePriority = async (id: string, addToast: any) => {
     }
 };
 
-
-export const getDashboardData = async (addToast: any): Promise<any> => {
+export const getTotalDiscountThisMonth = async (addToast: any): Promise<any> => {
     try {
-        const response = await arunApi.get('/metrics/kpi');
-        return Object.values(response.data)[0];
+        const response = await arunApi.get('/metrics/total_discount_this_month');
+        return response.data;
     } catch (error) {
         handleError(error, addToast);
-        throw error; // Re-throw after handling
+        throw error;
     }
 };
+
+export const getTotalSpendThisMonth = async (addToast: any): Promise<any> => {
+    try {
+        const response = await arunApi.get('/metrics/total_spend_this_month');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        throw error;
+    }
+};
+
 
 // --- Chart Data Functions ---
 const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {

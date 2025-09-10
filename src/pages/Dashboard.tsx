@@ -8,7 +8,7 @@ import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
 import { itemVariants, containerVariants } from '../components/common/Animation';
-import { getDashboardData, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
+import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
@@ -251,7 +251,7 @@ const Dashboard = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [kpiMetrics, setKpiMetrics] = useState<any[]>([]);
     const [kpiError, setKpiError] = useState<string | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const { addToast } = useToast();
@@ -290,12 +290,37 @@ const Dashboard = () => {
 
     const fetchInitialData = useCallback(async () => {
         try {
-            const data = await getDashboardData(addToast);
-            setDashboardData(data);
+            const [spendResponse, discountResponse] = await Promise.all([
+                getTotalSpendThisMonth(addToast),
+                getTotalDiscountThisMonth(addToast),
+            ]);
+
+            const spendData = spendResponse.total_spend_this_month;
+            const discountData = discountResponse.total_discount_this_month;
+
+            const metrics = [
+                {
+                    title: "Total Spend This Month",
+                    value: `₹${spendData.total_spend.toLocaleString()}`,
+                    icon: "Banknote",
+                    change: `${Math.abs(spendData.percentage_change)}%`,
+                    changeType: spendData.percentage_change >= 0 ? 'increase' : 'decrease',
+                },
+                {
+                    title: "Total Discount This Month",
+                    value: `₹${Math.abs(discountData.total_discount).toLocaleString()}`,
+                    icon: "Wallet",
+                    change: `${Math.abs(discountData.percentage_change)}%`,
+                    changeType: discountData.percentage_change >= 0 ? 'increase' : 'decrease',
+                },
+            ];
+
+            setKpiMetrics(metrics);
         } catch (err: any) {
             setKpiError(err.message || "Could not load key performance indicators.");
         }
     }, []);
+
 
     const fetchFinancials = useCallback(async () => {
         setIsFinancialsLoading(true);
@@ -488,7 +513,7 @@ const Dashboard = () => {
                         <ErrorDisplay message={kpiError} onRetry={fetchInitialData} />
                     </div>
                 ) : (
-                    dashboardData?.kpiMetrics?.map((metric: any, i: number) => (
+                    kpiMetrics.map((metric: any, i: number) => (
                         <MetricCard
                             key={metric.title}
                             title={metric.title}

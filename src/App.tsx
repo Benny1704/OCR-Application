@@ -12,7 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Queue from "./pages/Queue";
 import Documents from "./pages/Documents";
 import Upload from "./pages/Upload";
-import Logs from "./pages/Logs";
+// import Logs from "./pages/Logs";
 import Login from "./pages/Login";
 import ImageAlterations from "./pages/ImageAlterations";
 import Edit from "./pages/Edit";
@@ -47,7 +47,7 @@ const router = createBrowserRouter(
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/log" element={<Logs />} />
+        {/* <Route path="/log" element={<Logs />} /> */}
       </Route>
       <Route path="/queue" element={<Queue />} />
       <Route path="/document" element={<Documents />} />
