@@ -12,7 +12,7 @@ import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 import type { QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination, ApiResponse } from "../interfaces/Types";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import {
   Star,
   FileText,
@@ -151,6 +151,7 @@ const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
 
   const tabs: ("Queued" | "Processed" | "Failed")[] = [
@@ -159,7 +160,9 @@ const Queue = () => {
     "Failed",
   ];
   const tabRef = useRef<HTMLUListElement>(null);
-  const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">("Queued");
+  const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">(() => {
+    return location.state?.defaultTab || "Queued";
+  });
 
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
   const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);

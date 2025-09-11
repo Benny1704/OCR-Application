@@ -15,7 +15,8 @@ const StatusCard = ({
     index, 
     description,
     gradient,
-    pulseColor 
+    pulseColor,
+    onClick,
 }: { 
     title: string;
     count: number;
@@ -26,9 +27,9 @@ const StatusCard = ({
     description: string;
     gradient: string;
     pulseColor: string;
+    onClick: () => void;
 }) => {
     const { theme } = useTheme();
-    const navigate = useNavigate();
 
     const cardVariants: Variants = {
         hidden: { opacity: 0, y: 30, scale: 0.9 },
@@ -83,7 +84,7 @@ const StatusCard = ({
                 transition: { duration: 0.3, ease: "easeOut" }
             }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/queue')}
+            onClick={onClick}
         >
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-5">
@@ -182,6 +183,7 @@ const StatusCard = ({
 const DashboardStatusTable = () => {
     const { theme } = useTheme();
     const { addToast } = useToast();
+    const navigate = useNavigate();
     const [counts, setCounts] = useState({ queued: 0, processed: 0, failed: 0, completed: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -232,6 +234,14 @@ const DashboardStatusTable = () => {
         }
     };
 
+    const handleNavigation = (tab: 'Queued' | 'Processed' | 'Failed' | 'Completed') => {
+        if (tab === 'Completed') {
+            navigate('/document');
+        } else {
+            navigate('/queue', { state: { defaultTab: tab } });
+        }
+    };
+
     const statusConfig = [
         {
             title: "In Queue",
@@ -240,7 +250,8 @@ const DashboardStatusTable = () => {
             color: "text-blue-400",
             description: "Awaiting processing",
             gradient: "bg-gradient-to-br from-blue-500/20 to-blue-600/5",
-            pulseColor: "bg-blue-400"
+            pulseColor: "bg-blue-400",
+            onClick: () => handleNavigation('Queued')
         },
         {
             title: "Processed",
@@ -249,7 +260,8 @@ const DashboardStatusTable = () => {
             color: "text-amber-400",
             description: "Needs verification",
             gradient: "bg-gradient-to-br from-amber-500/20 to-amber-600/5",
-            pulseColor: "bg-amber-400"
+            pulseColor: "bg-amber-400",
+            onClick: () => handleNavigation('Processed')
         },
         {
             title: "Completed",
@@ -258,7 +270,8 @@ const DashboardStatusTable = () => {
             color: "text-green-400",
             description: "Successfully reviewed",
             gradient: "bg-gradient-to-br from-green-500/20 to-green-600/5",
-            pulseColor: "bg-green-400"
+            pulseColor: "bg-green-400",
+            onClick: () => handleNavigation('Completed')
         },
         {
             title: "Failed",
@@ -267,7 +280,8 @@ const DashboardStatusTable = () => {
             color: "text-red-400",
             description: "Requires attention",
             gradient: "bg-gradient-to-br from-red-500/20 to-red-600/5",
-            pulseColor: "bg-red-400"
+            pulseColor: "bg-red-400",
+            onClick: () => handleNavigation('Failed')
         }
     ];
 
@@ -347,6 +361,7 @@ const DashboardStatusTable = () => {
                         description={config.description}
                         gradient={config.gradient}
                         pulseColor={config.pulseColor}
+                        onClick={config.onClick}
                     />
                 ))}
             </div>

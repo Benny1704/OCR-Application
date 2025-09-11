@@ -2,21 +2,18 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const ARUN_API_URL = "https://f267764d1c87.ngrok-free.app";
-// const CLARE_API_URL = "http://10.3.0.19:8000";
-const Pharam_API_URL = "http://10.3.0.61:8080";
-const API_URL = "https://f267764d1c87.ngrok-free.app"; // Use the proxied URL
+const API_URL = "https://f267764d1c87.ngrok-free.app";
+const SUMMARY_API_URL = "http://10.3.0.61:8080";
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
-const arunApi = axios.create({ baseURL: ARUN_API_URL });
 const getApi = axios.create({ baseURL: API_URL });
-const saveApi = axios.create({ baseURL: Pharam_API_URL });
+const summaryApi = axios.create({ baseURL: SUMMARY_API_URL });
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.
-[api, arunApi, getApi,saveApi].forEach(instance => { // Added getApi to the interceptor
+[api, getApi, summaryApi].forEach(instance => { // Added summaryApi to the interceptor
     instance.interceptors.request.use(
         (config) => {
             const token = localStorage.getItem('token');
@@ -115,7 +112,7 @@ export const alterImage = async (params: { imageData: string; rotation: number; 
         if (params.noise > 0) {
             payload.denoise_ksize = params.noise;
         }
-        const response = await arunApi.post('/ocr_preprocessing/process', payload);
+        const response = await api.post('/ocr_preprocessing/process', payload);
         return response.data;
     } catch (error) {
         handleError(error, showToast);
@@ -194,7 +191,7 @@ export const togglePriority = async (id: string, addToast: any) => {
 
 export const getTotalDiscountThisMonth = async (addToast: any): Promise<any> => {
     try {
-        const response = await arunApi.get('/metrics/total_discount_this_month');
+        const response = await api.get('/metrics/total_discount_this_month');
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -204,7 +201,7 @@ export const getTotalDiscountThisMonth = async (addToast: any): Promise<any> => 
 
 export const getTotalSpendThisMonth = async (addToast: any): Promise<any> => {
     try {
-        const response = await arunApi.get('/metrics/total_spend_this_month');
+        const response = await api.get('/metrics/total_spend_this_month');
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -233,11 +230,11 @@ const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'm
 };
 
 export const getFinancialObligations = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(arunApi, '/metrics/financial_obligations', filterType, year, toYear);
+    return fetchDataForChart(api, '/metrics/financial_obligations', filterType, year, toYear);
 };
 
 export const getInvoiceCount = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(arunApi, '/metrics/invoice_count', filterType, year, toYear);
+    return fetchDataForChart(api, '/metrics/invoice_count', filterType, year, toYear);
 };
 
 export const getSpendByVendor = async (year: number, month?: number) => {
@@ -245,7 +242,7 @@ export const getSpendByVendor = async (year: number, month?: number) => {
     if (month) {
         params.month = month;
     }
-    const response = await arunApi.get('/metrics/spend_by_vendor', { params });
+    const response = await api.get('/metrics/spend_by_vendor', { params });
     return response.data.spend_by_vendor.vendors;
 };
 
@@ -254,7 +251,7 @@ export const getDiscountByVendor = async (year: number, month?: number) => {
     if (month) {
         params.month = month;
     }
-    const response = await arunApi.get('/metrics/discount_percent_per_vendor', { params });
+    const response = await api.get('/metrics/discount_percent_per_vendor', { params });
     return response.data.discount_percent_per_vendor.vendors;
 };
 
@@ -304,7 +301,9 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoice/${invoiceId}`, data);
+        console.log("invoice-details: " + JSON.stringify(data));
+        
+        const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -314,7 +313,8 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
 
 export const updateProductDetails = async (invoiceId: number, data: ProductDetails[], addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoice/${invoiceId}/item-summary`, data);
+        console.log("product-details: " + JSON.stringify(data));
+        const response = await api.put(`/invoice/${invoiceId}/item-summary`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -324,7 +324,8 @@ export const updateProductDetails = async (invoiceId: number, data: ProductDetai
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoice/${invoiceId}/meta-discount`, data);
+        console.log("meta-details: " + JSON.stringify(data));
+        const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -334,10 +335,37 @@ export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountA
 
 export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
     try {
-        const response = await saveApi.put(`/invoice/${itemId}/item-attribute`, data);
+        const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
         return [];
     }
+};
+
+// --- Summary/Logs API Functions ---
+const getSummaryData = async (endpoint: string, year: number, month?: number) => {
+    const params: any = { year };
+    if (month) {
+        params.month = month;
+    }
+    const response = await summaryApi.get(endpoint, { params });
+    return response.data;
+}
+
+export const getInvoiceCountStats = (year: number, month?: number) => {
+    return getSummaryData('/summary/count-invoice-processed', year, month);
+};
+
+export const getLlmConsumedStats = (year: number, month?: number) => {
+    return getSummaryData('/summary/llm-consumed', year, month);
+};
+
+export const getProcessingFailuresStats = (year: number, month?: number) => {
+    return getSummaryData('/summary/processing-failures', year, month);
+};
+
+export const getMonthlyProcessingStats = async (year: number) => {
+    const response = await summaryApi.get('/summary/monthly-processing', { params: { year } });
+    return response.data;
 };
