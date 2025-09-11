@@ -27,7 +27,8 @@ import {
   AlertCircle,
   ShieldAlert,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  RotateCw, // Import refresh icon
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { RetryModal, StatusBadge } from "../components/common/Helper";
@@ -37,6 +38,12 @@ import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
+
+// --- Helper function to format date/time ---
+const formatLastUpdated = (date: Date | null) => {
+    if (!date) return 'N/A';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, message: string }) => {
   const { theme } = useTheme();
@@ -167,7 +174,14 @@ const Queue = () => {
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
   const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);
   const [failedDocuments, setFailedDocuments] = useState<FailedDocument[]>([]);
-  
+
+  // NEW FEATURE: State for last updated timestamp
+  const [lastUpdated, setLastUpdated] = useState<Record<string, Date | null>>({
+    Queued: null,
+    Processed: null,
+    Failed: null,
+  });
+
   const [pagination, setPagination] = useState<Record<string, Pagination>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -181,14 +195,16 @@ const Queue = () => {
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (isRefresh = false) => {
     setIsLoading(true);
-    setError(null);
+    if (!isRefresh) {
+        setError(null);
+    }
     try {
         let queuedResponse: ApiResponse<QueuedDocument>;
         let processedResponse: ApiResponse<ProcessedDocument>;
         let failedResponse: ApiResponse<FailedDocument>;
-        
+
         if (activeTab === 'Queued') {
             queuedResponse = await getQueuedDocuments(addToast, currentPage, pageSize);
             setQueuedDocuments(queuedResponse.data.map((item: any) => ({
@@ -232,14 +248,20 @@ const Queue = () => {
             })));
             setPagination(prev => ({...prev, Failed: failedResponse.pagination}));
         }
+        // NEW FEATURE: Update the timestamp for the active tab
+        setLastUpdated(prev => ({ ...prev, [activeTab]: new Date() }));
+        if (isRefresh) {
+            addToast({ type: 'success', message: `${activeTab} documents updated!` });
+        }
 
     } catch (err: any) {
       setError(err.message || "Failed to fetch documents. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeTab]);
-  
+  }, [currentPage, pageSize, activeTab, addToast]);
+
+
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
@@ -284,7 +306,7 @@ const Queue = () => {
       setSelectedDocumentId(null);
     }
   }, [documentsForTab, selectedDocumentId]);
-  
+
   useEffect(() => {
     // Reset page to 1 when tab changes
     setCurrentPage(1);
@@ -417,28 +439,41 @@ const Queue = () => {
     }
 
     if (error) {
-      return <ErrorDisplay message={error} onRetry={fetchDocuments} />;
+      return <ErrorDisplay message={error} onRetry={() => fetchDocuments()} />;
     }
 
     if (activeTab === "Processed") {
       return (
-        <DataTable
-          tableData={processedDocuments}
-          tableConfig={documentConfig}
-          isSearchable={true}
-          renderActionCell={renderActionCell}
-          actionColumnHeader="Review"
-          pagination={{
-            enabled: true,
-            pageSize: 10,
-            pageSizeOptions: [5, 10, 25, 50, 100],
-          }}
-          maxHeight="calc(100vh - 250px)"
-          isLoading={isLoading}
-          paginationInfo={pagination.Processed}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-        />
+        <>
+            {/* NEW FEATURE: Last updated and refresh button */}
+            <div className={`flex items-center justify-end p-2 text-xs ${textSecondary}`}>
+                <p className="font-medium text-gray-700">Last Updated: <span className="font-light text-gray-500">{formatLastUpdated(lastUpdated[activeTab])}</span></p>
+                <button
+                    onClick={() => fetchDocuments(true)}
+                    className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                    title="Refresh Documents"
+                >
+                    <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+            </div>
+            <DataTable
+              tableData={processedDocuments}
+              tableConfig={documentConfig}
+              isSearchable={true}
+              renderActionCell={renderActionCell}
+              actionColumnHeader="Review"
+              pagination={{
+                enabled: true,
+                pageSize: 10,
+                pageSizeOptions: [5, 10, 25, 50, 100],
+              }}
+              maxHeight="calc(100vh - 280px)"
+              isLoading={isLoading}
+              paginationInfo={pagination.Processed}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+        </>
       );
     }
 
@@ -449,10 +484,21 @@ const Queue = () => {
             className={`rounded-xl border flex flex-col ${theme === "dark" ? "bg-gray-800/20" : "bg-white"
               } ${borderPrimary} overflow-hidden`}
           >
-            <div className={`p-3 border-b ${borderPrimary} flex-shrink-0`}>
+            {/* NEW FEATURE: Header with last updated and refresh button */}
+            <div className={`p-3 border-b ${borderPrimary} flex-shrink-0 flex justify-between items-center`}>
               <h3 className={`font-semibold text-base ${textHeader}`}>
                 {activeTab} Documents
               </h3>
+              <div className={`flex items-center text-xs ${textSecondary}`}>
+                <p className="font-medium text-gray-700">Last Updated: <span className="font-light text-gray-500">{formatLastUpdated(lastUpdated[activeTab])}</span></p>
+                <button
+                    onClick={() => fetchDocuments(true)}
+                    className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                    title="Refresh Documents"
+                >
+                    <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
             <div className="flex-grow p-2 overflow-y-auto">
               {documentsForTab.map((doc) => (

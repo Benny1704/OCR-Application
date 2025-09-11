@@ -3,30 +3,26 @@ import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, Pag
 
 // --- Base URLs ---
 const API_URL = import.meta.env.VITE_API_URL;
-const SUMMARY_API_URL = "http://10.3.0.61:8080";
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
-const summaryApi = axios.create({ baseURL: SUMMARY_API_URL });
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.
-[api, summaryApi].forEach(instance => { // Added summaryApi to the interceptor
-    instance.interceptors.request.use(
-        (config) => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers['Authorization'] = `Bearer ${token}`;
-            }
-            // Add other common headers here
-            config.headers['accept'] = 'application/json';
-            config.headers['ngrok-skip-browser-warning'] = 'true';
-            return config;
-        },
-        (error) => Promise.reject(error)
-    );
-});
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        // Add other common headers here
+        config.headers['accept'] = 'application/json';
+        config.headers['ngrok-skip-browser-warning'] = 'true';
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
 
 // --- Centralized Error Handler ---
@@ -348,7 +344,7 @@ const getSummaryData = async (endpoint: string, year: number, month?: number) =>
     if (month) {
         params.month = month;
     }
-    const response = await summaryApi.get(endpoint, { params });
+    const response = await api.get(endpoint, { params });
     return response.data;
 }
 
@@ -365,6 +361,6 @@ export const getProcessingFailuresStats = (year: number, month?: number) => {
 };
 
 export const getMonthlyProcessingStats = async (year: number) => {
-    const response = await summaryApi.get('/summary/monthly-processing', { params: { year } });
+    const response = await api.get('/summary/monthly-processing', { params: { year } });
     return response.data;
 };

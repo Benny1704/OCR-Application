@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useTheme } from "../hooks/useTheme";
-import { useToast } from "../hooks/useToast";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import {
   BrainCircuit,
@@ -56,7 +55,7 @@ const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardPro
         }
       }
     };
-  
+
     return (
       <motion.div
         variants={cardVariants}
@@ -77,7 +76,7 @@ const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardPro
             <div className={`relative p-3 rounded-xl shadow-md ${theme === 'dark' ? 'bg-gradient-to-br from-gray-700/70 to-gray-800/50' : 'bg-gradient-to-br from-gray-100 to-white'}`}>
               <Icon className="w-6 h-6 text-violet-400" />
             </div>
-            
+
             <div className="text-right">
               <div className="flex items-center gap-2 text-base font-bold">
                 {changeType === 'increase' ?
@@ -91,7 +90,7 @@ const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardPro
               </span>
             </div>
           </div>
-  
+
           <div>
             <h4 className={`font-semibold text-lg leading-tight mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
               {title}
@@ -202,7 +201,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const Logs = () => {
   const { theme } = useTheme();
-  const { addToast } = useToast();
 
   const [statsYear, setStatsYear] = useState<number>(new Date().getFullYear());
   const [statsMonth, setStatsMonth] = useState<number | undefined>(new Date().getMonth() + 1);
@@ -215,7 +213,7 @@ const Logs = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [graphError, setGraphError] = useState<string | null>(null);
-  
+
   const fetchStatsData = useCallback(async () => {
     setIsStatsLoading(true);
     setStatsError(null);
@@ -235,7 +233,7 @@ const Logs = () => {
     } finally {
       setIsStatsLoading(false);
     }
-  }, [statsYear, statsMonth, addToast]);
+  }, [statsYear, statsMonth]);
 
   const fetchGraphData = useCallback(async () => {
     setIsGraphLoading(true);
@@ -248,7 +246,7 @@ const Logs = () => {
     } finally {
       setIsGraphLoading(false);
     }
-  }, [graphYear, addToast]);
+  }, [graphYear]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -306,7 +304,7 @@ const Logs = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   };
-  
+
   if (isInitialLoad) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -316,18 +314,20 @@ const Logs = () => {
   }
 
   return (
-    <div className={`h-full w-full overflow-y-auto`}>
+    <div className={`h-full w-full overflow-y-auto `}>
+      {/* MODIFICATION: Updated main container to match dashboard layout */}
       <motion.div
-        className="flex flex-col gap-6 p-4 md:p-6 max-w-screen-2xl mx-auto"
+        className="flex flex-col gap-6 md:gap-8 mx-auto"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
+        {/* MODIFICATION: Updated header to match dashboard layout */}
         <motion.div variants={headerVariants}>
-          <h1 className={`text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             Analytics
           </h1>
-          <p className={`mt-1 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`mt-2 text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
             Real-time insights into your invoice processing performance.
           </p>
         </motion.div>
@@ -335,8 +335,10 @@ const Logs = () => {
         {/* Stats Section */}
         <motion.section variants={sectionVariants} className="space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <h2 className={`text-lg font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              <TrendingUp className="w-5 h-5 text-violet-500" />
+            <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <TrendingUp className="w-6 h-6 text-violet-500" />
+              </div>
               Performance Overview
             </h2>
             <div className="flex items-center gap-2">
@@ -344,14 +346,14 @@ const Logs = () => {
               <FilterDropdown value={statsMonth} options={months} onChange={setStatsMonth} />
             </div>
           </div>
-          
+
           {statsError ? (
              <ErrorDisplay message={statsError} onRetry={fetchStatsData} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
                 {isStatsLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className={`h-40 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-200/50'}`} />
+                        <div key={i} className={`h-48 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-200/50'}`} />
                     ))
                 ) : (
                     statsData.map((stat, index) => (
@@ -365,14 +367,21 @@ const Logs = () => {
         {/* Chart Section */}
         <motion.section variants={sectionVariants} className="space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <h2 className={`text-lg font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                <Sparkles className="w-5 h-5 text-violet-500" />
-                Processing Analytics
+            <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <Sparkles className="w-6 h-6 text-violet-500" />
+              </div>
+              Processing Analytics
             </h2>
             <FilterDropdown value={graphYear} options={years.map(y => ({ name: `Year: ${y}`, value: y }))} onChange={setGraphYear} />
           </div>
 
-          <div className={`p-4 sm:p-6 rounded-3xl border ${theme === 'dark' ? 'border-gray-700/60 bg-gray-900/50' : 'border-gray-200/70 bg-white/60'}`}>
+          {/* MODIFICATION: Updated chart card to match dashboard layout */}
+          <div className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
+                theme === 'dark'
+                    ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
+                    : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
+            }`}>
             <div style={{ width: '100%', height: 320 }}>
                 {isGraphLoading ? (
                     <div className="flex items-center justify-center h-full"><Loader type="dots" /></div>
@@ -406,4 +415,3 @@ const Logs = () => {
 };
 
 export default Logs;
-

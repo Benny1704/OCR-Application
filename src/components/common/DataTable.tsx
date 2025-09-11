@@ -566,10 +566,9 @@ const DataTable = ({
         };
 
         const handlePageSizeChange = (size: number) => {
+            setPageSize(size);
             if (paginationInfo && onPageSizeChange) {
                 onPageSizeChange(size);
-            } else {
-                setPageSize(size);
             }
         };
 
