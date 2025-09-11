@@ -11,7 +11,7 @@ import "../assets/styles/Queue.scss";
 import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
-import type { Document, QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination } from "../interfaces/Types";
+import type { QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination, ApiResponse } from "../interfaces/Types";
 import { useNavigate } from "react-router";
 import {
   Star,
@@ -26,6 +26,8 @@ import {
   File,
   AlertCircle,
   ShieldAlert,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { RetryModal, StatusBadge } from "../components/common/Helper";
@@ -113,6 +115,37 @@ const formatBytes = (bytes: number, decimals = 2) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+const PaginationControls = ({ pagination, onPageChange, theme }: { pagination: Pagination | undefined, onPageChange: (page: number) => void, theme: string }) => {
+    if (!pagination || pagination.total_pages <= 1) return null;
+
+    const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+    const buttonClasses = `flex items-center justify-center p-2 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`;
+
+    return (
+        <div className={`flex items-center justify-between p-2 border-t flex-shrink-0 ${theme === 'dark' ? 'border-gray-700/80' : 'border-gray-200/80'}`}>
+            <span className={`text-sm ${textSecondary}`}>
+                Page {pagination.page} of {pagination.total_pages}
+            </span>
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={() => onPageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    className={buttonClasses}
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => onPageChange(pagination.page + 1)}
+                    disabled={pagination.page === pagination.total_pages}
+                    className={buttonClasses}
+                >
+                    <ChevronRight className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 const Queue = () => {
   const { theme } = useTheme();
@@ -149,60 +182,60 @@ const Queue = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [queuedResponse, processedResponse, failedResponse] = await Promise.all([
-        getQueuedDocuments(addToast, 1, 100), // Fetch all for local pagination
-        getProcessedDocuments(addToast, currentPage, pageSize),
-        getFailedDocuments(addToast, 1, 100), // Fetch all for local pagination
-      ]);
-
-      setQueuedDocuments(queuedResponse.data.map((item: any, index: number) => ({
-        id: item.message_id,
-        sno: index + 1,
-        name: item.file_name,
-        size: formatBytes(item.file_size),
-        uploadDate: item.uploaded_on,
-        uploadedBy: item.uploaded_by,
-        messageId: item.message_id,
-        isPriority: item.priority,
-        status: item.status || "Queued",
-      })));
-      
-      setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
-        id: item.message_id,
-        sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
-        name: item.file_name,
-        supplierName: item.supplier_name,
-        invoiceId: item.invoice_id,
-        irnNumber: item.irn,
-        uploadedBy: item.uploaded_by,
-        uploadDate: item.uploaded_at,
-        invoiceDate: item.invoice_date,
-        messageId: item.message_id,
-        status: "Processed",
-      })));
-
-      setFailedDocuments(failedResponse.data.map((item: any, index: number) => ({
-        id: item.message_id,
-        sno: index + 1,
-        name: item.file_name,
-        size: formatBytes(item.file_size),
-        uploadedBy: item.uploaded_by,
-        uploadDate: item.uploaded_on,
-        messageId: item.message_id,
-        errorMessage: item.error_message,
-        status: "Failed",
-      })));
-      
-      setPagination({
-        Processed: processedResponse.pagination,
-      });
+        let queuedResponse: ApiResponse<QueuedDocument>;
+        let processedResponse: ApiResponse<ProcessedDocument>;
+        let failedResponse: ApiResponse<FailedDocument>;
+        
+        if (activeTab === 'Queued') {
+            queuedResponse = await getQueuedDocuments(addToast, currentPage, pageSize);
+            setQueuedDocuments(queuedResponse.data.map((item: any) => ({
+                id: item.message_id,
+                name: item.file_name,
+                size: formatBytes(item.file_size),
+                uploadDate: item.uploaded_on,
+                uploadedBy: item.uploaded_by,
+                messageId: item.message_id,
+                isPriority: item.is_priority,
+                status: item.status || "Queued",
+            })));
+            setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
+        } else if (activeTab === 'Processed') {
+            processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
+            setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
+                id: item.message_id,
+                sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
+                name: item.file_name,
+                supplierName: item.supplier_name,
+                invoiceId: item.invoice_id,
+                irnNumber: item.irn,
+                uploadedBy: item.uploaded_by,
+                uploadDate: item.uploaded_at,
+                invoiceDate: item.invoice_date,
+                messageId: item.message_id,
+                status: "Processed",
+            })));
+            setPagination(prev => ({...prev, Processed: processedResponse.pagination}));
+        } else if (activeTab === 'Failed') {
+            failedResponse = await getFailedDocuments(addToast, currentPage, pageSize);
+            setFailedDocuments(failedResponse.data.map((item: any) => ({
+                id: item.message_id,
+                name: item.file_name,
+                size: formatBytes(item.file_size),
+                uploadedBy: item.uploaded_by,
+                uploadDate: item.uploaded_on,
+                messageId: item.message_id,
+                errorMessage: item.error_message,
+                status: "Failed",
+            })));
+            setPagination(prev => ({...prev, Failed: failedResponse.pagination}));
+        }
 
     } catch (err: any) {
       setError(err.message || "Failed to fetch documents. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, activeTab]);
   
   useEffect(() => {
     fetchDocuments();
@@ -238,6 +271,7 @@ const Queue = () => {
   );
 
   useEffect(() => {
+    // Auto-select the first document if none is selected or if the selected one is no longer in the list
     if (
       documentsForTab.length > 0 &&
       !documentsForTab.some((d) => d.id === selectedDocumentId)
@@ -247,15 +281,20 @@ const Queue = () => {
       setSelectedDocumentId(null);
     }
   }, [documentsForTab, selectedDocumentId]);
+  
+  useEffect(() => {
+    // Reset page to 1 when tab changes
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handleSetPriority = (id: string) => {
     const doc = queuedDocuments.find(d => d.id === id);
-    if (!doc) return;
+    if (!doc || doc.isPriority) return;
 
     setConfirmationModal({
       isOpen: true,
-      title: doc.isPriority ? 'Remove Priority' : 'Set as Priority',
-      message: `Are you sure you want to ${doc.isPriority ? 'remove priority from' : 'set as priority'} this document?`,
+      title: 'Set as Priority',
+      message: 'Are you sure you want to set this document as a priority? This action cannot be undone.',
       onConfirm: async () => {
         try {
           await togglePriority(id, addToast);
@@ -455,6 +494,7 @@ const Queue = () => {
                 </button>
               ))}
             </div>
+            <PaginationControls pagination={pagination[activeTab]} onPageChange={setCurrentPage} theme={theme} />
           </aside>
 
           <section
@@ -556,7 +596,7 @@ const Queue = () => {
                               handleSetPriority(selectedDocument.id)
                             }
                             disabled={
-                              selectedDocument.status === "Processing"
+                              selectedDocument.status === "Processing" || ('isPriority' in selectedDocument && selectedDocument.isPriority)
                             }
                             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
                                 ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
@@ -595,7 +635,7 @@ const Queue = () => {
                     {activeTab === "Failed" && (
                       <>
                         <button
-                          onClick={() => navigate('/manualEntry')}
+                          onClick={() => navigate(`/manualEntry/${selectedDocument.id}`)}
                           className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
                               ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
                               : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
@@ -708,7 +748,7 @@ const Queue = () => {
             <div className={`active-tab ${activeTab.toLowerCase()}`}>
               {tabIcons[activeTab]}
               {activeTab}
-              <div className="badge">{pagination[activeTab]?.total_items || documentsForTab.length}</div>
+              <div className="badge">{pagination[activeTab]?.total_items || 0}</div>
             </div>
           </div>
         </div>

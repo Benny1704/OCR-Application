@@ -39,6 +39,11 @@ export interface PaginatedResponse<T> {
   pagination: Pagination;
 }
 
+export interface ApiResponse<T> {
+  data: T[];
+  pagination: Pagination;
+}
+
 
 // --- Application State & Navigation ---
 export type Page =
@@ -69,46 +74,34 @@ export interface AuthUser {
   role: Role;
 }
 
-// --- Document Queue & Status ---
-export interface QueuedDocument {
+export interface Document {
   id: string;
-  sno: number;
   name: string;
-  size: string;
+  status: "Queued" | "Processing" | "Processed" | "Failed";
   uploadDate: string;
   uploadedBy: string;
-  messageId: string;
-  isPriority: boolean;
-  status: "Queued" | "Processing";
 }
 
-export interface ProcessedDocument {
-  id: string;
+export interface QueuedDocument extends Document {
+  size: string;
+  isPriority: boolean;
+  messageId: string;
+}
+
+export interface ProcessedDocument extends Document {
   sno: number;
-  name: string;
   supplierName: string;
   invoiceId: string;
   irnNumber: string;
-  uploadedBy: string;
-  uploadDate: string;
   invoiceDate: string;
   messageId: string;
-  status: "Processed";
 }
 
-export interface FailedDocument {
-  id: string;
-  sno: number;
-  name: string;
+export interface FailedDocument extends Document {
   size: string;
-  uploadedBy: string;
-  uploadDate: string;
-  messageId: string;
   errorMessage: string;
-  status: "Failed";
+  messageId: string;
 }
-
-export type Document = QueuedDocument | ProcessedDocument | FailedDocument;
 
 // // --- API Data Structures (from CLARE_API_URL) ---
 // export interface Supplier {

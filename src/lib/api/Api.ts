@@ -2,10 +2,10 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const ARUN_API_URL = "https://f92db7068b52.ngrok-free.app";
+const ARUN_API_URL = "https://f267764d1c87.ngrok-free.app";
 // const CLARE_API_URL = "http://10.3.0.19:8000";
 const Pharam_API_URL = "http://10.3.0.61:8080";
-const API_URL = "https://7426a7d1d12e.ngrok-free.app"; // Use the proxied URL
+const API_URL = "https://f267764d1c87.ngrok-free.app"; // Use the proxied URL
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
