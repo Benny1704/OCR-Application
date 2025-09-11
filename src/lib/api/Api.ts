@@ -2,18 +2,17 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const API_URL = "https://f267764d1c87.ngrok-free.app";
+const API_URL = import.meta.env.VITE_API_URL;
 const SUMMARY_API_URL = "http://10.3.0.61:8080";
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
-const getApi = axios.create({ baseURL: API_URL });
 const summaryApi = axios.create({ baseURL: SUMMARY_API_URL });
 
 // --- Axios Interceptor for Authentication ---
 // This function runs before every request is sent for any of the instances above.
-[api, getApi, summaryApi].forEach(instance => { // Added summaryApi to the interceptor
+[api, summaryApi].forEach(instance => { // Added summaryApi to the interceptor
     instance.interceptors.request.use(
         (config) => {
             const token = localStorage.getItem('token');
@@ -259,7 +258,7 @@ export const getDiscountByVendor = async (year: number, month?: number) => {
 
 export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await getApi.get(`/invoices/${invoiceId}`);
+        const response = await api.get(`/invoices/${invoiceId}`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -269,7 +268,7 @@ export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
 
 export const getProductDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await getApi.get(`/invoices/${invoiceId}/line-items`);
+        const response = await api.get(`/invoices/${invoiceId}/line-items`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -279,7 +278,7 @@ export const getProductDetails = async (invoiceId: number, addToast: any) => {
 
 export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) => {
     try {
-        const response = await getApi.get(`/invoices/${invoiceId}/meta-discount`);
+        const response = await api.get(`/invoices/${invoiceId}/meta-discount`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -289,7 +288,7 @@ export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) =
 
 export const getLineItems = async (invoiceId: number, itemId: number, addToast: any) => {
     try {
-        const response = await getApi.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
+        const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
