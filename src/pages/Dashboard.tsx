@@ -2,16 +2,20 @@ import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff, CheckCircle2, FileClock, XCircle, Activity, ArrowRight } from 'lucide-react';
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor, getDocumentSummary } from '../lib/api/Api';
+import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 
+// Animation and design choices:
+// - Variants use easing curves that feel responsive without jank.
+// - Staggered entrances improve hierarchy without overwhelming the user.
+// - GPU-friendly transforms + willChange hint minimize reflow/flicker during transitions.
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
     FileDiff,
@@ -112,9 +116,10 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                 transition: { duration: 0.3, ease: "easeOut" }
             }}
             whileTap={{ scale: 0.98 }}
+            style={{ willChange: 'transform, opacity' }}
         >
 
-            {/* Pulse Animation for Positive Change */}
+            {/* Pulse Animation for Positive Change - draws attention to improvement */}
             {changeType === 'increase' && (
                 <div className="absolute top-4 right-4 w-3 h-3 bg-green-400 rounded-full animate-pulse">
                     <div className="absolute inset-0 bg-green-400 rounded-full animate-ping" />
@@ -357,6 +362,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isV
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
                     : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
             }`}
+            style={{ willChange: 'transform, opacity' }}
         >
 
             <motion.div variants={headerVariants} className="relative z-10 flex items-center justify-between mb-6">
@@ -392,6 +398,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isV
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.4, duration: 0.5 }}
                         className="w-full h-full"
+                        style={{ willChange: 'transform, opacity' }}
                     >
                         {children}
                     </motion.div>
@@ -409,10 +416,6 @@ const Dashboard = () => {
     const [kpiError, setKpiError] = useState<string | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const { addToast } = useToast();
-
-    const [documentCounts, setDocumentCounts] = useState({ queued: 0, processed: 0, failed: 0 });
-    const [isCountsLoading, setIsCountsLoading] = useState(true);
-    const [countsError, setCountsError] = useState<string | null>(null);
 
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
     const [invoiceCountData, setInvoiceCountData] = useState<any[]>([]);
@@ -448,10 +451,9 @@ const Dashboard = () => {
 
     const fetchInitialData = useCallback(async () => {
         try {
-            const [spendResponse, discountResponse, summaryResponse] = await Promise.all([
+            const [spendResponse, discountResponse] = await Promise.all([
                 getTotalSpendThisMonth(addToast),
                 getTotalDiscountThisMonth(addToast),
-                getDocumentSummary(addToast)
             ]);
 
             const spendData = spendResponse.total_spend_this_month;
@@ -475,14 +477,8 @@ const Dashboard = () => {
             ];
 
             setKpiMetrics(metrics);
-            setDocumentCounts({
-                queued: summaryResponse.waiting || 0,
-                processed: summaryResponse.processed || 0,
-                failed: summaryResponse.failed || 0,
-            });
         } catch (err: any) {
             setKpiError(err.message || "Could not load key performance indicators.");
-            setCountsError(err.message || "Could not load document summary.");
         }
     }, [addToast]);
 
@@ -543,10 +539,8 @@ const Dashboard = () => {
     useEffect(() => {
         const loadPageData = async () => {
             setIsPageLoading(true);
-            setIsCountsLoading(true);
             await fetchInitialData();
             setIsPageLoading(false);
-            setIsCountsLoading(false);
         };
         loadPageData();
     }, [fetchInitialData]);
@@ -616,7 +610,7 @@ const Dashboard = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                            {spendByVendorData.map((entry, index) => (
+                            {spendByVendorData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                             ))}
                         </Pie>
@@ -637,7 +631,7 @@ const Dashboard = () => {
                         content={<CustomTooltip formatter={(value) => `₹${value.toLocaleString()}`} />}
                     />
                     <Bar dataKey="value" name="Spend" radius={[4, 4, 0, 0]} barSize={20}>
-                        {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                        {spendByVendorData.map((_, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>
@@ -650,7 +644,7 @@ const Dashboard = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie data={discountByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                            {discountByVendorData.map((entry, index) => (
+                            {discountByVendorData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                             ))}
                         </Pie>
@@ -671,7 +665,7 @@ const Dashboard = () => {
                         content={<CustomTooltip formatter={(value) => `${value}%`} />}
                     />
                     <Bar dataKey="value" name="Discount" radius={[4, 4, 0, 0]} barSize={20}>
-                        {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                        {discountByVendorData.map((_, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>
@@ -684,6 +678,7 @@ const Dashboard = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
+            style={{ willChange: 'transform, opacity' }}
         >
             {/* Header Section */}
             <motion.div

@@ -27,6 +27,8 @@ import { getInvoiceCountStats, getLlmConsumedStats, getProcessingFailuresStats, 
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import Loader from "../components/common/Loader";
 
+// Motion choices: shared timing curves with dashboard; minimal blurs; transform-only where possible for performance.
+// Using willChange hints on primary motion containers to reduce repaint costs.
 // --- CHILD COMPONENTS ---
 
 interface StatCardProps {
@@ -70,6 +72,7 @@ const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardPro
           transition: { duration: 0.3, ease: "easeOut" }
         }}
         whileTap={{ scale: 0.97 }}
+        style={{ willChange: 'transform, opacity' }}
       >
         <div className="relative p-6 h-full flex flex-col justify-between">
           <div className="flex items-start justify-between mb-4">
@@ -143,6 +146,7 @@ const FilterDropdown = ({
                 exit={{ opacity: 0, scale: 0.95, y: -5 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-2xl z-50 backdrop-blur-xl overflow-hidden ${theme === 'dark' ? 'border-gray-700/40 bg-gray-800/90' : 'border-gray-200/50 bg-white/90'}`}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <div className="p-1.5 max-h-60 overflow-y-auto">
                   {options.map((option) => (
@@ -176,6 +180,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className={`p-4 rounded-xl shadow-2xl border backdrop-blur-xl ${theme === 'dark' ? 'border-gray-700/40 bg-gray-800/90' : 'border-gray-200/50 bg-white/90'}`}
+          style={{ willChange: 'transform, opacity' }}
         >
           <p className="font-bold text-base mb-3 bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
             {label}
@@ -321,6 +326,7 @@ const Logs = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
+        style={{ willChange: 'transform, opacity' }}
       >
         {/* MODIFICATION: Updated header to match dashboard layout */}
         <motion.div variants={headerVariants}>

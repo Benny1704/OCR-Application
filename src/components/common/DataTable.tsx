@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Undo, Redo, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo } from '../../interfaces/Types';
@@ -641,6 +641,7 @@ const DataTable = ({
     const tableRowVariants = {
         hidden: { opacity: 0, y: 10 },
         visible: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -6 }
     };
 
     const renderTableBody = () => {
@@ -690,55 +691,37 @@ const DataTable = ({
         }
 
         return (
-            <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
-                {paginatedData.map((row, rowIndex) => (
-                    <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
-                        {fixedHeaderKey && (
-                            <td className={`p-2 border-b font-medium sticky left-0 z-10 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
-                                {row[fixedHeaderKey]}
-                            </td>
-                        )}
-                        {movableHeaders.map(header => (
-                            <td 
-                                key={header} 
-                                onDoubleClick={() => isEditable && columnConfig[header]?.editable !== false && setEditingCell({ rowIndex, colKey: header })} 
-                                onClick={(e) => handleCellClick(rowIndex, header, e)} 
-                                draggable={isEditable} 
-                                onDragStart={() => handleDragStart(rowIndex, header)} 
-                                onDragOver={(e) => e.preventDefault()} 
-                                onDrop={() => handleDrop(rowIndex, header)} 
-                                className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[header]?.editable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
-                            >
-                                {renderCellContent(rowIndex, header)}
-                            </td>
-                        ))}
-                        {renderActionCell && (
-                            <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                                {renderActionCell(row, rowIndex)}
-                            </td>
-                        )}
-                    </motion.tr>
-                ))}
-                {isEditable && (
-                    <tr>
-                        <td 
-                            colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} 
-                            className={`p-1 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
-                        >
-                            <button 
-                                onClick={handleAddRow} 
-                                className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
-                                ${theme === 'dark' 
-                                    ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100' 
-                                    : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'}`
-                                }
-                                title="Insert New Row"
-                            >
-                                <Plus size={16} /> Insert Row
-                            </button>
-                        </td>
-                    </tr>
-                )}
+            <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible" style={{ willChange: 'opacity, transform' }}>
+                <AnimatePresence initial={false}>
+                    {paginatedData.map((row, rowIndex) => (
+                        <motion.tr key={row.sno} variants={tableRowVariants} exit="exit" className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
+                            {fixedHeaderKey && (
+                                <td className={`p-2 border-b font-medium sticky left-0 z-10 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                                    {row[fixedHeaderKey]}
+                                </td>
+                            )}
+                            {movableHeaders.map(header => (
+                                <td 
+                                    key={header} 
+                                    onDoubleClick={() => isEditable && columnConfig[header]?.editable !== false && setEditingCell({ rowIndex, colKey: header })} 
+                                    onClick={(e) => handleCellClick(rowIndex, header, e)} 
+                                    draggable={isEditable} 
+                                    onDragStart={() => handleDragStart(rowIndex, header)} 
+                                    onDragOver={(e) => e.preventDefault()} 
+                                    onDrop={() => handleDrop(rowIndex, header)} 
+                                    className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[header]?.editable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
+                                >
+                                    {renderCellContent(rowIndex, header)}
+                                </td>
+                            ))}
+                            {renderActionCell && (
+                                <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                                    {renderActionCell(row, rowIndex)}
+                                </td>
+                            )}
+                        </motion.tr>
+                    ))}
+                </AnimatePresence>
             </motion.tbody>
         );
     };

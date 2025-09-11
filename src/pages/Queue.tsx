@@ -39,6 +39,10 @@ import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 
+// Design/animation notes:
+// - Use AnimatePresence for tab content to provide smooth intro/outro.
+// - Keep transforms and opacity changes GPU-friendly to avoid flicker.
+// - Leverage subtle hover states in list items to improve affordance.
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
     if (!date) return 'N/A';
@@ -818,6 +822,7 @@ const Queue = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="h-full w-full flex flex-col"
+              style={{ willChange: 'opacity' }}
             >
               {renderContent()}
             </motion.div>

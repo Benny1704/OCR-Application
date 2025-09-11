@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { CheckCircle2, FileClock, XCircle, Loader2, AlertCircle, ArrowRight, FileCheck, Activity, TrendingUp, Database, RotateCw } from 'lucide-react';
+import { FileClock, XCircle, Loader2, AlertCircle, ArrowRight, FileCheck, Activity, TrendingUp, Database, RotateCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
-import { motion, type Variants } from 'framer-motion';
+import { motion, type Variants, AnimatePresence } from 'framer-motion';
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -60,7 +60,7 @@ const StatusCard = ({
             transition: {
                 delay: index * 0.15 + 0.3,
                 duration: 0.5,
-                ease: "backOut"
+                ease: 'backOut'
             }
         }
     };
@@ -88,10 +88,11 @@ const StatusCard = ({
             whileHover={{
                 y: -8,
                 scale: 1.02,
-                transition: { duration: 0.3, ease: "easeOut" }
+                transition: { duration: 0.3, ease: 'easeOut' }
             }}
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
+            style={{ willChange: 'transform, opacity' }}
         >
             <div className="absolute inset-0 opacity-5">
                 <div className={`absolute inset-0 ${gradient}`} />
@@ -133,7 +134,7 @@ const StatusCard = ({
                         </div>
                     </div>
 
-                    <motion.div variants={countVariants}>
+                    <motion.div variants={countVariants} style={{ willChange: 'transform, opacity' }}>
                         {isLoading ? (
                             <div className="flex items-center space-x-2 mt-4">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -148,7 +149,7 @@ const StatusCard = ({
                                 } drop-shadow-sm`}>
                                     {count.toLocaleString()}
                                 </p>
-                            </div>
+                             </div>
                         )}
                     </motion.div>
                 </div>
@@ -159,6 +160,7 @@ const StatusCard = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.15 + 0.6 }}
+                    style={{ willChange: 'opacity' }}
                 >
                     <div className="flex-1">
                         {!isLoading && count > 0 && title === 'In Queue' && (
@@ -195,7 +197,6 @@ const DashboardStatusTable = () => {
     // NEW FEATURE: State for last updated timestamp.
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-
     const fetchSummary = useCallback(async (isRefresh = false) => {
         setIsLoading(true);
         if(!isRefresh) setError(null);
@@ -216,7 +217,7 @@ const DashboardStatusTable = () => {
                 });
             }
         } catch (err) {
-            setError("Failed to load document summary.");
+            setError('Failed to load document summary.');
             addToast({
                 type: 'error',
                 message: 'Could not fetch document summary.',
@@ -246,7 +247,7 @@ const DashboardStatusTable = () => {
         visible: {
             opacity: 1,
             y: 0,
-            transition: { duration: 0.6, ease: "easeOut" }
+            transition: { duration: 0.6, ease: 'easeOut' }
         }
     };
 
@@ -260,43 +261,43 @@ const DashboardStatusTable = () => {
 
     const statusConfig = [
         {
-            title: "In Queue",
+            title: 'In Queue',
             count: counts.queued,
             icon: FileClock,
-            color: "text-blue-400",
-            description: "Awaiting processing",
-            gradient: "bg-gradient-to-br from-blue-500/20 to-blue-600/5",
-            pulseColor: "bg-blue-400",
+            color: 'text-blue-400',
+            description: 'Awaiting processing',
+            gradient: 'bg-gradient-to-br from-blue-500/20 to-blue-600/5',
+            pulseColor: 'bg-blue-400',
             onClick: () => handleNavigation('Queued')
         },
         {
-            title: "Processed",
+            title: 'Processed',
             count: counts.processed,
             icon: Database,
-            color: "text-amber-400",
-            description: "Needs verification",
-            gradient: "bg-gradient-to-br from-amber-500/20 to-amber-600/5",
-            pulseColor: "bg-amber-400",
+            color: 'text-amber-400',
+            description: 'Needs verification',
+            gradient: 'bg-gradient-to-br from-amber-500/20 to-amber-600/5',
+            pulseColor: 'bg-amber-400',
             onClick: () => handleNavigation('Processed')
         },
         {
-            title: "Completed",
+            title: 'Completed',
             count: counts.completed,
             icon: FileCheck,
-            color: "text-green-400",
-            description: "Successfully reviewed",
-            gradient: "bg-gradient-to-br from-green-500/20 to-green-600/5",
-            pulseColor: "bg-green-400",
+            color: 'text-green-400',
+            description: 'Successfully reviewed',
+            gradient: 'bg-gradient-to-br from-green-500/20 to-green-600/5',
+            pulseColor: 'bg-green-400',
             onClick: () => handleNavigation('Completed')
         },
         {
-            title: "Failed",
+            title: 'Failed',
             count: counts.failed,
             icon: XCircle,
-            color: "text-red-400",
-            description: "Requires attention",
-            gradient: "bg-gradient-to-br from-red-500/20 to-red-600/5",
-            pulseColor: "bg-red-400",
+            color: 'text-red-400',
+            description: 'Requires attention',
+            gradient: 'bg-gradient-to-br from-red-500/20 to-red-600/5',
+            pulseColor: 'bg-red-400',
             onClick: () => handleNavigation('Failed')
         }
     ];
@@ -314,6 +315,7 @@ const DashboardStatusTable = () => {
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
                     : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
             }`}
+            style={{ willChange: 'transform, opacity' }}
         >
             <motion.div variants={headerVariants} className="relative z-10 mb-8">
                 <div className="flex items-center justify-between">
@@ -344,16 +346,18 @@ const DashboardStatusTable = () => {
                 </div>
             </motion.div>
 
-            {error && !isLoading && (
+            <AnimatePresence>{error && !isLoading && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
                     className="relative z-10 flex items-center gap-3 p-4 mb-6 rounded-2xl bg-gradient-to-r from-red-500/10 to-red-600/5 border border-red-500/20"
+                    style={{ willChange: 'transform, opacity' }}
                 >
                     <AlertCircle className="w-6 h-6 text-red-400" />
                     <span className="font-medium text-red-400">{error}</span>
                 </motion.div>
-            )}
+            )}</AnimatePresence>
 
             <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {statusConfig.map((config, index) => (
@@ -374,39 +378,43 @@ const DashboardStatusTable = () => {
             </div>
 
             {/* MODIFICATION: Updated bottom stats bar with accurate "Last Updated" time and a refresh button. */}
-            {!isLoading && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8, duration: 0.5 }}
-                    className="relative z-10 mt-8 pt-6 border-t border-gray-200/20"
-                >
-                    <div className="flex items-center justify-between text-sm">
-                        <div className={`flex items-center space-x-4 ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                            <span>Total Documents: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{totalDocuments}</strong></span>
-                            <span>•</span>
-                            <span>Last Updated: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
-                             <button
-                                onClick={() => fetchSummary(true)}
-                                className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                                title="Refresh Summary"
-                            >
-                                <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                            </button>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                            <span className={`text-xs font-medium ${
-                                theme === 'dark' ? 'text-green-400' : 'text-green-600'
+            <AnimatePresence>
+                {!isLoading && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.5 }}
+                        className="relative z-10 mt-8 pt-6 border-t border-gray-200/20"
+                        style={{ willChange: 'transform, opacity' }}
+                    >
+                        <div className="flex items-center justify-between text-sm">
+                            <div className={`flex items-center space-x-4 ${
+                                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                             }`}>
-                                Live
-                            </span>
+                                <span>Total Documents: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{totalDocuments}</strong></span>
+                                <span>•</span>
+                                <span>Last Updated: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
+                                 <button
+                                    onClick={() => fetchSummary(true)}
+                                    className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                    title="Refresh Summary"
+                                >
+                                    <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                <span className={`text-xs font-medium ${
+                                    theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                                }`}>
+                                    Live
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                </motion.div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };

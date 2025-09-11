@@ -6,6 +6,8 @@ import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../hooks/useToast'; 
 import * as api from '../lib/api/Api';
 
+// Notes: Dropzone uses subtle scale/color transitions for modern feedback.
+// Right panel uses progress bars with gradient fill; heavy effects avoided during upload.
 const Upload = () => { 
     const { theme } = useTheme(); 
     const navigate = useNavigate(); 
@@ -108,7 +110,7 @@ const Upload = () => {
     return ( 
         <div className={`h-full w-full flex flex-col p-4 sm:p-6 transition-colors animate-fade-in-up rounded-[30px] overflow-hidden ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200" : "bg-gray-50 text-gray-900"}`}> 
             <header className="flex-shrink-0 mb-6"> 
-                {/* ... Header content remains the same ... */}
+                {/* Title row with gradient icon for visual hierarchy */}
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-2.5 rounded-lg shadow-lg">
                         <Paperclip className="w-6 h-6 text-white" />
@@ -124,7 +126,7 @@ const Upload = () => {
 
             <main className="flex-grow grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-0"> 
                 <div className="lg:col-span-3 flex flex-col gap-8"> 
-                    {/* ... Dropzone and guidelines remain the same ... */}
+                    {/* Dropzone */}
                     <div {...getRootProps()} className={`relative flex-grow flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all duration-300 group ${theme === 'dark' ? 'border-gray-700 hover:border-violet-500' : 'border-gray-300 hover:border-violet-500'} ${isDragActive ? (theme === 'dark' ? 'border-violet-500 bg-violet-900/20' : 'border-violet-500 bg-violet-50') : (theme === 'dark' ? 'hover:bg-gray-900' : 'hover:bg-gray-100/50')}`}>
                         <input {...getInputProps()} />
                         <div className="flex flex-col items-center text-center text-gray-500 group-hover:text-violet-500 transition-colors">
@@ -135,6 +137,7 @@ const Upload = () => {
                             <p className="text-sm mt-1">Maximum {MAX_FILES} files</p>
                         </div>
                     </div>
+                    {/* Guidelines */}
                     <div className={`flex-shrink-0 p-4 rounded-lg border ${theme === 'dark' ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}>
                         <div className="flex items-center gap-3">
                             <Info className="w-5 h-5 text-sky-500 flex-shrink-0" />
@@ -148,7 +151,7 @@ const Upload = () => {
                 </div> 
 
                 <div className={`lg:col-span-2 flex flex-col rounded-lg border min-h-0 ${theme === 'dark' ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-200'}`}> 
-                    {/* NEW: Conditional rendering for the right-side panel */}
+                    {/* Right panel: switches between selected files and uploading progress */}
                     {isUploading ? (
                         <>
                             <div className="p-4 border-b border-inherit flex-shrink-0">
@@ -227,7 +230,7 @@ const Upload = () => {
                             )} 
                         </>
                     )}
-                     
+                    
                     <div className="mt-auto p-4 border-t border-inherit flex-shrink-0"> 
                         <button  
                             onClick={handleProceed}  

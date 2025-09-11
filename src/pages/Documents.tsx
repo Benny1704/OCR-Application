@@ -11,6 +11,8 @@ import { useToast } from "../hooks/useToast";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { TableSkeleton } from "../components/common/SkeletonLoaders";
 
+// Note: Motion variants are shared to maintain consistent timing curves across pages.
+// willChange hints are used only on animated wrappers to preserve performance.
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -96,6 +98,7 @@ const Documents = () => {
       className={`h-full w-full flex flex-col transition-colors rounded-3xl p-4 sm:p-6 ${
         theme === "dark" ? "bg-[#1C1C2E]" : "bg-gray-50"
       }`}
+      style={{ willChange: 'transform, opacity' }}
     >
       <motion.div
         variants={itemVariants}
