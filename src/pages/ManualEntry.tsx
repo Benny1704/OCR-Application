@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import {
     type InvoiceDetails,
@@ -30,12 +31,14 @@ const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
 
 
 const ManualEntry = () => {
+    const location = useLocation();
     return (
         <EditableComponent
             isManual={true}
             initialInvoiceDetails={initialEmptyInvoiceDetails}
             initialProductDetails={initialEmptyProductDetails}
             initialAmountAndTaxDetails={initialEmptyAmountAndTaxDetails}
+            messageId={location.state?.messageId}
         />
     );
 };

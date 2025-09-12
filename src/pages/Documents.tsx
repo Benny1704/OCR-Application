@@ -55,7 +55,7 @@ const Documents = () => {
   const renderActionCell = (row: DataItem) => {
     const doc = row as ProcessedDocument;
     return (
-        <button onClick={() => navigate(`/review/${doc.invoiceId}`)} className="edit-btn" >
+        <button onClick={() => navigate(`/review/${doc.invoiceId}`, { state: { messageId: doc.messageId } })} className="edit-btn" >
             <i className="fi fi-rr-file-check"></i> Review
         </button>
     );

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
@@ -15,7 +15,7 @@ const Edit = () => {
     const [error, setError] = useState<string | null>(null);
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
-    const navigate = useNavigate();
+    const location = useLocation();
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
@@ -57,10 +57,6 @@ const Edit = () => {
         fetchData();
     }, [fetchData]);
 
-    const handlePreview = () => {
-        navigate(`/preview/${invoiceId}`);
-    };
-
     if (isLoading) {
         return <Loader type="wifi" />;
     }
@@ -76,7 +72,7 @@ const Edit = () => {
                 initialProductDetails={productDetails}
                 initialAmountAndTaxDetails={amountAndTaxDetails}
                 isReadOnly={false}
-                onPreview={handlePreview}
+                messageId={location.state?.messageId}
             />
         );
     }

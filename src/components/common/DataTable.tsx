@@ -124,13 +124,15 @@ const DataTable = ({
         };
     }, [currentView, tableConfig]);
 
+    const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
+
     const processedData: ProcessedDataItem[] = useMemo(() => {
         let dataToProcess = onDataChange ? currentView : tableData;
 
         let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
             const processedRow: ProcessedDataItem = { 
                 ...row, 
-                sno: index + 1,
+                sno: (finalCurrentPage - 1) * pageSize + index + 1,
                 originalIndex: index 
             };
             if (tableConfig) {
@@ -153,11 +155,11 @@ const DataTable = ({
         }
 
         return processed;
-    }, [currentView, tableData, onDataChange, searchQuery, isSearchable, tableConfig]);
+    }, [currentView, tableData, onDataChange, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize]);
 
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
-    const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
+    
 
     const paginatedData = useMemo(() => {
         if (pagination.enabled && !paginationInfo) {
@@ -810,7 +812,7 @@ const DataTable = ({
                         <button onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
                             <Info size={16} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
                         </button>
-                        {showHelp && <HowToUse />}
+                        {showHelp && <div className="z-30"><HowToUse /></div>}
                     </div>
                 </div>
             )}

@@ -224,7 +224,7 @@ const DashboardStatusTable = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchSummary();

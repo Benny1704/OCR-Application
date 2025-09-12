@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
@@ -15,6 +15,7 @@ const Review = () => {
     const [error, setError] = useState<string | null>(null);
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
+    const location = useLocation();
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
@@ -70,7 +71,8 @@ const Review = () => {
                 initialInvoiceDetails={invoiceDetails}
                 initialProductDetails={productDetails}
                 initialAmountAndTaxDetails={amountAndTaxDetails}
-                isReadOnly={true} // Set the component to read-only mode
+                isReadOnly={true}
+                messageId={location.state?.messageId}
             />
         );
     }

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { RefreshCw, Save, Eye, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,13 +11,13 @@ import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
 import { formConfig } from '../../lib/config/Config';
 import { useToast } from '../../hooks/useToast';
-import { set, get, cloneDeep } from 'lodash';
-import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails } from '../../lib/api/Api';
+import { set, get, cloneDeep, isEqual } from 'lodash';
+import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, confirmInvoice } from '../../lib/api/Api';
 import { useParams } from 'react-router-dom';
 
 // --- Default Empty States for Manual Entry ---
 const initialEmptyInvoiceDetails: InvoiceDetails = {
-    invoice_id: 0, invoice_number: '', irn: '', invoice_date: null, way_bill: '',
+    invoice_id: 0, message_id: '', invoice_number: '', irn: '', invoice_date: null, way_bill: '',
     acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
     supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
 };
@@ -39,7 +39,7 @@ type EditableComponentProps = {
     productError?: string | null;
     amountError?: string | null;
     onRetry?: () => void;
-    onPreview?: () => void;
+    messageId: string;
 };
 
 const EditableComponent = ({
@@ -49,7 +49,7 @@ const EditableComponent = ({
     initialAmountAndTaxDetails,
     isReadOnly = false,
     onRetry,
-    onPreview,
+    messageId
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -72,6 +72,18 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
     const [openAccordion, setOpenAccordion] = useState<string | null>(formConfig[0]?.id || null);
+    const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        const initialInv = isManual ? initialEmptyInvoiceDetails : initialInvoiceDetails;
+        const initialProd = isManual ? initialEmptyProductDetails : initialProductDetails;
+        const initialAmt = isManual ? initialEmptyAmountAndTaxDetails : initialAmountAndTaxDetails;
+
+        const hasChanged = !isEqual(initialInv, invoiceDetails) ||
+                           !isEqual(initialProd, productDetails) ||
+                           !isEqual(initialAmt, amountDetails);
+        setIsDirty(hasChanged);
+    }, [invoiceDetails, productDetails, amountDetails, initialInvoiceDetails, initialProductDetails, initialAmountAndTaxDetails, isManual]);
 
     const combinedData = useMemo(() => ({
         ...invoiceDetails,
@@ -176,7 +188,7 @@ const EditableComponent = ({
 
     const getValue = (path: string) => get(combinedData, path, '');
     
-    const handleSaveChanges = async () => {
+    const handleValidateAndSave = async () => {
         if (!invoiceId) return;
 
         const invoiceIdNum = parseInt(invoiceId, 10);
@@ -191,8 +203,19 @@ const EditableComponent = ({
         if (savedProducts) setProductDetails(savedProducts);
         if (savedAmount) setAmountDetails(savedAmount);
 
-        if (onPreview) {
-            onPreview();
+        if (savedInvoice && savedProducts && savedAmount) {
+            navigate('/document');
+        }
+    };
+    
+    const handleConfirm = async () => {
+        if (!messageId) {
+            addToast({ type: 'error', message: 'Message ID not found.' });
+            return;
+        }
+        const success = await confirmInvoice(messageId, addToast);
+        if (success) {
+            navigate('/document');
         }
     };
     
@@ -280,12 +303,21 @@ const EditableComponent = ({
             {!finalIsReadOnly && (
               <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
                   <div className="px-4 sm:px-6 flex justify-end">
-                      <button
-                          onClick={handleSaveChanges}
-                          className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
-                      >
-                          <Save className="w-4 h-4" /> Save and Preview
-                      </button>
+                      {(isDirty || isManual) ? (
+                          <button
+                              onClick={handleValidateAndSave}
+                              className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
+                          >
+                              <Save className="w-4 h-4" /> Validate and Save
+                          </button>
+                      ) : (
+                          <button
+                              onClick={handleConfirm}
+                              className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
+                          >
+                              <Check className="w-4 h-4" /> Confirm
+                          </button>
+                      )}
                   </div>
               </footer>
             )}

@@ -364,3 +364,16 @@ export const getMonthlyProcessingStats = async (year: number) => {
     const response = await api.get('/summary/monthly-processing', { params: { year } });
     return response.data;
 };
+
+export const confirmInvoice = async (messageId: string, addToast: any): Promise<boolean> => {
+    try {
+        const response = await api.post(`/confirm/${messageId}`);
+        if (response.data.message) {
+            addToast({ type: 'success', message: response.data.message });
+        }
+        return true;
+    } catch (error) {
+        handleError(error, addToast);
+        return false;
+    }
+};

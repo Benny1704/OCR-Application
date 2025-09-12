@@ -45,6 +45,18 @@ const formatLastUpdated = (date: Date | null) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, message: string }) => {
   const { theme } = useTheme();
 
@@ -211,7 +223,7 @@ const Queue = () => {
                 id: item.message_id,
                 name: item.file_name,
                 size: formatBytes(item.file_size),
-                uploadDate: item.uploaded_on,
+                uploadDate: formatDateTime(item.uploaded_on),
                 uploadedBy: item.uploaded_by,
                 messageId: item.message_id,
                 isPriority: item.is_priority,
@@ -228,8 +240,8 @@ const Queue = () => {
                 invoiceId: item.invoice_id,
                 irnNumber: item.irn,
                 uploadedBy: item.uploaded_by,
-                uploadDate: item.uploaded_at,
-                invoiceDate: item.invoice_date,
+                uploadDate: formatDateTime(item.uploaded_at),
+                invoiceDate: formatDateTime(item.invoice_date),
                 messageId: item.message_id,
                 status: "Processed",
             })));
@@ -241,7 +253,7 @@ const Queue = () => {
                 name: item.file_name,
                 size: formatBytes(item.file_size),
                 uploadedBy: item.uploaded_by,
-                uploadDate: item.uploaded_on,
+                uploadDate: formatDateTime(item.uploaded_on),
                 messageId: item.message_id,
                 errorMessage: item.error_message,
                 status: "Failed",
@@ -259,7 +271,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeTab, addToast]);
+  }, [currentPage, pageSize, activeTab]);
 
 
   useEffect(() => {
@@ -353,7 +365,7 @@ const Queue = () => {
   const openRetryModal = () => setRetryModalOpen(true);
   const handleSimpleRetry = () => {
     setRetryModalOpen(false);
-    navigate("/loading");
+    // navigate("/loading");
   };
   const handleRetryWithAlterations = () => {
     setRetryModalOpen(false);
@@ -419,7 +431,7 @@ const Queue = () => {
     const document = row as ProcessedDocument;
     return (
       <button
-        onClick={() => navigate(`/edit/${document.invoiceId}`)}
+        onClick={() => navigate(`/edit/${document.invoiceId}`, { state: { messageId: document.messageId } })}
         className="edit-btn"
       >
         <i className="fi fi-rr-file-edit"></i> Review
@@ -447,7 +459,7 @@ const Queue = () => {
         <>
             {/* NEW FEATURE: Last updated and refresh button */}
             <div className={`flex items-center justify-end p-2 text-xs ${textSecondary}`}>
-                <p className="font-medium text-gray-700">Last Updated: <span className="font-light text-gray-500">{formatLastUpdated(lastUpdated[activeTab])}</span></p>
+                <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Last Updated: <span className={`font-light ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{formatLastUpdated(lastUpdated[activeTab])}</span></p>
                 <button
                     onClick={() => fetchDocuments(true)}
                     className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
@@ -490,7 +502,7 @@ const Queue = () => {
                 {activeTab} Documents
               </h3>
               <div className={`flex items-center text-xs ${textSecondary}`}>
-                <p className="font-medium text-gray-700">Last Updated: <span className="font-light text-gray-500">{formatLastUpdated(lastUpdated[activeTab])}</span></p>
+                <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Last Updated: <span className={`font-light ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{formatLastUpdated(lastUpdated[activeTab])}</span></p>
                 <button
                     onClick={() => fetchDocuments(true)}
                     className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
@@ -630,15 +642,15 @@ const Queue = () => {
                 </div>
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
-                <div className="pt-4 flex-shrink-0">
-                  <h4
-                    className={`font-semibold text-base mb-3 ${textHeader}`}
-                  >
-                    Actions
-                  </h4>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {activeTab === "Queued" &&
-                      user?.role === "admin" && (
+                {user?.role === 'admin' && (
+                  <div className="pt-4 flex-shrink-0">
+                    <h4
+                      className={`font-semibold text-base mb-3 ${textHeader}`}
+                    >
+                      Actions
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {activeTab === "Queued" && (
                         <>
                           <button
                             onClick={() =>
@@ -647,13 +659,13 @@ const Queue = () => {
                             disabled={
                               selectedDocument.status === "Processing" || ('isPriority' in selectedDocument && selectedDocument.isPriority)
                             }
-                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
+                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
                                 ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
                                 : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
                               }`}
                           >
                             <Star
-                              className={`w-3.5 h-3.5 ${'isPriority' in selectedDocument && selectedDocument.isPriority
+                              className={`w-4 h-4 ${'isPriority' in selectedDocument && selectedDocument.isPriority
                                   ? "text-yellow-400"
                                   : ""
                                 }`}
@@ -672,53 +684,50 @@ const Queue = () => {
                             disabled={
                               selectedDocument.status === "Processing"
                             }
-                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
+                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
                                 ? "bg-red-900/40 border-red-700/60 text-red-300 hover:bg-red-900/60"
                                 : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
                               }`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                            <Trash2 className="w-4 h-4" /> Delete
                           </button>
                         </>
                       )}
-                    {activeTab === "Failed" && (
-                      <>
-                        <button
-                          onClick={() => navigate(`/manualEntry/${selectedDocument.id}`)}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
-                              ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
-                              : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
-                            }`}
-                        >
-                          <i className="fi fi-rr-add-document"></i> Manual Entry
-                        </button>
-                        {user?.role === "admin" && (
-                          <>
-                            <button
-                              onClick={openRetryModal}
-                              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
-                                  ? "bg-yellow-900/40 border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
-                                  : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
-                                }`}
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" /> Retry
-                            </button>
-                          </>
-                        )}
-                      </>
+                      {activeTab === "Failed" && (
+                        <>
+                          <button
+                            onClick={() => navigate(`/manualEntry/${selectedDocument.id}`, { state: { messageId: selectedDocument.messageId } })}
+                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
+                                ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
+                                : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+                              }`}
+                          >
+                            <i className="fi fi-rr-add-document"></i> Manual Entry
+                          </button>
+                          <button
+                            onClick={openRetryModal}
+                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
+                                ? "bg-yellow-900/40 border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
+                                : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                              }`}
+                          >
+                            <RefreshCw className="w-4 h-4" /> Retry
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {selectedDocument.status === "Processing" && (
+                      <p
+                        className={`text-xs mt-3 ${theme === "dark"
+                            ? "text-yellow-400"
+                            : "text-yellow-600"
+                          }`}
+                      >
+                        Cannot perform actions while processing.
+                      </p>
                     )}
                   </div>
-                  {selectedDocument.status === "Processing" && (
-                    <p
-                      className={`text-xs mt-3 ${theme === "dark"
-                          ? "text-yellow-400"
-                          : "text-yellow-600"
-                        }`}
-                    >
-                      Cannot perform actions while processing.
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-6">
