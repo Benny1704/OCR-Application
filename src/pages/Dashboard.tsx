@@ -484,7 +484,7 @@ const Dashboard = () => {
             setKpiError(err.message || "Could not load key performance indicators.");
             setCountsError(err.message || "Could not load document summary.");
         }
-    }, [addToast]);
+    }, []);
 
     const fetchFinancials = useCallback(async () => {
         setIsFinancialsLoading(true);
