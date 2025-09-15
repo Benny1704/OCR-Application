@@ -2,7 +2,7 @@ import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
-import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff, CheckCircle2, FileClock, XCircle, Activity, ArrowRight } from 'lucide-react';
+import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
@@ -55,65 +55,82 @@ interface CustomTooltipProps {
   formatter?: (value: any) => string;
 }
 
-// MODIFICATION: Updated MetricCard to remove "View Details" and modernize the layout.
+const container: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            duration: 0.3,
+            staggerChildren: 0.08,
+            delayChildren: 0.1
+        }
+    }
+};
+const item: Variants = {
+    hidden: { 
+        opacity: 0, 
+        y: 20,
+        scale: 0.98
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+            duration: 0.4,
+            ease: [0.22, 1, 0.36, 1]
+        }
+    }
+};
+const card: Variants = {
+    hidden: { 
+        opacity: 0, 
+        y: 15,
+        scale: 0.96
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+            duration: 0.35,
+            ease: [0.25, 1, 0.5, 1]
+        }
+    }
+};
+const header: Variants = {
+    hidden: { 
+        opacity: 0, 
+        y: -10 
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { 
+            duration: 0.4, 
+            ease: "easeOut" 
+        }
+    }
+};
+
+// MODIFICATION: Simplified and optimized MetricCard animations
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
     const { theme } = useTheme();
 
-    const cardVariants: Variants = {
-        hidden: { opacity: 0, y: 30, scale: 0.9 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            transition: {
-                delay: index * 0.15,
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const iconVariants: Variants = {
-        hidden: { scale: 0, rotate: -180 },
-        visible: {
-            scale: 1,
-            rotate: 0,
-            transition: {
-                delay: index * 0.15 + 0.3,
-                duration: 0.5,
-                ease: "backOut"
-            }
-        }
-    };
-
-    const valueVariants: Variants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: index * 0.15 + 0.4,
-                duration: 0.4
-            }
-        }
-    };
-
     return (
         <motion.div
-            variants={cardVariants}
-            className={`group relative overflow-hidden rounded-3xl transition-all duration-500 ${
+            variants={card}
+            className={`group relative overflow-hidden rounded-3xl transition-all duration-300 ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border border-gray-700/30 hover:border-violet-500/40'
                     : 'bg-gradient-to-br from-white to-gray-50/50 border border-gray-200/50 hover:border-violet-400/40'
             } hover:shadow-2xl hover:shadow-violet-500/10`}
             whileHover={{
-                y: -8,
-                scale: 1.02,
-                transition: { duration: 0.3, ease: "easeOut" }
+                y: -4,
+                scale: 1.01,
+                transition: { duration: 0.2, ease: "easeOut" }
             }}
-            whileTap={{ scale: 0.98 }}
         >
-
             {/* Pulse Animation for Positive Change */}
             {changeType === 'increase' && (
                 <div className="absolute top-4 right-4 w-3 h-3 bg-green-400 rounded-full animate-pulse">
@@ -125,7 +142,13 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                     <motion.div
-                        variants={iconVariants}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ 
+                            delay: index * 0.1 + 0.2, 
+                            duration: 0.3,
+                            ease: "backOut"
+                        }}
                         className={`relative p-3 rounded-2xl ${
                             theme === 'dark'
                                 ? 'bg-gradient-to-br from-gray-700/50 to-gray-800/30'
@@ -151,7 +174,15 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                 </div>
 
                 {/* Value Display */}
-                <motion.div variants={valueVariants} className="flex-1 flex flex-col justify-end">
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                        delay: index * 0.1 + 0.3, 
+                        duration: 0.25 
+                    }}
+                    className="flex-1 flex flex-col justify-end"
+                >
                     <p className={`text-4xl font-black tracking-tight ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                     } drop-shadow-sm`}>
@@ -268,13 +299,13 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                  </Switch>
                             </div>
                         </div>
-                         <AnimatePresence initial={false}>
+                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={filterType}
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
                                 className="overflow-hidden"
                             >
                                 {filterType === 'monthly' ? (
@@ -324,42 +355,20 @@ const CustomTooltip = ({ active, payload, formatter }: CustomTooltipProps) => {
     return null;
 };
 
+// Optimized ChartCard with simplified animations
 const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isVendorChart = false, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
 
-    const cardVariants: Variants = {
-        hidden: { opacity: 0, y: 30, scale: 0.95 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            transition: {
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const headerVariants: Variants = {
-        hidden: { opacity: 0, x: -20 },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: { delay: 0.2, duration: 0.5 }
-        }
-    };
-
     return (
         <motion.div
-            variants={cardVariants}
+            variants={item}
             className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
                     : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
             }`}
         >
-
-            <motion.div variants={headerVariants} className="relative z-10 flex items-center justify-between mb-6">
+            <div className="relative z-10 flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <div className={`p-3 rounded-2xl ${
                         theme === 'dark'
@@ -375,7 +384,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isV
                     </h3>
                 </div>
                 {!error && (isVendorChart ? <VendorChartFilterMenu {...filterProps} /> : <ChartFilterMenu {...filterProps} />)}
-            </motion.div>
+            </div>
 
             <div className="relative z-10 h-72 md:h-80">
                 {isLoading ? (
@@ -388,9 +397,9 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, isV
                     </div>
                 ) : (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
                         className="w-full h-full"
                     >
                         {children}
@@ -409,10 +418,6 @@ const Dashboard = () => {
     const [kpiError, setKpiError] = useState<string | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const { addToast } = useToast();
-
-    const [documentCounts, setDocumentCounts] = useState({ queued: 0, processed: 0, failed: 0 });
-    const [isCountsLoading, setIsCountsLoading] = useState(true);
-    const [countsError, setCountsError] = useState<string | null>(null);
 
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
     const [invoiceCountData, setInvoiceCountData] = useState<any[]>([]);
@@ -448,7 +453,7 @@ const Dashboard = () => {
 
     const fetchInitialData = useCallback(async () => {
         try {
-            const [spendResponse, discountResponse, summaryResponse] = await Promise.all([
+            const [spendResponse, discountResponse] = await Promise.all([
                 getTotalSpendThisMonth(addToast),
                 getTotalDiscountThisMonth(addToast),
                 getDocumentSummary(addToast)
@@ -475,14 +480,8 @@ const Dashboard = () => {
             ];
 
             setKpiMetrics(metrics);
-            setDocumentCounts({
-                queued: summaryResponse.waiting || 0,
-                processed: summaryResponse.processed || 0,
-                failed: summaryResponse.failed || 0,
-            });
         } catch (err: any) {
             setKpiError(err.message || "Could not load key performance indicators.");
-            setCountsError(err.message || "Could not load document summary.");
         }
     }, []);
 
@@ -543,10 +542,8 @@ const Dashboard = () => {
     useEffect(() => {
         const loadPageData = async () => {
             setIsPageLoading(true);
-            setIsCountsLoading(true);
             await fetchInitialData();
             setIsPageLoading(false);
-            setIsCountsLoading(false);
         };
         loadPageData();
     }, [fetchInitialData]);
@@ -561,39 +558,6 @@ const Dashboard = () => {
     
     // MODIFICATION: Using a more diverse and modern color palette.
     const vendorColors = ['#8b5cf6', '#ec4899', '#22c55e', '#f97316', '#3b82f6', '#14b8a6', '#f43f5e'];
-
-    // Animation variants
-    const containerVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.2,
-                delayChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const headerVariants: Variants = {
-        hidden: { opacity: 0, y: -20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.6, ease: "easeOut" }
-        }
-    };
 
     if (isPageLoading) {
         return <Loader type="wifi"/>;
@@ -616,7 +580,7 @@ const Dashboard = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie data={spendByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                            {spendByVendorData.map((entry, index) => (
+                            {spendByVendorData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                             ))}
                         </Pie>
@@ -637,7 +601,7 @@ const Dashboard = () => {
                         content={<CustomTooltip formatter={(value) => `₹${value.toLocaleString()}`} />}
                     />
                     <Bar dataKey="value" name="Spend" radius={[4, 4, 0, 0]} barSize={20}>
-                        {spendByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                        {spendByVendorData.map((_, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>
@@ -650,7 +614,7 @@ const Dashboard = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie data={discountByVendorData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                            {discountByVendorData.map((entry, index) => (
+                            {discountByVendorData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                             ))}
                         </Pie>
@@ -671,7 +635,7 @@ const Dashboard = () => {
                         content={<CustomTooltip formatter={(value) => `${value}%`} />}
                     />
                     <Bar dataKey="value" name="Discount" radius={[4, 4, 0, 0]} barSize={20}>
-                        {discountByVendorData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
+                        {discountByVendorData.map((_, index: number) => <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />)}
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>
@@ -681,14 +645,14 @@ const Dashboard = () => {
     return (
         <motion.div
             className="flex flex-col gap-6 md:gap-8"
-            variants={containerVariants}
+            variants={container}
             initial="hidden"
             animate="visible"
         >
             {/* Header Section */}
             <motion.div
                 className="flex flex-col md:flex-row justify-between md:items-center gap-4"
-                variants={headerVariants}
+                variants={header}
             >
                 <div>
                     <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${textHeader} mb-2`}>
@@ -703,9 +667,8 @@ const Dashboard = () => {
                     onClick={() => navigate('/upload')}
                     className="flex items-center gap-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/25 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-base md:text-lg group"
                     whileHover={{
-                        scale: 1.05,
+                        scale: 1.02,
                         y: -2,
-                        boxShadow: "0 20px 40px rgba(139, 92, 246, 0.3)"
                     }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -715,7 +678,7 @@ const Dashboard = () => {
             </motion.div>
 
             {/* KPI Cards Section */}
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8" variants={item}>
                 { kpiError ? (
                     <div className={`md:col-span-2 p-6 md:p-8 rounded-3xl shadow-lg border ${
                         theme === 'dark'
@@ -740,12 +703,12 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Status Table Section */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={item}>
                 <DashboardStatusTable />
             </motion.div>
 
             {/* Financial Charts Section */}
-            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={item}>
                 <ChartCard
                     title="Financial Obligations"
                     icon={Banknote}
@@ -812,7 +775,7 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Spend by Vendor Chart Section */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={item}>
                <ChartCard
                     title="Spending by Vendor"
                     icon={TrendingUp}
@@ -830,7 +793,7 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Discount by Vendor Chart Section */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={item}>
                 <ChartCard
                     title="Discounts by Vendor"
                     icon={Wallet}

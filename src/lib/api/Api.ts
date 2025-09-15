@@ -2,8 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
 
 // --- Base URLs ---
-// const API_URL = import.meta.env.VITE_API_URL;
-const API_URL = "https://b48ae72b5ba1.ngrok-free.app";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // --- Axios Instances ---
 // Creating separate instances allows for different base URLs and configurations

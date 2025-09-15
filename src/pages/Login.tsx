@@ -1,5 +1,5 @@
 // src/pages/Login.tsx
-import { User, Lock, AlertTriangle } from 'lucide-react';
+import { User, Lock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -28,6 +28,7 @@ const Login = () => {
   const [password, setPassword] = useState('password@123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,14 +81,21 @@ const Login = () => {
           <motion.div variants={itemVariants} className="relative">
             <Lock className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2"/>
             <input
-              className="w-full py-3 pl-12 pr-4 text-white bg-white/10 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all placeholder:text-gray-400"
+              className="w-full py-3 pl-12 pr-12 text-white bg-white/10 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all placeholder:text-gray-400"
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               disabled={isLoading}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-white"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </motion.div>
 
           <AnimatePresence>

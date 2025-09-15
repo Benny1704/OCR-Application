@@ -120,7 +120,7 @@ const EditableComponent = ({
     const handleSimpleRetry = () => { setRetryModalOpen(false); if (onRetry) onRetry(); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
 
-    const finalIsReadOnly = isReadOnly || user?.role !== 'admin';
+    const finalIsReadOnly = isReadOnly;
 
     const secondaryButtonClasses = `
     flex items-center gap-1.5 font-semibold py-1.5 px-3 text-xs md:text-sm rounded-lg transition-colors
@@ -308,7 +308,7 @@ const EditableComponent = ({
                               onClick={handleValidateAndSave}
                               className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
                           >
-                              <Save className="w-4 h-4" /> Validate and Save
+                              <Save className="w-4 h-4" /> Save
                           </button>
                       ) : (
                           <button
