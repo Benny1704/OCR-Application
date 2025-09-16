@@ -77,7 +77,7 @@ export interface AuthUser {
 export interface Document {
   id: string;
   name: string;
-  status: "Queued" | "Processing" | "Processed" | "Failed";
+  status: "Queued" | "Processing" | "Awaiting" | "Failed";
   uploadDate: string;
   uploadedBy: string;
 }
@@ -155,6 +155,8 @@ export interface AmountAndTaxDetails {
 	freight_charges: number;
 	other_charges: number;
 	round_off_amount: number;
+  discount_percentage?: number | null;
+  discount_amount?: number | null;
   [key: string]: any;
 }
 

@@ -545,7 +545,7 @@ const DataTable = ({
                     autoFocus
                     onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
                     onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
-                    className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
+                    className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-index ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
                 />
             );
         }
@@ -651,7 +651,7 @@ const DataTable = ({
                 <tbody>
                     {Array.from({ length: pageSize }).map((_, rowIndex) => (
                         <tr key={`skeleton-${rowIndex}`}>
-                             {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
+                             {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
                             {movableHeaders.map(header => (
                                 <td key={header} className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
                             ))}
@@ -696,7 +696,7 @@ const DataTable = ({
                 {paginatedData.map((row, rowIndex) => (
                     <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
                         {fixedHeaderKey && (
-                            <td className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                            <td className={`p-2 border-b font-medium sticky left-0 z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
                                 {row[fixedHeaderKey]}
                             </td>
                         )}
@@ -776,20 +776,20 @@ const DataTable = ({
 
             <div className="flex-grow overflow-auto">
                 <table className="w-full border-collapse select-none text-xs md:text-sm">
-                    <thead className="sticky top-0">
+                    <thead className={`sticky top-0 z-index ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
                         <tr>
                             {fixedHeaderKey && (
-                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700' : 'text-gray-700 border-gray-300 bg-gray-200'}`}>
+                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 z-index border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700' : 'text-gray-700 border-gray-300 bg-gray-200'}`}>
                                     {getColumnHeader(fixedHeaderKey)}
                                 </th>
                             )}
                             {movableHeaders.map(header => (
-                                <th key={header} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
+                                <th key={header} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
                                     {getColumnHeader(header)}
                                 </th>
                             ))}
                             {renderActionCell && (
-                                <th className={`p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
+                                <th className={`p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
                                     {actionColumnHeader}
                                 </th>
                             )}

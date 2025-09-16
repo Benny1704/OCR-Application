@@ -55,10 +55,34 @@ export const documentConfig = {
     // { key: 'id', header: 'ID', editable: true },
     { key: 'name', header: 'File Name', editable: true },
     { key: 'supplierName', header: 'Supplier Name', editable: true },
-    { key: 'invoiceId', header: 'Invoice ID', editable: true },
+    // { key: 'invoiceId', header: 'Invoice ID', editable: true },
     { key: 'irnNumber', header: 'IRN Number', editable: true },
     { key: 'uploadedBy', header: 'Uploaded By', editable: true },
     { key: 'uploadDate', header: 'Upload Date', editable: true },
     { key: 'invoiceDate', header: 'Invoice Date', editable: true },
+  ]
+};
+
+export const itemSummaryConfig = {
+  columns: [
+    { key: 'category', header: 'Category', editable: true },
+    { key: 'UOM', header: 'UOM', editable: true },
+    { key: 'item_description', header: 'Item Description', editable: true },
+    { key: 'design_code', header: 'Design Code', editable: true },
+    { key: 'total_quantity', header: 'Total Quantity', editable: true },
+    { key: 'total_amount', header: 'Total Amount', editable: true },
+    { key: 'HSN', header: 'HSN', editable: true },
+  ]
+};
+
+export const itemAttributesConfig = {
+  columns: [
+    { key: 'size', header: 'Size', editable: true },
+    { key: 'total_count', header: 'Total Count', editable: true },
+    { key: 'color_code', header: 'Color Code', editable: true },
+    { key: 'single_unit_price', header: 'Single Unit (Rate)', editable: true },
+    { key: 'single_unit_mrp', header: 'Single Unit (MRP)', editable: true },
+    { key: 'no_item_split', header: 'No. of Split', editable: true },
+    // { key: 'invoiceDate', header: 'Invoice Date', editable: true },
   ]
 };

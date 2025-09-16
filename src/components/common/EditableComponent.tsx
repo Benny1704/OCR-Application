@@ -9,7 +9,7 @@ import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
-import { formConfig } from '../../lib/config/Config';
+import { formConfig, itemSummaryConfig } from '../../lib/config/Config';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep, isEqual } from 'lodash';
 import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, confirmInvoice } from '../../lib/api/Api';
@@ -26,6 +26,8 @@ const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
     meta_id: 0, invoice_amount: 0, taxable_value: 0, cgst_amount: 0, sgst_amount: 0,
     igst_amount: 0, igst_percentage: null, total_tax_amount: 0, other_deductions: 0,
     freight_charges: 0, other_charges: 0, round_off_amount: 0,
+    discount_percentage: 0, // Added discount_percentage
+    discount_amount: 0,     // Added discount_amount
 };
 
 
@@ -266,6 +268,7 @@ const EditableComponent = ({
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
                                                             tableData={productDetails || []}
+                                                            tableConfig={itemSummaryConfig}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
                                                             renderActionCell={renderActionCell}

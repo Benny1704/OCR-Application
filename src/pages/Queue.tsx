@@ -173,13 +173,13 @@ const Queue = () => {
   const location = useLocation();
   const { addToast } = useToast();
 
-  const tabs: ("Queued" | "Processed" | "Failed")[] = [
+  const tabs: ("Queued" | "Awaiting" | "Failed")[] = [
     "Queued",
-    "Processed",
+    "Awaiting",
     "Failed",
   ];
   const tabRef = useRef<HTMLUListElement>(null);
-  const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">(() => {
+  const [activeTab, setActiveTab] = useState<"Queued" | "Awaiting" | "Failed">(() => {
     return location.state?.defaultTab || "Queued";
   });
 
@@ -230,7 +230,7 @@ const Queue = () => {
                 status: item.status || "Queued",
             })));
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
-        } else if (activeTab === 'Processed') {
+        } else if (activeTab === 'Awaiting') {
             processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
             setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
                 id: item.message_id,
@@ -243,9 +243,9 @@ const Queue = () => {
                 uploadDate: formatDateTime(item.uploaded_at),
                 invoiceDate: formatDateTime(item.invoice_date),
                 messageId: item.message_id,
-                status: "Processed",
+                status: "Awaiting",
             })));
-            setPagination(prev => ({...prev, Processed: processedResponse.pagination}));
+            setPagination(prev => ({...prev, Awaiting: processedResponse.pagination}));
         } else if (activeTab === 'Failed') {
             failedResponse = await getFailedDocuments(addToast, currentPage, pageSize);
             setFailedDocuments(failedResponse.data.map((item: any) => ({
@@ -293,7 +293,7 @@ const Queue = () => {
           new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
         );
       });
-    } else if (activeTab === "Processed") {
+    } else if (activeTab === "Awaiting") {
       return processedDocuments;
     } else {
       return failedDocuments;
@@ -441,7 +441,7 @@ const Queue = () => {
 
   const tabIcons = {
     Queued: <ClipboardClock size={16} />,
-    Processed: <ClipboardCheck size={16} />,
+    Awaiting: <ClipboardCheck size={16} />,
     Failed: <ClipboardX size={16} />,
   };
 
@@ -454,7 +454,7 @@ const Queue = () => {
       return <ErrorDisplay message={error} onRetry={() => fetchDocuments()} />;
     }
 
-    if (activeTab === "Processed") {
+    if (activeTab === "Awaiting") {
       return (
         <>
             {/* NEW FEATURE: Last updated and refresh button */}

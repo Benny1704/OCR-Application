@@ -168,7 +168,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                         <p className={`text-xs mt-1 ${
                             theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
                         }`}>
-                            Monthly Overview
+                            September
                         </p>
                     </div>
                 </div>
@@ -464,14 +464,14 @@ const Dashboard = () => {
 
             const metrics = [
                 {
-                    title: "Total Spend This Month",
+                    title: "Total Spend",
                     value: `₹${spendData.total_spend.toLocaleString()}`,
                     icon: "Banknote",
                     change: `${Math.abs(spendData.percentage_change)}%`,
                     changeType: spendData.percentage_change >= 0 ? 'increase' : 'decrease',
                 },
                 {
-                    title: "Total Discount This Month",
+                    title: "Total Discount",
                     value: `₹${Math.abs(discountData.total_discount).toLocaleString()}`,
                     icon: "Wallet",
                     change: `${Math.abs(discountData.percentage_change)}%`,
@@ -656,7 +656,7 @@ const Dashboard = () => {
             >
                 <div>
                     <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${textHeader} mb-2`}>
-                        Dashboard
+                        Insights
                     </h1>
                     <p className={`text-lg ${textSecondary}`}>
                         Welcome back, <span className="font-semibold text-violet-500">{user?.username || 'Admin'}</span>!
@@ -710,7 +710,7 @@ const Dashboard = () => {
             {/* Financial Charts Section */}
             <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8" variants={item}>
                 <ChartCard
-                    title="Financial Obligations"
+                    title="Invoice Amount"
                     icon={Banknote}
                     isLoading={isFinancialsLoading}
                     error={financialsError}

@@ -6,6 +6,7 @@ import Loader from './Loader';
 import { Save, AlertTriangle } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal } from './Helper';
+import { itemAttributesConfig } from '../../lib/config/Config';
 
 const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading }: ProductDetailPopupProps) => {
     const { theme } = useTheme();
@@ -89,6 +90,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading }: Pro
                             <div className={`rounded-lg p-4 overflow-hidden ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
                                 <DataTable
                                     tableData={lineItems}
+                                    tableConfig={itemAttributesConfig}
                                     isEditable={true}
                                     isSearchable={true}
                                     pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}

@@ -270,7 +270,7 @@ const DashboardStatusTable = () => {
             onClick: () => handleNavigation('Queued')
         },
         {
-            title: "Processed",
+            title: "For Review",
             count: counts.processed,
             icon: Database,
             color: "text-amber-400",
@@ -280,7 +280,7 @@ const DashboardStatusTable = () => {
             onClick: () => handleNavigation('Processed')
         },
         {
-            title: "Completed",
+            title: "Reviewed",
             count: counts.completed,
             icon: FileCheck,
             color: "text-green-400",
@@ -301,8 +301,8 @@ const DashboardStatusTable = () => {
         }
     ];
 
-    const totalDocuments = counts.queued + counts.processed + counts.failed + counts.completed;
-    const completionRate = totalDocuments > 0 ? ((counts.completed / totalDocuments) * 100).toFixed(1) : '0';
+    // const totalDocuments = counts.queued + counts.processed + counts.failed + counts.completed;
+    // const completionRate = totalDocuments > 0 ? ((counts.completed / totalDocuments) * 100).toFixed(1) : '0';
 
     return (
         <motion.div
@@ -329,7 +329,7 @@ const DashboardStatusTable = () => {
                             Real-time processing overview
                         </p>
                     </div>
-                    <div className="text-right">
+                    {/* <div className="text-right">
                         <div className={`text-3xl font-black ${
                             theme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
@@ -340,7 +340,7 @@ const DashboardStatusTable = () => {
                         }`}>
                             Success Rate
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             </motion.div>
 
@@ -385,7 +385,7 @@ const DashboardStatusTable = () => {
                         <div className={`flex items-center space-x-4 ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                            <span>Total Documents: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{totalDocuments}</strong></span>
+                            {/* <span>Total Documents: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{totalDocuments}</strong></span> */}
                             <span>•</span>
                             <span>Last Updated: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
                              <button
