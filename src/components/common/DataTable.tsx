@@ -7,11 +7,13 @@ import { Popup, InfoPill, HowToUse } from './Helper';
 
 export interface TableColumnConfig {
     key: string;
-    header: string;
+    label: string;
     type?: 'string' | 'number' | 'boolean' | 'date';
     width?: string;
     sortable?: boolean;
-    editable?: boolean;
+    isEditable?: boolean;
+    isRequired?: boolean;
+    isCalculated?: boolean;
     fixed?: boolean;
 }
 
@@ -85,9 +87,9 @@ const DataTable = ({
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
         const snoColumn: TableColumnConfig = {
             key: 'sno',
-            header: 'S.No.',
+            label: 'S.No.',
             type: 'number',
-            editable: false,
+            isEditable: false,
             fixed: true,
         };
 
@@ -98,11 +100,11 @@ const DataTable = ({
             finalColumns = [snoColumn, ...userColumns];
         } else if (currentView.length > 0) {
             const allHeaders = Object.keys(currentView[0]).filter(h => h !== 'sno' && h !== 'id');
-            const derivedColumns = allHeaders.map(header => ({
-                key: header,
-                header: header.replace(/_/g, ' '),
+            const derivedColumns = allHeaders.map(label => ({
+                key: label,
+                label: label.replace(/_/g, ' '),
                 type: 'string' as const,
-                editable: true,
+                isEditable: true,
                 fixed: false,
             }));
             finalColumns = [snoColumn, ...derivedColumns];
@@ -246,7 +248,7 @@ const DataTable = ({
             }
         }
 
-        const firstEditableCol = movableHeaders.find(h => columnConfig[h]?.editable !== false);
+        const firstEditableCol = movableHeaders.find(h => columnConfig[h]?.isEditable !== false);
         if (firstEditableCol) {
             const newRowIndexOnPage = (newData.length - 1) % pageSize;
             setEditingCell({
@@ -394,7 +396,7 @@ const DataTable = ({
                     e.preventDefault();
                     const newData: DataItem[] = structuredClone(currentView);
                     selectedCells.forEach(targetCell => {
-                        if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.editable === false) return;
+                        if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.isEditable === false) return;
                         
                         const originalRowIndex = paginatedData[targetCell.rowIndex]?.originalIndex;
                         if (originalRowIndex !== undefined && newData[originalRowIndex]) {
@@ -476,7 +478,7 @@ const DataTable = ({
             }
         }
         if (selectedCells.every(c => c.colKey === firstCell.colKey)) {
-            const colName = columnConfig[firstCell.colKey]?.header || firstCell.colKey;
+            const colName = columnConfig[firstCell.colKey]?.label || firstCell.colKey;
             pills.push(<InfoPill key="col">Column: {colName}</InfoPill>);
         }
         return pills;
@@ -553,7 +555,7 @@ const DataTable = ({
     };
 
     const getColumnHeader = (key: string) => {
-        return columnConfig[key]?.header || key.replace(/_/g, ' ');
+        return columnConfig[key]?.label || key.replace(/_/g, ' ');
     };
 
     const renderPaginationControls = () => {
@@ -652,8 +654,8 @@ const DataTable = ({
                     {Array.from({ length: pageSize }).map((_, rowIndex) => (
                         <tr key={`skeleton-${rowIndex}`}>
                              {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
-                            {movableHeaders.map(header => (
-                                <td key={header} className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
+                            {movableHeaders.map(label => (
+                                <td key={label} className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
                             ))}
                             {renderActionCell && <td className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-6 w-16 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
                         </tr>
@@ -700,18 +702,18 @@ const DataTable = ({
                                 {row[fixedHeaderKey]}
                             </td>
                         )}
-                        {movableHeaders.map(header => (
+                        {movableHeaders.map(label => (
                             <td 
-                                key={header} 
-                                onDoubleClick={() => isEditable && columnConfig[header]?.editable !== false && setEditingCell({ rowIndex, colKey: header })} 
-                                onClick={(e) => handleCellClick(rowIndex, header, e)} 
+                                key={label} 
+                                onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })} 
+                                onClick={(e) => handleCellClick(rowIndex, label, e)} 
                                 draggable={isEditable} 
-                                onDragStart={() => handleDragStart(rowIndex, header)} 
+                                onDragStart={() => handleDragStart(rowIndex, label)} 
                                 onDragOver={(e) => e.preventDefault()} 
-                                onDrop={() => handleDrop(rowIndex, header)} 
-                                className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[header]?.editable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, header) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
+                                onDrop={() => handleDrop(rowIndex, label)} 
+                                className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, label) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
                             >
-                                {renderCellContent(rowIndex, header)}
+                                {renderCellContent(rowIndex, label)}
                             </td>
                         ))}
                         {renderActionCell && (
@@ -783,9 +785,9 @@ const DataTable = ({
                                     {getColumnHeader(fixedHeaderKey)}
                                 </th>
                             )}
-                            {movableHeaders.map(header => (
-                                <th key={header} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
-                                    {getColumnHeader(header)}
+                            {movableHeaders.map(label => (
+                                <th key={label} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
+                                    {getColumnHeader(label)}
                                 </th>
                             ))}
                             {renderActionCell && (

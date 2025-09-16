@@ -52,37 +52,37 @@ export const formConfig: FormSection[] = [
 
 export const documentConfig = {
   columns: [
-    // { key: 'id', header: 'ID', editable: true },
-    { key: 'name', header: 'File Name', editable: true },
-    { key: 'supplierName', header: 'Supplier Name', editable: true },
-    // { key: 'invoiceId', header: 'Invoice ID', editable: true },
-    { key: 'irnNumber', header: 'IRN Number', editable: true },
-    { key: 'uploadedBy', header: 'Uploaded By', editable: true },
-    { key: 'uploadDate', header: 'Upload Date', editable: true },
-    { key: 'invoiceDate', header: 'Invoice Date', editable: true },
+    // { key: 'id', label: 'ID', isEditable: true, isRequired: true, isCalculated: true },
+    { key: 'name', label: 'File Name', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'supplierName', label: 'Supplier Name', isEditable: true, isRequired: true, isCalculated: false },
+    // { key: 'invoiceId', label: 'Invoice ID', isEditable: true, isRequired: true, isCalculated: true },
+    { key: 'irnNumber', label: 'IRN Number', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'uploadedBy', label: 'Uploaded By', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'uploadDate', label: 'Upload Date', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: false },
   ]
 };
 
 export const itemSummaryConfig = {
   columns: [
-    { key: 'category', header: 'Category', editable: true },
-    { key: 'UOM', header: 'UOM', editable: true },
-    { key: 'item_description', header: 'Item Description', editable: true },
-    { key: 'design_code', header: 'Design Code', editable: true },
-    { key: 'total_quantity', header: 'Total Quantity', editable: true },
-    { key: 'total_amount', header: 'Total Amount', editable: true },
-    { key: 'HSN', header: 'HSN', editable: true },
+    { key: 'category', label: 'Category', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'UOM', label: 'UOM', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'item_description', label: 'Item Description', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'design_code', label: 'Design Code', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'total_quantity', label: 'Total Quantity', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'total_amount', label: 'Total Amount', isEditable: true, isRequired: true, isCalculated: true },
+    { key: 'HSN', label: 'HSN', isEditable: true, isRequired: true, isCalculated: false },
   ]
 };
 
 export const itemAttributesConfig = {
   columns: [
-    { key: 'size', header: 'Size', editable: true },
-    { key: 'total_count', header: 'Total Count', editable: true },
-    { key: 'color_code', header: 'Color Code', editable: true },
-    { key: 'single_unit_price', header: 'Single Unit (Rate)', editable: true },
-    { key: 'single_unit_mrp', header: 'Single Unit (MRP)', editable: true },
-    { key: 'no_item_split', header: 'No. of Split', editable: true },
-    // { key: 'invoiceDate', header: 'Invoice Date', editable: true },
+    { key: 'size', label: 'Size', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'total_count', label: 'Total Count', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'color_code', label: 'Color Code', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'single_unit_price', label: 'Single Unit (Rate)', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'single_unit_mrp', label: 'Single Unit (MRP)', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'no_item_split', label: 'No. of Split', isEditable: true, isRequired: true, isCalculated: false },
+    // { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: true },
   ]
 };
