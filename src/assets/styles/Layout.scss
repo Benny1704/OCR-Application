@@ -15,6 +15,8 @@
 .sidenav-container{
   height: 100vh;
   width: 110px;
+  position: relative;
+  z-index: 1000; /* Ensure sidenav (and tooltip) stacks above main content */
   display: grid;
   grid-template-rows: 15vh 70vh 15vh;
   grid-template-columns: 80px;
@@ -53,6 +55,7 @@
       gap: clamp(10px,3vh,40px);
       width: 100%;
       height: 100%;
+      overflow: visible;
       li{
         z-index: 1;
         cursor: pointer;
@@ -86,6 +89,8 @@
             transform: translateX(-100%) scale(0);
             transition: transform 0.5s ease-in-out, opacity 0.2s ease-in-out;
             font-family: "Inter", sans-serif;
+            z-index: 2147483647; /* Max layering to be above all UI */
+            pointer-events: none; /* Avoid interfering with hover target */
           }
           &:hover{
             .tooltip{

@@ -3,12 +3,12 @@ import type { ProductDetailPopupProps, LineItem, DataItem } from '../../interfac
 import DataTable from './DataTable';
 import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
-import { Save, AlertTriangle } from 'lucide-react';
+import { Save, AlertTriangle, Eye } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal } from './Helper';
 import { itemAttributesConfig } from '../../lib/config/Config';
 
-const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading }: ProductDetailPopupProps) => {
+const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onViewImage }: any) => {
     const { theme } = useTheme();
     const [lineItems, setLineItems] = useState<LineItem[]>([]);
     const [initialLineItems, setInitialLineItems] = useState<LineItem[]>([]);
@@ -101,7 +101,10 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading }: Pro
                         )}
                     </main>
 
-                    <footer className={`flex-shrink-0 flex justify-end p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                    <footer className={`flex-shrink-0 flex justify-between items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                        <button onClick={onViewImage} className={`flex items-center gap-2 ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} font-medium py-2 px-4 rounded-lg transition-colors`}>
+                            <Eye size={16} /> View Image
+                        </button>
                         <button onClick={handleSave} className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700">
                             <Save size={16} /> Save Changes
                         </button>

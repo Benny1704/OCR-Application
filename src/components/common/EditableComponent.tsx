@@ -73,8 +73,23 @@ const EditableComponent = ({
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
-    const [openAccordion, setOpenAccordion] = useState<string | null>(formConfig[0]?.id || null);
+    // Allow multiple accordions to stay open
+    const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
     const [isDirty, setIsDirty] = useState(false);
+    // Validation modal state
+    const [isValidationOpen, setValidationOpen] = useState(false);
+    const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
+
+    // Normalized current product rows and live-calculated sum for header display
+    const productRows = useMemo(() => (
+        Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])
+    ), [productDetails]);
+
+    const liveCalculatedAmount = useMemo(() => (
+        productRows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0)
+    ), [productRows]);
+
+    const liveInvoiceAmount = useMemo(() => Number((amountDetails as any)?.invoice_amount) || 0, [amountDetails]);
 
     useEffect(() => {
         const initialInv = isManual ? initialEmptyInvoiceDetails : initialInvoiceDetails;
@@ -189,9 +204,27 @@ const EditableComponent = ({
     };
 
     const getValue = (path: string) => get(combinedData, path, '');
+
+    // Toggle accordion without closing others
+    const toggleAccordion = (id: string) => {
+        setOpenAccordions(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
     
     const handleValidateAndSave = async () => {
         if (!invoiceId) return;
+
+        // Cross-check live calculated vs invoice amount before saving
+        const computed = liveCalculatedAmount;
+        const invoiceAmt = liveInvoiceAmount;
+        if (Math.abs(computed - invoiceAmt) >= 0.01) {
+            setValidationInfo({ computed, invoice: invoiceAmt });
+            setValidationOpen(true);
+            return;
+        }
 
         const invoiceIdNum = parseInt(invoiceId, 10);
 
@@ -223,36 +256,51 @@ const EditableComponent = ({
     
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
-            <main className="flex-grow py-4 md:py-6 overflow-y-auto">
-                <div className="px-4 sm:px-6 space-y-6 animate-fade-in-up">
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                        <div>
-                            <h1 className={`text-2xl md:text-3xl font-bold tracking-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
-                                {isManual ? "Manual Entry" : (finalIsReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
-                            </h1>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
-                                <Eye className="w-4 h-4" /> View Image
-                            </button>
-                            {!finalIsReadOnly && user?.role === 'admin' && (
-                                <button onClick={openRetryModal} className={secondaryButtonClasses}>
-                                    <RefreshCw className="w-4 h-4" /> Retry
-                                </button>
-                            )}
+            {/* Sticky Header */}
+            <header className={`sticky top-0 z-20 px-4 sm:px-6 py-3 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+                    <div className="min-w-0">
+                        <h1 className={`text-lg md:text-xl font-semibold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
+                            {isManual ? "Manual Entry" : (finalIsReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
+                        </h1>
+                        <div className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <span className="mr-3">Supplier: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.supplier_name || '-'}</span></span>
+                            <span>Invoice No: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.invoice_number || '-'}</span></span>
                         </div>
                     </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className={`flex items-center gap-2 px-2 py-1 rounded ${theme === 'dark' ? 'bg-slate-800 text-gray-200' : 'bg-white text-gray-800'} ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
+                            <span className={`text-xs ${Math.abs(liveCalculatedAmount - liveInvoiceAmount) < 0.01 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                Calc: {liveCalculatedAmount.toFixed(2)}
+                            </span>
+                            <span className="text-xs opacity-60">/</span>
+                            <span className="text-xs">Invoice: {liveInvoiceAmount.toFixed(2)}</span>
+                        </div>
+                        <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
+                            <Eye className="w-4 h-4" /> View Image
+                        </button>
+                        {!finalIsReadOnly && user?.role === 'admin' && (
+                            <button onClick={openRetryModal} className={secondaryButtonClasses}>
+                                <RefreshCw className="w-4 h-4" /> Retry
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </header>
 
-                    <div className="space-y-3">
+            <main className="flex-grow py-4 md:py-6 overflow-y-auto">
+                <div className="px-4 sm:px-6 space-y-6 animate-fade-in-up">
+
+                    <div className="space-y-4">
                         {formConfig.map((section) => {
-                            const isOpen = openAccordion === section.id;
+                            const isOpen = openAccordions.has(section.id);
                             return (
-                                <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     <button
-                                        className="w-full flex justify-between items-center p-4 md:p-5 text-left"
-                                        onClick={() => setOpenAccordion(isOpen ? null : section.id)}
+                                        className="w-full flex justify-between items-center px-4 md:px-5 py-3 md:py-4 text-left"
+                                        onClick={() => toggleAccordion(section.id)}
                                     >
-                                        <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
+                                        <h2 className={`text-base md:text-lg font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
                                         <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
                                     </button>
 
@@ -264,10 +312,10 @@ const EditableComponent = ({
                                                 variants={accordionVariants}
                                                 className="overflow-hidden"
                                             >
-                                                <div className={`px-4 md:px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                                                <div className={`px-4 md:px-6 pb-6 border-t pt-5 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
-                                                            tableData={productDetails || []}
+                                                            tableData={Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])}
                                                             tableConfig={itemSummaryConfig}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
@@ -275,7 +323,14 @@ const EditableComponent = ({
                                                             actionColumnHeader="Details"
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
-                                                            onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
+                                                            onDataChange={(newData) => {
+                                                                if (Array.isArray(productDetails)) {
+                                                                    setProductDetails(newData as ProductDetails[]);
+                                                                } else {
+                                                                    const pd: any = productDetails || {};
+                                                                    setProductDetails({ ...pd, items: newData } as any);
+                                                                }
+                                                            }}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -338,6 +393,47 @@ const EditableComponent = ({
                 onSave={handleSaveLineItems}
                 isLoading={isLineItemsLoading}
             />
+            <AnimatePresence>
+                {isValidationOpen && validationInfo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center"
+                    >
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setValidationOpen(false)}></div>
+                        <motion.div
+                            initial={{ scale: 0.92, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.92, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                            className={`relative w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-[#151525] text-gray-100 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
+                        >
+                            <div className={`px-5 py-4 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                                <h3 className="text-base font-semibold tracking-tight">Computed amount does not match invoice amount</h3>
+                            </div>
+                            <motion.div
+                                className="px-5 py-5 text-sm space-y-4"
+                                initial="hidden"
+                                animate="visible"
+                                variants={{ hidden: { transition: { staggerChildren: 0.02, staggerDirection: -1 } }, visible: { transition: { staggerChildren: 0.06 } } }}
+                            >
+                                <motion.p variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
+                                    Please adjust the calculated field(s) so that the computed amount equals the invoice amount.
+                                </motion.p>
+                                <div className="space-y-1.5">
+                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Computed amount</span><span className="font-medium">{validationInfo.computed.toFixed(2)}</span></motion.div>
+                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Invoice amount</span><span className="font-medium">{validationInfo.invoice.toFixed(2)}</span></motion.div>
+                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Difference</span><span className="font-medium">{(validationInfo.computed - validationInfo.invoice).toFixed(2)}</span></motion.div>
+                                </div>
+                            </motion.div>
+                            <div className={`px-5 py-4 border-t flex justify-end gap-2 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                                <button onClick={() => setValidationOpen(false)} className={`px-3.5 py-2 text-sm font-medium rounded-md transition-colors ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15' : 'bg-gray-100 hover:bg-gray-200'}`}>Close</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

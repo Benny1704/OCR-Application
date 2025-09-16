@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Undo, Redo, Info, Save, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
+import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
@@ -70,19 +70,23 @@ const DataTable = ({
     const [copiedCell, setCopiedCell] = useState<CopiedCell | null>(null);
     const [draggedCell, setDraggedCell] = useState<CellIdentifier | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [popupData, setPopupData] = useState<DataItem | null>(null);
+    const [popupData] = useState<DataItem | null>(null);
     const [lastSelected, setLastSelected] = useState<CellIdentifier | null>(null);
     const [showHelp, setShowHelp] = useState(false);
     const [editingCell, setEditingCell] = useState<CellIdentifier | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
+    // Validation UI removed; parent handles any save-time validation
 
     useEffect(() => {
-        setHistory([tableData]);
-        setHistoryIndex(0);
-        setCurrentView(tableData);
-    }, [tableData]);
+        // Initialize or update from external data only when uncontrolled
+        if (!onDataChange) {
+            setHistory([tableData]);
+            setHistoryIndex(0);
+            setCurrentView(tableData);
+        }
+    }, [tableData, onDataChange]);
 
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
         const snoColumn: TableColumnConfig = {
@@ -290,9 +294,7 @@ const DataTable = ({
         return selectedCells.some(c => c.rowIndex === rowIndex && c.colKey === colKey);
     };
 
-    const handleSaveChanges = () => {
-        // setIsJsonPreviewOpen(true);
-    };
+    // Removed internal save handler; saving is managed by parent component
 
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -698,8 +700,16 @@ const DataTable = ({
                 {paginatedData.map((row, rowIndex) => (
                     <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
                         {fixedHeaderKey && (
-                            <td className={`p-2 border-b font-medium sticky left-0 z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
-                                {row[fixedHeaderKey]}
+                            <td
+                                className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-white text-gray-700'}`}
+                                style={{
+                                    zIndex: 40,
+                                    boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
+                                }}
+                            >
+                                <span className={`inline-flex items-center justify-center w-6 h-6 text-[10px] font-semibold rounded-full ${theme === 'dark' ? 'bg-violet-900/40 text-violet-200' : 'bg-violet-100 text-violet-700'}`}>
+                                    {row[fixedHeaderKey]}
+                                </span>
                             </td>
                         )}
                         {movableHeaders.map(label => (
@@ -767,9 +777,6 @@ const DataTable = ({
                 )}
                 {isEditable && (
                     <div className="flex items-center gap-2 flex-wrap justify-center">
-                        <button onClick={handleSaveChanges} className="p-1.5 rounded-md bg-green-500 text-white hover:bg-green-600 flex items-center gap-1.5 text-xs" title="Save Changes">
-                            <Save size={14} /> Save
-                        </button>
                         <button onClick={undo} disabled={historyIndex === 0} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Undo"><Undo size={14} /></button>
                         <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Redo"><Redo size={14} /></button>
                     </div>
@@ -778,20 +785,24 @@ const DataTable = ({
 
             <div className="flex-grow overflow-auto">
                 <table className="w-full border-collapse select-none text-xs md:text-sm">
-                    <thead className={`sticky top-0 z-index ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                    <thead className={`sticky top-0 shadow-sm ${theme === 'dark' ? 'bg-gray-800/95 backdrop-blur supports-[backdrop-filter]:bg-gray-800/80' : 'bg-gray-100/95 backdrop-blur supports-[backdrop-filter]:bg-gray-100/80'}`}
+                        style={{ zIndex: 50 }}
+                    >
                         <tr>
                             {fixedHeaderKey && (
-                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 z-index border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-700' : 'text-gray-700 border-gray-300 bg-gray-200'}`}>
+                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 border-b-2 shadow-sm ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-300 bg-gray-100'}`}
+                                    style={{ zIndex: 60, boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)' }}
+                                >
                                     {getColumnHeader(fixedHeaderKey)}
                                 </th>
                             )}
                             {movableHeaders.map(label => (
-                                <th key={label} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
+                                <th key={label} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
                                     {getColumnHeader(label)}
                                 </th>
                             ))}
                             {renderActionCell && (
-                                <th className={`p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700' : 'text-gray-700 border-gray-200'}`}>
+                                <th className={`p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
                                     {actionColumnHeader}
                                 </th>
                             )}
@@ -818,6 +829,8 @@ const DataTable = ({
                     </div>
                 </div>
             )}
+
+            {/* Validation modal removed; parent component handles validation */}
         </div>
     );
 };
