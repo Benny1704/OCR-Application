@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend, Sector } from 'recharts';
 import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
-import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
@@ -84,102 +83,22 @@ interface CustomTooltipProps {
   formatter?: (value: any) => string;
 }
 
-const container: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            duration: 0.4,
-            staggerChildren: 0.1,
-            delayChildren: 0.2
-        }
-    }
-};
-
-const item: Variants = {
-    hidden: {
-        opacity: 0,
-        y: 30,
-        scale: 0.95
-    },
-    visible: {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: {
-            duration: 0.5,
-            ease: [0.22, 1, 0.36, 1]
-        }
-    }
-};
-
-const card: Variants = {
-    hidden: {
-        opacity: 0,
-        y: 25,
-        scale: 0.94
-    },
-    visible: {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: {
-            duration: 0.4,
-            ease: [0.25, 1, 0.5, 1]
-        }
-    }
-};
-
-const header: Variants = {
-    hidden: {
-        opacity: 0,
-        y: -20
-    },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.5,
-            ease: "easeOut"
-        }
-    }
-};
-
 const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
     const { theme } = useTheme();
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
 
     return (
-        <motion.div
-            variants={card}
+        <div
             className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/40 border border-gray-700/40 hover:border-violet-500/50'
                     : 'bg-gradient-to-br from-white to-gray-50/70 border border-gray-200/60 hover:border-violet-400/50'
             } hover:shadow-xl hover:shadow-violet-500/15`}
-            whileHover={{
-                y: -2,
-                transition: { duration: 0.2, ease: "easeOut" }
-            }}
         >
-            {/* Pulse Animation for Positive Change */}
-            {changeType === 'increase' && (
-                <div className="absolute top-4 right-4 w-2 h-2 bg-green-400 rounded-full animate-pulse">
-                    <div className="absolute inset-0 bg-green-400 rounded-full animate-ping" />
-                </div>
-            )}
-
             <div className="relative p-5 h-full flex flex-col justify-between">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{
-                            delay: index * 0.1 + 0.3,
-                            duration: 0.3,
-                            ease: "backOut"
-                        }}
+                    <div
                         className={`relative p-2.5 rounded-xl ${
                             theme === 'dark'
                                 ? 'bg-gradient-to-br from-gray-700/60 to-gray-800/40'
@@ -188,7 +107,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                     >
                         <Icon className="w-5 h-5 text-violet-500 drop-shadow-sm" />
                         <div className="absolute inset-0 bg-violet-200 opacity-15 rounded-xl blur-sm" />
-                    </motion.div>
+                    </div>
 
                     <div className="text-right">
                         <h4 className={`font-medium text-sm ${
@@ -205,13 +124,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                 </div>
 
                 {/* Value Display */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                        delay: index * 0.1 + 0.4,
-                        duration: 0.25
-                    }}
+                <div
                     className="flex-1 flex flex-col justify-end"
                 >
                     <p className={`text-3xl font-bold tracking-tight ${
@@ -237,9 +150,9 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: Met
                             </p>
                         </div>
                     )}
-                </motion.div>
+                </div>
             </div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -263,8 +176,8 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
         <Menu as="div" className="relative inline-block text-left z-50">
             <div>
                 <Menu.Button className={`inline-flex justify-center w-full p-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                    theme === 'dark' 
-                        ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50' 
+                    theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 } focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/75`}>
                     <MoreVertical className="w-4 h-4" />
@@ -294,9 +207,9 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Top
                             </label>
-                            <select 
-                                value={topN} 
-                                onChange={(e) => setTopN(parseInt(e.target.value))} 
+                            <select
+                                value={topN}
+                                onChange={(e) => setTopN(parseInt(e.target.value))}
                                 className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                     theme === 'dark'
                                         ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -310,9 +223,9 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Year
                             </label>
-                            <select 
-                                value={selectedYear} 
-                                onChange={(e) => setSelectedYear(parseInt(e.target.value))} 
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                                 className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                     theme === 'dark'
                                         ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -326,9 +239,9 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Month
                             </label>
-                            <select 
-                                value={selectedMonth} 
-                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))} 
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
                                 className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                     theme === 'dark'
                                         ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -353,8 +266,8 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
         <Menu as="div" className="relative inline-block text-left z-50">
             <div>
                 <Menu.Button className={`inline-flex justify-center w-full p-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                    theme === 'dark' 
-                        ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50' 
+                    theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 } focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/75`}>
                     <MoreVertical className="w-4 h-4" />
@@ -398,23 +311,14 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                     {filterType === 'yearly' ? 'Yearly Range' : 'Monthly View'}
                                 </p>
                             </div>
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={filterType}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                                    className="overflow-hidden"
-                                >
                                     {filterType === 'monthly' ? (
                                         <div className="px-4 py-3">
                                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                 Year
                                             </label>
-                                            <select 
-                                                value={selectedYear} 
-                                                onChange={(e) => setSelectedYear(parseInt(e.target.value))} 
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                                                 className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                                     theme === 'dark'
                                                         ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -430,9 +334,9 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                                 <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                     From Year
                                                 </label>
-                                                <select 
-                                                    value={fromYear} 
-                                                    onChange={(e) => setFromYear(parseInt(e.target.value))} 
+                                                <select
+                                                    value={fromYear}
+                                                    onChange={(e) => setFromYear(parseInt(e.target.value))}
                                                     className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                                         theme === 'dark'
                                                             ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -446,9 +350,9 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                                 <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                     To Year
                                                 </label>
-                                                <select 
-                                                    value={toYear} 
-                                                    onChange={(e) => setToYear(parseInt(e.target.value))} 
+                                                <select
+                                                    value={toYear}
+                                                    onChange={(e) => setToYear(parseInt(e.target.value))}
                                                     className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
                                                         theme === 'dark'
                                                             ? 'border-gray-600 bg-gray-700/80 text-gray-200'
@@ -460,8 +364,6 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                             </div>
                                         </div>
                                     )}
-                                </motion.div>
-                            </AnimatePresence>
                         </>
                     )}
                 </Menu.Items>
@@ -495,17 +397,12 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
     const hasData = data && data.length > 0;
 
     return (
-        <motion.div
-            variants={item}
+        <div
             className={`relative p-6 rounded-2xl shadow-xl border backdrop-blur-sm transition-all duration-300 hover:shadow-2xl ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border-gray-700/40 hover:border-gray-600/60'
                     : 'bg-gradient-to-br from-white/90 to-gray-50/50 border-gray-200/50 hover:border-gray-300/70'
             } ${fullWidth ? 'lg:col-span-2' : ''}`}
-            whileHover={{
-                y: -1,
-                transition: { duration: 0.2, ease: "easeOut" }
-            }}
         >
             <div className="relative z-20 flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -535,14 +432,11 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
                         <ErrorDisplay message={error} onRetry={onRetry} />
                     </div>
                 ) : hasData ? (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                    <div
                         className="w-full h-full"
                     >
                         {children}
-                    </motion.div>
+                    </div>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
                         <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -551,7 +445,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
                     </div>
                 )}
             </div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -704,7 +598,7 @@ const Dashboard = () => {
                 const sortedData = [...transformedData].sort((a, b) => b.value - a.value);
                 const topN = sortedData.slice(0, spendByVendorTopN);
                 const othersSum = sortedData.slice(spendByVendorTopN).reduce((acc, curr) => acc + curr.value, 0);
-                
+
                 const finalData = [...topN];
                 if (othersSum > 0) {
                     finalData.push({ name: 'Others', value: othersSum });
@@ -731,7 +625,7 @@ const Dashboard = () => {
                 const sortedData = [...transformedData].sort((a, b) => b.value - a.value);
                 const topN = sortedData.slice(0, discountByVendorTopN);
                 const others = sortedData.slice(discountByVendorTopN);
-                
+
                 const finalData = [...topN];
                 if (others.length > 0) {
                     // For percentages, an average is more appropriate for the "Others" category
@@ -794,13 +688,13 @@ const Dashboard = () => {
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                    <Pie 
-                        data={processedData} 
-                        dataKey="value" 
-                        nameKey="name" 
-                        cx="35%" 
-                        cy="50%" 
-                        outerRadius="80%" 
+                    <Pie
+                        data={processedData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="35%"
+                        cy="50%"
+                        outerRadius="80%"
                         labelLine={false}
                         label={renderCustomizedLabel}
                     >
@@ -823,13 +717,13 @@ const Dashboard = () => {
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                    <Pie 
-                        data={processedData} 
-                        dataKey="value" 
-                        nameKey="name" 
-                        cx="35%" 
-                        cy="50%" 
-                        outerRadius="80%" 
+                    <Pie
+                        data={processedData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="35%"
+                        cy="50%"
+                        outerRadius="80%"
                         labelLine={false}
                         label={renderCustomizedLabel}
                     >
@@ -845,42 +739,33 @@ const Dashboard = () => {
     };
 
     return (
-        <motion.div
+        <div
             className="flex flex-col gap-6"
-            variants={container}
-            initial="hidden"
-            animate="visible"
         >
             {/* Header Section */}
-            <motion.div
+            <div
                 className="flex flex-col md:flex-row justify-between md:items-center gap-4"
-                variants={header}
             >
                 <div>
                     <h1 className={`text-3xl md:text-4xl font-bold tracking-tight ${textHeader} mb-2`}>
                         Insights
                     </h1>
                     <p className={`text-sm ${textSecondary}`}>
-                        Welcome back, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>! 
+                        Welcome back, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>!
                         Here's your business insights.
                     </p>
                 </div>
-                <motion.button
+                <button
                     onClick={() => navigate('/upload')}
                     className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/25 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm group"
-                    whileHover={{
-                        y: -1,
-                        transition: { duration: 0.2 }
-                    }}
-                    whileTap={{ scale: 0.98 }}
                 >
                     <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300"/>
                     <span>Upload Invoice</span>
-                </motion.button>
-            </motion.div>
+                </button>
+            </div>
 
             {/* KPI Cards Section */}
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={item}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 { kpiError ? (
                     <div className={`md:col-span-2 p-6 rounded-2xl shadow-lg border ${
                         theme === 'dark'
@@ -902,15 +787,15 @@ const Dashboard = () => {
                         />
                     ))
                 )}
-            </motion.div>
+            </div>
 
             {/* Status Table Section */}
-            <motion.div variants={item}>
+            <div>
                 <DashboardStatusTable />
-            </motion.div>
+            </div>
 
             {/* Financial Charts Section */}
-            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={item}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ChartCard
                     title="Invoice Amount"
                     icon={Banknote}
@@ -936,36 +821,36 @@ const Dashboard = () => {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis 
-                                dataKey={financialFilterType === 'monthly' ? 'month' : 'year'} 
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} 
-                                fontSize={11} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <XAxis
+                                dataKey={financialFilterType === 'monthly' ? 'month' : 'year'}
+                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                fontSize={11}
+                                tickLine={false}
+                                axisLine={false}
                             />
-                            <YAxis 
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} 
-                                fontSize={11} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <YAxis
+                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                fontSize={11}
+                                tickLine={false}
+                                axisLine={false}
                                 tickFormatter={formatAxisValue}
                             />
                             <Tooltip
                                 cursor={{fill: 'rgba(139, 92, 246, 0.1)'}}
-                                contentStyle={{ 
-                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', 
-                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, 
+                                contentStyle={{
+                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
                                     borderRadius: '0.75rem',
                                     fontSize: '12px'
                                 }}
                                 formatter={(value: number) => formatTooltipIndianCurrency(value)}
                             />
-                            <Bar 
-                                dataKey="expense" 
-                                fill="url(#expenseGradient)" 
-                                name="Expense" 
-                                radius={[4, 4, 0, 0]} 
-                                barSize={16} 
+                            <Bar
+                                dataKey="expense"
+                                fill="url(#expenseGradient)"
+                                name="Expense"
+                                radius={[4, 4, 0, 0]}
+                                barSize={16}
                             />
                         </BarChart>
                     </ResponsiveContainer>
@@ -996,45 +881,45 @@ const Dashboard = () => {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis 
-                                dataKey={invoiceFilterType === 'monthly' ? 'month' : 'year'} 
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} 
-                                fontSize={11} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <XAxis
+                                dataKey={invoiceFilterType === 'monthly' ? 'month' : 'year'}
+                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                fontSize={11}
+                                tickLine={false}
+                                axisLine={false}
                             />
-                            <YAxis 
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} 
-                                fontSize={11} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <YAxis
+                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                fontSize={11}
+                                tickLine={false}
+                                axisLine={false}
                             />
                             <Tooltip
                                 cursor={{stroke: 'rgba(139, 92, 246, 0.2)', strokeWidth: 2}}
-                                contentStyle={{ 
-                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', 
-                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, 
+                                contentStyle={{
+                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
                                     borderRadius: '0.75rem',
                                     fontSize: '12px'
                                 }}
                                 formatter={(value: number) => `${value} invoices`}
                             />
-                            <Line 
-                                type="monotone" 
-                                dataKey="count" 
-                                stroke="#a78bfa" 
-                                strokeWidth={2.5} 
-                                dot={{ r: 4, strokeWidth: 2, fill: theme === 'dark' ? '#1C1C2E' : '#fff' }} 
-                                activeDot={{ r: 6 }} 
-                                name="Invoices" 
+                            <Line
+                                type="monotone"
+                                dataKey="count"
+                                stroke="#a78bfa"
+                                strokeWidth={2.5}
+                                dot={{ r: 4, strokeWidth: 2, fill: theme === 'dark' ? '#1C1C2E' : '#fff' }}
+                                activeDot={{ r: 6 }}
+                                name="Invoices"
                             />
                         </LineChart>
                     </ResponsiveContainer>
                 </ChartCard>
-            </motion.div>
+            </div>
 
             {/* Vendor Charts Section - Same Row */}
-            <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={item}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ChartCard
                     title="Spending by Vendor"
                     icon={TrendingUp}
@@ -1072,8 +957,8 @@ const Dashboard = () => {
                 >
                    {renderDiscountChart()}
                 </ChartCard>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 }
 

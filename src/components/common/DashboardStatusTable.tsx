@@ -4,7 +4,6 @@ import { CheckCircle2, FileClock, XCircle, Loader2, AlertCircle, ArrowRight, Fil
 import { useNavigate } from 'react-router-dom';
 import { getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
-import { motion, type Variants } from 'framer-motion';
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -38,59 +37,13 @@ const StatusCard = ({
 }) => {
     const { theme } = useTheme();
 
-    const cardVariants: Variants = {
-        hidden: { opacity: 0, y: 30, scale: 0.9 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            transition: {
-                delay: index * 0.15,
-                duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const iconVariants: Variants = {
-        hidden: { scale: 0, rotate: -180 },
-        visible: {
-            scale: 1,
-            rotate: 0,
-            transition: {
-                delay: index * 0.15 + 0.3,
-                duration: 0.5,
-                ease: "backOut"
-            }
-        }
-    };
-
-    const countVariants: Variants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: index * 0.15 + 0.4,
-                duration: 0.4
-            }
-        }
-    };
-
     return (
-        <motion.div
-            variants={cardVariants}
+        <div
             className={`group relative overflow-hidden rounded-3xl cursor-pointer transition-all duration-500 ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border border-gray-700/30 hover:border-violet-500/40'
                     : 'bg-gradient-to-br from-white to-gray-50/50 border border-gray-200/50 hover:border-violet-400/40'
             } hover:shadow-2xl hover:shadow-violet-500/10`}
-            whileHover={{
-                y: -8,
-                scale: 1.02,
-                transition: { duration: 0.3, ease: "easeOut" }
-            }}
-            whileTap={{ scale: 0.98 }}
             onClick={onClick}
         >
             <div className="absolute inset-0 opacity-5">
@@ -98,17 +51,10 @@ const StatusCard = ({
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full -mr-16 -mt-16" />
             </div>
 
-            {(title === 'In Queue' && count > 0) && (
-                <div className={`absolute top-4 right-4 w-3 h-3 ${pulseColor} rounded-full animate-pulse`}>
-                    <div className={`absolute inset-0 ${pulseColor} rounded-full animate-ping`} />
-                </div>
-            )}
-
             <div className="relative p-6 h-full flex flex-col justify-between">
                 <div>
                     <div className="flex items-start justify-between mb-4">
-                        <motion.div
-                            variants={iconVariants}
+                        <div
                             className={`relative p-3 rounded-2xl ${
                                 theme === 'dark'
                                     ? 'bg-gradient-to-br from-gray-700/50 to-gray-800/30'
@@ -117,7 +63,7 @@ const StatusCard = ({
                         >
                             <Icon className={`w-6 h-6 ${color} drop-shadow-sm`} />
                             <div className={`absolute inset-0 ${color.replace('text-', 'bg-').replace('-400', '-200').replace('-500', '-200')} opacity-20 rounded-2xl blur-md`} />
-                        </motion.div>
+                        </div>
 
                         <div className="text-right">
                             <h4 className={`font-medium text-sm ${
@@ -133,11 +79,11 @@ const StatusCard = ({
                         </div>
                     </div>
 
-                    <motion.div variants={countVariants}>
+                    <div>
                         {isLoading ? (
                             <div className="flex items-center space-x-2 mt-4">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                                <div className={`h-8 w-16 rounded-lg animate-pulse ${
+                                <div className={`h-8 w-16 rounded-lg ${
                                     theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
                                 }`} />
                             </div>
@@ -150,15 +96,12 @@ const StatusCard = ({
                                 </p>
                             </div>
                         )}
-                    </motion.div>
+                    </div>
                 </div>
 
                 {/* MODIFICATION: Improved layout for status indicators and action button. */}
-                <motion.div
+                <div
                     className="flex items-center justify-between mt-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: index * 0.15 + 0.6 }}
                 >
                     <div className="flex-1">
                         {!isLoading && count > 0 && title === 'In Queue' && (
@@ -179,9 +122,9 @@ const StatusCard = ({
                         <span className="mr-1">View</span>
                         <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
                     </div>
-                </motion.div>
+                </div>
             </div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -229,26 +172,6 @@ const DashboardStatusTable = () => {
     useEffect(() => {
         fetchSummary();
     }, [fetchSummary]);
-
-    const containerVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1,
-                delayChildren: 0.2
-            }
-        }
-    };
-
-    const headerVariants: Variants = {
-        hidden: { opacity: 0, y: -20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.6, ease: "easeOut" }
-        }
-    };
 
     const handleNavigation = (tab: 'Queued' | 'Processed' | 'Failed' | 'Completed') => {
         if (tab === 'Completed') {
@@ -301,21 +224,15 @@ const DashboardStatusTable = () => {
         }
     ];
 
-    // const totalDocuments = counts.queued + counts.processed + counts.failed + counts.completed;
-    // const completionRate = totalDocuments > 0 ? ((counts.completed / totalDocuments) * 100).toFixed(1) : '0';
-
     return (
-        <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+        <div
             className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
                     : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
             }`}
         >
-            <motion.div variants={headerVariants} className="relative z-10 mb-8">
+            <div className="relative z-10 mb-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h3 className={`text-2xl font-bold ${
@@ -329,30 +246,16 @@ const DashboardStatusTable = () => {
                             Real-time processing overview
                         </p>
                     </div>
-                    {/* <div className="text-right">
-                        <div className={`text-3xl font-black ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>
-                            {completionRate}%
-                        </div>
-                        <div className={`text-xs font-medium ${
-                            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                            Success Rate
-                        </div>
-                    </div> */}
                 </div>
-            </motion.div>
+            </div>
 
             {error && !isLoading && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="relative z-10 flex items-center gap-3 p-4 mb-6 rounded-2xl bg-gradient-to-r from-red-500/10 to-red-600/5 border border-red-500/20"
                 >
                     <AlertCircle className="w-6 h-6 text-red-400" />
                     <span className="font-medium text-red-400">{error}</span>
-                </motion.div>
+                </div>
             )}
 
             <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -375,17 +278,13 @@ const DashboardStatusTable = () => {
 
             {/* MODIFICATION: Updated bottom stats bar with accurate "Last Updated" time and a refresh button. */}
             {!isLoading && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8, duration: 0.5 }}
+                <div
                     className="relative z-10 mt-8 pt-6 border-t border-gray-200/20"
                 >
                     <div className="flex items-center justify-between text-sm">
                         <div className={`flex items-center space-x-4 ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                            {/* <span>Total Documents: <strong className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{totalDocuments}</strong></span> */}
                             <span>•</span>
                             <span>Last Updated: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
                              <button
@@ -397,7 +296,7 @@ const DashboardStatusTable = () => {
                             </button>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                            <div className="w-2 h-2 bg-green-400 rounded-full" />
                             <span className={`text-xs font-medium ${
                                 theme === 'dark' ? 'text-green-400' : 'text-green-600'
                             }`}>
@@ -405,9 +304,9 @@ const DashboardStatusTable = () => {
                             </span>
                         </div>
                     </div>
-                </motion.div>
+                </div>
             )}
-        </motion.div>
+        </div>
     );
 };
 

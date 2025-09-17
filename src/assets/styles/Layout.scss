@@ -16,7 +16,7 @@
   height: 100vh;
   width: 110px;
   position: relative;
-  z-index: 1000; /* Ensure sidenav (and tooltip) stacks above main content */
+  z-index: 100;
   display: grid;
   grid-template-rows: 15vh 70vh 15vh;
   grid-template-columns: 80px;
