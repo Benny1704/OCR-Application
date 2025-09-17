@@ -1,46 +1,89 @@
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
 import EditableComponent from '../components/common/EditableComponent';
-import {
-    type InvoiceDetails,
-    type ProductDetails,
-    type AmountAndTaxDetails,
-} from '../interfaces/Types';
-
-const initialEmptyInvoiceDetails: InvoiceDetails = {
-    invoice_id: 0, invoice_number: '', irn: '', invoice_date: null, way_bill: '',
-    acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
-    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
-};
-
-const initialEmptyProductDetails: ProductDetails[] = [];
-
-const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
-    meta_id: 0,
-    invoice_amount: 0,
-    taxable_value: 0,
-    cgst_amount: 0,
-    sgst_amount: 0,
-    igst_amount: 0,
-    igst_percentage: null,
-    total_tax_amount: 0,
-    other_deductions: 0,
-    freight_charges: 0,
-    other_charges: 0,
-    round_off_amount: 0,
-};
-
+import ErrorDisplay from '../components/common/ErrorDisplay';
+import Loader from '../components/common/Loader';
+import { useToast } from '../hooks/useToast';
+import { getInvoiceConfig, getInvoiceMetaConfig, getItemSummaryConfig, getItemAttributesConfig } from '../lib/api/Api';
+import type { FormSection, FormField } from '../interfaces/Types';
 
 const ManualEntry = () => {
-    const location = useLocation();
-    return (
-        <EditableComponent
-            isManual={true}
-            initialInvoiceDetails={initialEmptyInvoiceDetails}
-            initialProductDetails={initialEmptyProductDetails}
-            initialAmountAndTaxDetails={initialEmptyAmountAndTaxDetails}
-            messageId={location.state?.messageId}
-        />
-    );
+    const [formConfig, setFormConfig] = useState<FormSection[] | null>(null);
+    const [itemSummaryConfig, setItemSummaryConfig] = useState<{ columns: FormField[] } | null>(null);
+    const [itemAttributesConfig, setItemAttributesConfig] = useState<{ columns: FormField[] } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { addToast } = useToast();
+
+    const fetchConfig = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const [
+                invoiceConfigData,
+                invoiceMetaConfigData,
+                itemSummaryConfigData,
+                itemAttributesConfigData,
+            ] = await Promise.all([
+                getInvoiceConfig(addToast),
+                getInvoiceMetaConfig(addToast),
+                getItemSummaryConfig(addToast),
+                getItemAttributesConfig(addToast),
+            ]);
+
+            // Construct formConfig
+            const fetchedFormConfig: FormSection[] = [
+                {
+                    id: 'supplier_invoice',
+                    title: 'Supplier & Invoice Details',
+                    fields: invoiceConfigData.fields,
+                },
+                {
+                    id: 'product_details',
+                    title: 'Product Details',
+                },
+                {
+                    id: 'amount_details',
+                    title: 'Amount & Tax Details',
+                    fields: invoiceMetaConfigData.fields,
+                },
+            ];
+
+            setFormConfig(fetchedFormConfig);
+            setItemSummaryConfig({ columns: itemSummaryConfigData.fields });
+            setItemAttributesConfig({ columns: itemAttributesConfigData.fields });
+
+        } catch (err: any) {
+            setError(err.message || "An unknown error occurred while fetching the form configuration.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [addToast]);
+
+    useEffect(() => {
+        fetchConfig();
+    }, [fetchConfig]);
+
+    if (isLoading) {
+        return <Loader type="wifi" />;
+    }
+
+    if (error) {
+        return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchConfig} /></div>;
+    }
+
+    if (formConfig && itemSummaryConfig && itemAttributesConfig) {
+        return (
+            <EditableComponent
+                isManual={true}
+                messageId=""
+                formConfig={formConfig}
+                itemSummaryConfig={itemSummaryConfig}
+                itemAttributesConfig={itemAttributesConfig}
+            />
+        );
+    }
+
+    return <div className="p-4"><ErrorDisplay message="Could not display the manual entry form." onRetry={fetchConfig} /></div>;
 };
 
 export default ManualEntry;

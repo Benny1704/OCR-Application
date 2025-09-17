@@ -46,6 +46,21 @@ export const pageVariants: Variants = {
   },
 };
 
+export const cardVariants: Variants = {
+    initial: {
+        opacity: 0,
+        y: 20
+    },
+    in: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.5,
+            ease: "easeInOut"
+        }
+    }
+};
+
 export const imageTransitionVariants: Variants = {
   enter: (direction: number) => ({
     x: direction > 0 ? 100 : -100,

@@ -205,3 +205,19 @@ export interface Log {
   action: string;
   details: string;
 }
+
+
+// --- UI Config Interfaces ---
+export interface FormField {
+    key: string;
+    label: string;
+    isEditable?: boolean;
+    isRequired?: boolean;
+    isCalculated?: boolean;
+}
+
+export interface FormSection {
+    id: 'supplier_invoice' | 'product_details' | 'amount_details';
+    title: string;
+    fields?: FormField[];
+}

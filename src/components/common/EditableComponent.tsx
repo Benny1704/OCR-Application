@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { RefreshCw, Save, Eye, ChevronDown, Check } from 'lucide-react';
+import { RefreshCw, Save, Eye, ChevronDown, Check, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem } from '../../interfaces/Types';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, FormSection, FormField } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
-import { formConfig, itemSummaryConfig } from '../../lib/config/Config';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep, isEqual } from 'lodash';
 import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, confirmInvoice } from '../../lib/api/Api';
@@ -42,6 +41,9 @@ type EditableComponentProps = {
     amountError?: string | null;
     onRetry?: () => void;
     messageId: string;
+    formConfig: FormSection[];
+    itemSummaryConfig: { columns: FormField[] };
+    itemAttributesConfig: { columns: FormField[] };
 };
 
 const EditableComponent = ({
@@ -51,7 +53,10 @@ const EditableComponent = ({
     initialAmountAndTaxDetails,
     isReadOnly = false,
     onRetry,
-    messageId
+    messageId,
+    formConfig,
+    itemSummaryConfig,
+    itemAttributesConfig
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -97,8 +102,8 @@ const EditableComponent = ({
         const initialAmt = isManual ? initialEmptyAmountAndTaxDetails : initialAmountAndTaxDetails;
 
         const hasChanged = !isEqual(initialInv, invoiceDetails) ||
-                           !isEqual(initialProd, productDetails) ||
-                           !isEqual(initialAmt, amountDetails);
+            !isEqual(initialProd, productDetails) ||
+            !isEqual(initialAmt, amountDetails);
         setIsDirty(hasChanged);
     }, [invoiceDetails, productDetails, amountDetails, initialInvoiceDetails, initialProductDetails, initialAmountAndTaxDetails, isManual]);
 
@@ -128,7 +133,7 @@ const EditableComponent = ({
             });
         }
     };
-    
+
     const handleViewImage = () => {
         addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     };
@@ -160,12 +165,12 @@ const EditableComponent = ({
             const lineItems = await getLineItems(invoiceIdNum, product.item_id, addToast);
             setSelectedProduct({ ...product, line_items: lineItems || [] });
         } catch (err: any) {
-            addToast({ type: "error", message: err.message || "Failed to fetch line items."});
+            addToast({ type: "error", message: err.message || "Failed to fetch line items." });
         } finally {
             setIsLineItemsLoading(false);
         }
     };
-    
+
     const handleSaveLineItems = async (updatedLineItems: LineItem[]) => {
         if (!selectedProduct) return;
 
@@ -197,7 +202,7 @@ const EditableComponent = ({
             </button>
         );
     };
-    
+
     const accordionVariants: Variants = {
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
         collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
@@ -213,36 +218,52 @@ const EditableComponent = ({
             return next;
         });
     };
-    
-    const handleValidateAndSave = async () => {
+
+    const handleSave = async () => {
         if (!invoiceId) return;
 
+        const invoiceIdNum = parseInt(invoiceId, 10);
+
+        try {
+            const [savedInvoice, savedProducts, savedAmount] = await Promise.all([
+                updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
+                updateProductDetails(invoiceIdNum, productDetails, addToast),
+                updateAmountAndTaxDetails(invoiceIdNum, amountDetails, addToast),
+            ]);
+
+            if (savedInvoice) setInvoiceDetails(savedInvoice);
+            if (savedProducts) setProductDetails(savedProducts);
+            if (savedAmount) setAmountDetails(savedAmount);
+
+            if (savedInvoice && savedProducts && savedAmount) {
+                addToast({ type: 'success', message: 'Invoice saved successfully!' });
+                navigate('/document');
+            } else {
+                addToast({ type: 'error', message: 'An error occurred while saving. Please try again.' });
+            }
+        } catch (error: any) {
+            addToast({ type: 'error', message: `An error occurred while saving: ${error.message}` });
+        }
+    }
+
+    const handleValidateAndSave = async () => {
         // Cross-check live calculated vs invoice amount before saving
         const computed = liveCalculatedAmount;
         const invoiceAmt = liveInvoiceAmount;
+
         if (Math.abs(computed - invoiceAmt) >= 0.01) {
             setValidationInfo({ computed, invoice: invoiceAmt });
             setValidationOpen(true);
             return;
         }
-
-        const invoiceIdNum = parseInt(invoiceId, 10);
-
-        const [savedInvoice, savedProducts, savedAmount] = await Promise.all([
-            updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-            updateProductDetails(invoiceIdNum, productDetails, addToast),
-            updateAmountAndTaxDetails(invoiceIdNum, amountDetails, addToast),
-        ]);
-
-        if (savedInvoice) setInvoiceDetails(savedInvoice);
-        if (savedProducts) setProductDetails(savedProducts);
-        if (savedAmount) setAmountDetails(savedAmount);
-
-        if (savedInvoice && savedProducts && savedAmount) {
-            navigate('/document');
-        }
+        await handleSave();
     };
-    
+
+    const handleForceSave = async () => {
+        setValidationOpen(false);
+        await handleSave();
+    }
+
     const handleConfirm = async () => {
         if (!messageId) {
             addToast({ type: 'error', message: 'Message ID not found.' });
@@ -253,7 +274,7 @@ const EditableComponent = ({
             navigate('/document');
         }
     };
-    
+
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
             {/* Sticky Header */}
@@ -359,25 +380,25 @@ const EditableComponent = ({
             </main>
 
             {!finalIsReadOnly && (
-              <footer className={`flex-shrink-0 py-4 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                  <div className="px-6 flex justify-end">
-                      {(isDirty || isManual) ? (
-                          <button
-                              onClick={handleValidateAndSave}
-                              className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
-                          >
-                              <Save className="w-5 h-5" /> Save
-                          </button>
-                      ) : (
-                          <button
-                              onClick={handleConfirm}
-                              className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
-                          >
-                              <Check className="w-5 h-5" /> Confirm
-                          </button>
-                      )}
-                  </div>
-              </footer>
+                <footer className={`flex-shrink-0 py-4 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+                    <div className="px-6 flex justify-end">
+                        {(isDirty || isManual) ? (
+                            <button
+                                onClick={handleValidateAndSave}
+                                className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
+                            >
+                                <Save className="w-5 h-5" /> Save
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleConfirm}
+                                className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
+                            >
+                                <Check className="w-5 h-5" /> Confirm
+                            </button>
+                        )}
+                    </div>
+                </footer>
             )}
 
             <RetryModal
@@ -392,6 +413,7 @@ const EditableComponent = ({
                 product={selectedProduct}
                 onSave={handleSaveLineItems}
                 isLoading={isLineItemsLoading}
+                itemAttributesConfig={itemAttributesConfig}
             />
             <AnimatePresence>
                 {isValidationOpen && validationInfo && (
@@ -399,36 +421,68 @@ const EditableComponent = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center"
+                        className="fixed inset-0 z-100 flex items-center justify-center p-4"
                     >
-                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setValidationOpen(false)}></div>
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setValidationOpen(false)}
+                        ></div>
                         <motion.div
-                            initial={{ scale: 0.92, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.92, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                            className={`relative w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-[#151525] text-gray-100 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-slate-900 text-gray-100 ring-slate-700' : 'bg-white text-gray-900 ring-slate-200'
+                                }`}
                         >
-                            <div className={`px-5 py-4 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                                <h3 className="text-base font-semibold tracking-tight">Computed amount does not match invoice amount</h3>
-                            </div>
-                            <motion.div
-                                className="px-5 py-5 text-sm space-y-4"
-                                initial="hidden"
-                                animate="visible"
-                                variants={{ hidden: { transition: { staggerChildren: 0.02, staggerDirection: -1 } }, visible: { transition: { staggerChildren: 0.06 } } }}
-                            >
-                                <motion.p variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
-                                    Please adjust the calculated field(s) so that the computed amount equals the invoice amount.
-                                </motion.p>
-                                <div className="space-y-1.5">
-                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Computed amount</span><span className="font-medium">{validationInfo.computed.toFixed(2)}</span></motion.div>
-                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Invoice amount</span><span className="font-medium">{validationInfo.invoice.toFixed(2)}</span></motion.div>
-                                    <motion.div variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }} className="flex justify-between"><span className="opacity-70">Difference</span><span className="font-medium">{(validationInfo.computed - validationInfo.invoice).toFixed(2)}</span></motion.div>
+                            <div className="p-6 text-center">
+                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
+                                    <AlertTriangle className="h-8 w-8 text-red-600" />
                                 </div>
-                            </motion.div>
-                            <div className={`px-5 py-4 border-t flex justify-end gap-2 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                                <button onClick={() => setValidationOpen(false)} className={`px-3.5 py-2 text-sm font-medium rounded-md transition-colors ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15' : 'bg-gray-100 hover:bg-gray-200'}`}>Close</button>
+                                <h3 className="mt-5 text-2xl font-bold tracking-tight">
+                                    Amount Mismatch
+                                </h3>
+                                <p className={`mt-3 text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    The calculated total from product items does not match the invoice total.
+                                </p>
+                            </div>
+
+                            <div className={`px-6 pb-6 space-y-4 text-base ${theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-50'
+                                }`}>
+                                <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Computed Amount</span>
+                                    <span className="font-mono text-lg font-semibold text-sky-400">
+                                        {validationInfo.computed.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Invoice Amount</span>
+                                    <span className="font-mono text-lg font-semibold text-emerald-400">
+                                        {validationInfo.invoice.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-3">
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Difference</span>
+                                    <span className="font-mono text-lg font-semibold text-red-500">
+                                        {(validationInfo.computed - validationInfo.invoice).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className={`px-6 py-4 flex justify-end gap-3 ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
+                                <button
+                                    onClick={() => setValidationOpen(false)}
+                                    className={`px-5 py-2.5 text-base font-semibold rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                                        }`}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={handleForceSave}
+                                    className="px-5 py-2.5 text-base font-semibold rounded-lg transition-all bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                >
+                                    Force Save
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>

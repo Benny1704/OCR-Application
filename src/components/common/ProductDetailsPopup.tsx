@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import type { ProductDetailPopupProps, LineItem, DataItem } from '../../interfaces/Types';
+import type { ProductDetailPopupProps, LineItem, DataItem, FormField } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
 import { Save, AlertTriangle, Eye } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal } from './Helper';
-import { itemAttributesConfig } from '../../lib/config/Config';
 
-const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onViewImage }: any) => {
+const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onViewImage, itemAttributesConfig }: any) => {
     const { theme } = useTheme();
     const [lineItems, setLineItems] = useState<LineItem[]>([]);
     const [initialLineItems, setInitialLineItems] = useState<LineItem[]>([]);
@@ -58,7 +57,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onVie
     return (
         <>
             <div
-                className="fixed inset-0 bg-black/70 backdrop-blur-xl z-50 flex justify-center items-center p-4 transition-opacity duration-300"
+                className="fixed inset-0 bg-black/70 backdrop-blur-xl z-100 flex justify-center items-center p-4 transition-opacity duration-300"
                 onClick={handleClose}
             >
                 <div

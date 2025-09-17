@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument } from '../../interfaces/Types';
+import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField } from '../../interfaces/Types';
 
 // --- Base URLs ---
 const API_URL = import.meta.env.VITE_API_URL;
@@ -379,3 +379,44 @@ export const confirmInvoice = async (messageId: string, addToast: any): Promise<
         return false;
     }
 };
+
+// --- UI Config API Functions ---
+export const getInvoiceConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+    try {
+        const response = await api.get('/ui_configs/invoice');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return { fields: [] };
+    }
+}
+
+export const getInvoiceMetaConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+    try {
+        const response = await api.get('/ui_configs/invoiceMeta');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return { fields: [] };
+    }
+}
+
+export const getItemSummaryConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+    try {
+        const response = await api.get('/ui_configs/itemSummary');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return { fields: [] };
+    }
+}
+
+export const getItemAttributesConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+    try {
+        const response = await api.get('/ui_configs/itemAttributes');
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        return { fields: [] };
+    }
+}
