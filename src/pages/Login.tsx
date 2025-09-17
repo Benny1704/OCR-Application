@@ -3,7 +3,7 @@ import { User, Lock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import brandLogo from '../assets/images/logo.png';
+import brandLogo from '../assets/images/RMKV_logo.png';
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 const containerVariants: Variants = {
@@ -59,9 +59,9 @@ const Login = () => {
         animate="visible"
       >
         <motion.div variants={itemVariants} className="flex flex-col items-center mb-6 text-center">
-            <img src={brandLogo} className="w-20 mb-4" alt="Nextriq Logo"/>
+            <img src={brandLogo} className="w-25 mb-4" alt="RMKV Logo"/>
             <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-            <p className="text-gray-400 text-sm">Log in to continue to Nextriq</p>
+            <p className="text-gray-400 text-sm">Log in to continue to RMKV</p>
         </motion.div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

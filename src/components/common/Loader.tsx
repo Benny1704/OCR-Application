@@ -1,4 +1,4 @@
-import BrandLogo from '../../assets/images/logo.png';
+import BrandLogo from '../../assets/images/RMKV_logo.png';
 import '../../assets/styles/Loader.scss';
 import { useTheme } from '../../hooks/useTheme';
 

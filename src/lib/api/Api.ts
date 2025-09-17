@@ -247,6 +247,8 @@ export const getDiscountByVendor = async (year: number, month?: number) => {
         params.month = month;
     }
     const response = await api.get('/metrics/discount_percent_per_vendor', { params });
+    console.log(JSON.stringify(response.data.discount_percent_per_vendor.vendors));
+    
     return response.data.discount_percent_per_vendor.vendors;
 };
 

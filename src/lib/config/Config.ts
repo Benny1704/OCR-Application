@@ -56,8 +56,10 @@ export const documentConfig = {
     { key: 'name', label: 'File Name', isEditable: true, isRequired: true, isCalculated: false },
     { key: 'supplierName', label: 'Supplier Name', isEditable: true, isRequired: true, isCalculated: false },
     // { key: 'invoiceId', label: 'Invoice ID', isEditable: true, isRequired: true, isCalculated: true },
-    { key: 'irnNumber', label: 'IRN Number', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'uploadedBy', label: 'Uploaded By', isEditable: true, isRequired: true, isCalculated: false },
+    // { key: 'irnNumber', label: 'IRN Number', isEditable: true, isRequired: true, isCalculated: false },
+    // { key: 'uploadedBy', label: 'Uploaded By', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'SupplierNumber', label: 'Supplier GSTIN', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'InvoiceNumber', label: 'Invoice Number', isEditable: true, isRequired: true, isCalculated: false },
     { key: 'uploadDate', label: 'Upload Date', isEditable: true, isRequired: true, isCalculated: false },
     { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: false },
   ]

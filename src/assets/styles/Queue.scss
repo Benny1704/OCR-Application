@@ -122,7 +122,7 @@
                     color: var(--primary);
                     transition: all 0.5s ease-in-out;
                     &.queued { background-color: #3b82f6; }
-                    &.awaiting { background-color: #22c55e; }
+                    &.processed { background-color: #22c55e; }
                     &.failed { background-color: #ef4444; }
           
                     .badge {

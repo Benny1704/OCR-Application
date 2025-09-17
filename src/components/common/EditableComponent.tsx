@@ -140,7 +140,7 @@ const EditableComponent = ({
     const finalIsReadOnly = isReadOnly;
 
     const secondaryButtonClasses = `
-    flex items-center gap-1.5 font-semibold py-1.5 px-3 text-xs md:text-sm rounded-lg transition-colors
+    flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors
     border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500
     ${theme === 'dark'
             ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]'
@@ -257,24 +257,24 @@ const EditableComponent = ({
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
             {/* Sticky Header */}
-            <header className={`sticky top-0 z-20 px-4 sm:px-6 py-3 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div className="min-w-0">
-                        <h1 className={`text-lg md:text-xl font-semibold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
+                        <h1 className={`text-xl md:text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
                             {isManual ? "Manual Entry" : (finalIsReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
                         </h1>
-                        <div className={`text-xs md:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <span className="mr-3">Supplier: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.supplier_name || '-'}</span></span>
+                        <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <span className="mr-4">Supplier: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.supplier_name || '-'}</span></span>
                             <span>Invoice No: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.invoice_number || '-'}</span></span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <div className={`flex items-center gap-2 px-2 py-1 rounded ${theme === 'dark' ? 'bg-slate-800 text-gray-200' : 'bg-white text-gray-800'} ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
-                            <span className={`text-xs ${Math.abs(liveCalculatedAmount - liveInvoiceAmount) < 0.01 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${theme === 'dark' ? 'bg-slate-800 text-gray-200' : 'bg-white text-gray-800'} ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
+                            <span className={`text-sm font-medium ${Math.abs(liveCalculatedAmount - liveInvoiceAmount) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 Calc: {liveCalculatedAmount.toFixed(2)}
                             </span>
-                            <span className="text-xs opacity-60">/</span>
-                            <span className="text-xs">Invoice: {liveInvoiceAmount.toFixed(2)}</span>
+                            <span className="text-sm opacity-50">/</span>
+                            <span className="text-sm font-medium">Invoice: {liveInvoiceAmount.toFixed(2)}</span>
                         </div>
                         <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
                             <Eye className="w-4 h-4" /> View Image
@@ -288,19 +288,19 @@ const EditableComponent = ({
                 </div>
             </header>
 
-            <main className="flex-grow py-4 md:py-6 overflow-y-auto">
-                <div className="px-4 sm:px-6 space-y-6 animate-fade-in-up">
+            <main className="flex-grow py-6 md:py-8 overflow-y-auto">
+                <div className="px-6 space-y-6 animate-fade-in-up">
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                         {formConfig.map((section) => {
                             const isOpen = openAccordions.has(section.id);
                             return (
                                 <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     <button
-                                        className="w-full flex justify-between items-center px-4 md:px-5 py-3 md:py-4 text-left"
+                                        className="w-full flex justify-between items-center px-5 py-4 text-left"
                                         onClick={() => toggleAccordion(section.id)}
                                     >
-                                        <h2 className={`text-base md:text-lg font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
+                                        <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
                                         <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
                                     </button>
 
@@ -312,7 +312,7 @@ const EditableComponent = ({
                                                 variants={accordionVariants}
                                                 className="overflow-hidden"
                                             >
-                                                <div className={`px-4 md:px-6 pb-6 border-t pt-5 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                                                <div className={`px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
                                                             tableData={Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])}
@@ -333,7 +333,7 @@ const EditableComponent = ({
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                                                             {section.fields?.map((field: any) => (
                                                                 <DynamicField
                                                                     key={field.key}
@@ -359,21 +359,21 @@ const EditableComponent = ({
             </main>
 
             {!finalIsReadOnly && (
-              <footer className={`flex-shrink-0 py-3 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                  <div className="px-4 sm:px-6 flex justify-end">
+              <footer className={`flex-shrink-0 py-4 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+                  <div className="px-6 flex justify-end">
                       {(isDirty || isManual) ? (
                           <button
                               onClick={handleValidateAndSave}
-                              className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
+                              className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
                           >
-                              <Save className="w-4 h-4" /> Save
+                              <Save className="w-5 h-5" /> Save
                           </button>
                       ) : (
                           <button
                               onClick={handleConfirm}
-                              className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2 px-5 text-sm md:text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
+                              className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
                           >
-                              <Check className="w-4 h-4" /> Confirm
+                              <Check className="w-5 h-5" /> Confirm
                           </button>
                       )}
                   </div>

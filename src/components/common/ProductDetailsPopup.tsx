@@ -73,14 +73,19 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onVie
                                 Line Item Details for {product?.item_description}
                             </p>
                         </div>
-                        <button
-                            onClick={handleClose}
-                            className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                            ${theme === 'dark' ? 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20' : 'text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'}`}
-                            aria-label="Close"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <button onClick={onViewImage} className={`flex items-center gap-2 ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} font-medium py-2 px-4 rounded-lg transition-colors`}>
+                                <Eye size={16} /> View Image
+                            </button>
+                            <button
+                                onClick={handleClose}
+                                className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                ${theme === 'dark' ? 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20' : 'text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'}`}
+                                aria-label="Close"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
                     </header>
 
                     <main className="flex-grow overflow-y-auto p-6 sm:p-8">
@@ -101,10 +106,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onVie
                         )}
                     </main>
 
-                    <footer className={`flex-shrink-0 flex justify-between items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                        <button onClick={onViewImage} className={`flex items-center gap-2 ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} font-medium py-2 px-4 rounded-lg transition-colors`}>
-                            <Eye size={16} /> View Image
-                        </button>
+                    <footer className={`flex-shrink-0 flex justify-end items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                         <button onClick={handleSave} className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700">
                             <Save size={16} /> Save Changes
                         </button>
