@@ -79,8 +79,6 @@ export const uploadFiles = async (
     onProgress: (percentCompleted: number) => void,
     addToast: any
 ): Promise<{ success: boolean; message?: string }> => {
-
-    console.log(JSON.stringify(invoiceDetails));
     
     const formData = new FormData();
     formData.append('file', file);
@@ -255,7 +253,6 @@ export const getDiscountByVendor = async (year: number, month?: number) => {
         params.month = month;
     }
     const response = await api.get('/metrics/discount_percent_per_vendor', { params });
-    console.log(JSON.stringify(response.data.discount_percent_per_vendor.vendors));
 
     return response.data.discount_percent_per_vendor.vendors;
 };
@@ -306,7 +303,6 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-        console.log("invoice-details: " + JSON.stringify(data));
 
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
@@ -318,7 +314,6 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
 
 export const updateProductDetails = async (invoiceId: number, data: ProductDetails[], addToast: any) => {
     try {
-        console.log("product-details: " + JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, data);
         return response.data;
     } catch (error) {
@@ -329,7 +324,6 @@ export const updateProductDetails = async (invoiceId: number, data: ProductDetai
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
-        console.log("meta-details: " + JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {

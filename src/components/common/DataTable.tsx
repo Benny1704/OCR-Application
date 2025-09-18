@@ -701,15 +701,13 @@ const DataTable = ({
                     <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
                         {fixedHeaderKey && (
                             <td
-                                className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-white text-gray-700'}`}
+                                className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
                                 style={{
                                     zIndex: 40,
                                     boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
                                 }}
                             >
-                                <span className={`inline-flex items-center justify-center w-6 h-6 text-[10px] font-semibold rounded-full ${theme === 'dark' ? 'bg-violet-900/40 text-violet-200' : 'bg-violet-100 text-violet-700'}`}>
-                                    {row[fixedHeaderKey]}
-                                </span>
+                                {row[fixedHeaderKey]}
                             </td>
                         )}
                         {movableHeaders.map(label => (
@@ -790,7 +788,7 @@ const DataTable = ({
                     >
                         <tr>
                             {fixedHeaderKey && (
-                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 border-b-2 shadow-sm ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-300 bg-gray-100'}`}
+                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 border-b-2 shadow-sm ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800/80' : 'text-gray-700 border-gray-300 bg-gray-50'}`}
                                     style={{ zIndex: 60, boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)' }}
                                 >
                                     {getColumnHeader(fixedHeaderKey)}
