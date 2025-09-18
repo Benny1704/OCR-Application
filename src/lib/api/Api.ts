@@ -74,29 +74,37 @@ export const login = async (credentials: { username: string, password: string },
 };
 
 export const uploadFiles = async (
-    files: File[],
-    onProgress: (percentCompleted: number) => void, // Added for progress tracking
+    file: File,
+    invoiceDetails: any,
+    onProgress: (percentCompleted: number) => void,
     addToast: any
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean; message?: string }> => {
+
+    console.log(JSON.stringify(invoiceDetails));
+    
     const formData = new FormData();
-    files.forEach(file => {
-        formData.append('files', file);
-    });
+    formData.append('file', file);
+    formData.append('invoice_register_details', JSON.stringify(invoiceDetails));
 
     try {
-        await api.post('/upload/upload-invoice', formData, {
+        const response = await api.post('/cdc/upload-invoice', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
             onUploadProgress: (progressEvent) => {
-                const total = progressEvent.total ?? (files.reduce((acc, file) => acc + file.size, 0));
-                const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
-                onProgress(percentCompleted);
+                if (progressEvent.total) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percentCompleted);
+                }
             },
         });
-        return { success: true };
+        return { success: true, message: response.data.response };
     } catch (error) {
         handleError(error, addToast);
         return { success: false };
     }
 };
+
 
 export const alterImage = async (params: { imageData: string; rotation: number; noise: number }, showToast: any) => {
     try {
@@ -248,7 +256,7 @@ export const getDiscountByVendor = async (year: number, month?: number) => {
     }
     const response = await api.get('/metrics/discount_percent_per_vendor', { params });
     console.log(JSON.stringify(response.data.discount_percent_per_vendor.vendors));
-    
+
     return response.data.discount_percent_per_vendor.vendors;
 };
 
@@ -299,7 +307,7 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
         console.log("invoice-details: " + JSON.stringify(data));
-        
+
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {

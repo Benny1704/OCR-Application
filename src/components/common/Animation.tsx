@@ -81,6 +81,30 @@ export const imageTransitionVariants: Variants = {
   }),
 };
 
+
+export const listVariants = {
+  visible: {
+      opacity: 1,
+      transition: {
+          when: "beforeChildren",
+          staggerChildren: 0.05,
+      },
+  },
+  hidden: {
+      opacity: 0,
+      transition: {
+          when: "afterChildren",
+      },
+  },
+};
+
+export const optionVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: { opacity: 1, y: 0 },
+};
+
+
+
 interface AnimationProps {
     children: React.ReactNode;
 }
