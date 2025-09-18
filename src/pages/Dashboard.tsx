@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend, Sector } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
 import { Menu, Transition, Switch } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
@@ -83,7 +83,7 @@ interface CustomTooltipProps {
   formatter?: (value: any) => string;
 }
 
-const MetricCard = ({ title, value, icon: Icon, change, changeType, index }: MetricCardProps) => {
+const MetricCard = ({ title, value, icon: Icon, change, changeType }: MetricCardProps) => {
     const { theme } = useTheme();
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
 
@@ -450,7 +450,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
 };
 
 const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, payload }: any) => {
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, payload }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);

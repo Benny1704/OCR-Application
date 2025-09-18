@@ -19,20 +19,21 @@ import Edit from "./pages/Edit";
 import Preview from "./pages/Preview";
 import ManualEntry from "./pages/ManualEntry";
 import { type Role } from "./interfaces/Types";
+import { useContext } from "react";
+import { AuthContext, AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContexts";
 import { ToastProvider } from "./contexts/ToastContext";
 import { useToast } from "./hooks/useToast";
 import { Toast, UploadStatus } from "./components/common/Helper";
 import { AnimatePresence } from "framer-motion";
 import Review from "./pages/Review";
-import { useAuth } from "./hooks/useAuth";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
-  const { user } = useAuth(); // Use your custom hook here
-  if (!user) {
+  const auth = useContext(AuthContext);
+  if (!auth?.user) {
     return <Navigate to="/login" replace />;
   }
-  return allowedRoles.includes(user.role) ? (
+  return allowedRoles.includes(auth.user.role) ? (
     <Outlet />
   ) : (
     <Navigate to="/queue" replace />
@@ -83,10 +84,11 @@ const AppWithToasts = () => {
 function App() {
   return (
     <ThemeProvider>
-      {/* AuthProvider is removed from here */}
-      <ToastProvider>
-        <AppWithToasts />
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <AppWithToasts />
+        </ToastProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

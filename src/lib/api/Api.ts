@@ -1,22 +1,19 @@
 import axios, { AxiosError } from 'axios';
-import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField } from '../../interfaces/Types';
+import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section } from '../../interfaces/Types';
 
 // --- Base URLs ---
 const API_URL = import.meta.env.VITE_API_URL;
 
 // --- Axios Instances ---
-// Creating separate instances allows for different base URLs and configurations
 const api = axios.create({ baseURL: API_URL });
 
 // --- Axios Interceptor for Authentication ---
-// This function runs before every request is sent for any of the instances above.
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
-        // Add other common headers here
         config.headers['accept'] = 'application/json';
         config.headers['ngrok-skip-browser-warning'] = 'true';
         return config;
@@ -26,7 +23,6 @@ api.interceptors.request.use(
 
 
 // --- Centralized Error Handler ---
-// This helper function standardizes error message extraction and toast notifications.
 const handleError = (error: any, addToast: (toast: { id?: number, message: string, type: "error" }) => void) => {
     let errorMessage = "An unknown error occurred.";
 
@@ -46,29 +42,38 @@ const handleError = (error: any, addToast: (toast: { id?: number, message: strin
 
     console.error("API Error:", error);
 
-    // Only show toast if a function is provided
     if (addToast) {
         addToast({ message: errorMessage, type: "error" });
     }
 
-    // It's good practice to re-throw the error so the calling component knows the request failed.
     throw new Error(errorMessage);
 };
 
-// --- API Functions (Refactored) ---
+// --- API Functions ---
 
-export const login = async (credentials: { username: string, password: string }, addToast: any): Promise<{ access_token: string }> => {
+export const getSections = async (addToast: any): Promise<Section[]> => {
     try {
-        const formData = new FormData();
-        formData.append('username', credentials.username);
-        formData.append('password', credentials.password);
-
-        // Main API login attempt
-        const response = await api.post('/users/token', formData);
+        const response = await api.get('/sections/');
         return response.data;
     } catch (error) {
         handleError(error, addToast);
-        // This part is unreachable because handleError throws, but it's here to satisfy TypeScript's control flow analysis
+        return [];
+    }
+};
+
+export const login = async (credentials: { username: string; password: string; section_id: number }, addToast: any): Promise<{ access_token: string }> => {
+    try {
+        const params = new URLSearchParams({
+            username: credentials.username,
+            password: credentials.password,
+            section_id: credentials.section_id.toString()
+        }).toString();
+
+        // The API expects a POST request with parameters in the URL and an empty body.
+        const response = await api.post(`/users/token?${params}`);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
         throw error;
     }
 };
@@ -219,7 +224,7 @@ const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'm
 
     const response = await instance.get(endpoint, { params });
     const data = response.data;
-    const key = Object.keys(data)[0]; // Handles dynamic response keys
+    const key = Object.keys(data)[0]; 
 
     if (filterType === 'monthly' && data[key]) {
         return data[key].monthly_counts || data[key].monthly_expenses;

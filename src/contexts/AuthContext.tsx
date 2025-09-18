@@ -1,52 +1,97 @@
-// src/contexts/AuthContext.tsx
-import { createContext, useState, type ReactNode } from 'react';
+import { createContext, useState, useEffect, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { login as apiLogin } from '../lib/api/Api';
 import type { AuthUser, Role } from '../interfaces/Types';
-import { jwtDecode } from 'jwt-decode';
-import * as api from '../lib/api/Api';
+import { useToast } from '../hooks/useToast';
 
-export interface AuthContextType {
-    user: AuthUser | null;
-    login: (credentials: { username: string, password: string }) => Promise<AuthUser | null>;
-    logout: () => void;
+// Helper to decode JWT tokens
+const decodeToken = (token: string): { usr: string, role: Role, section: number } | null => {
+    try {
+        const base64Url = token.split('.')[1];
+        if (!base64Url) return null;
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Failed to decode token", e);
+        return null;
+    }
+};
+
+
+interface AuthContextType {
+  user: AuthUser | null;
+  isLoading: boolean;
+  login: (credentials: { username: string; password: string; section_id: number }) => Promise<AuthUser | null>;
+  logout: () => void;
+  hasRole: (role: Role) => boolean;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<AuthUser | null>(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const decodedToken: { username: string, role: Role } = jwtDecode(token);
-                return { username: decodedToken.username, role: decodedToken.role };
-            } catch (error) {
-                return null;
-            }
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        const decoded = decodeToken(token);
+        if (decoded) {
+            setUser({ username: decoded.usr, role: decoded.role, section: decoded.section });
+        } else {
+            // If token is invalid or expired, remove it
+            localStorage.removeItem('token');
         }
-        return null;
-    });
+    }
+    setIsLoading(false);
+  }, []);
 
-    const login = async (credentials: {username: string, password: string}): Promise<AuthUser | null> => {
-        const data = await api.login(credentials);
-        
-        if (data && data.access_token) {
-            localStorage.setItem('token', data.access_token);
-            try {
-                const decodedToken: { username: string, role: Role } = jwtDecode(data.access_token);
-                const user = { username: decodedToken.username, role: decodedToken.role };
-                setUser(user);
-                return user;
-            } catch (error) {
-                return null;
-            }
+  const login = async (credentials: { username: string; password: string; section_id: number }) => {
+    try {
+      const data = await apiLogin(credentials, addToast);
+      
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        const decoded = decodeToken(data.access_token);
+
+        if (decoded) {
+            const authenticatedUser: AuthUser = { 
+                username: decoded.usr, 
+                role: decoded.role, 
+                section: decoded.section 
+            };
+            setUser(authenticatedUser);
+            return authenticatedUser;
         }
-        return null;
-    };
+      }
+      return null;
+    } catch (error) {
+      // Error is already handled and toasted by the api function.
+      return null;
+    }
+  };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setUser(null);
-    };
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
-    return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  const hasRole = (role: Role) => {
+    return user?.role === role;
+  };
+
+  const value = { user, isLoading, login, logout, hasRole };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
+    </AuthContext.Provider>
+  );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { CheckCircle2, FileClock, XCircle, Loader2, AlertCircle, ArrowRight, FileCheck, Activity, TrendingUp, Database, RotateCw } from 'lucide-react';
+import {  FileClock, XCircle, Loader2, AlertCircle, ArrowRight, FileCheck, Activity, TrendingUp, Database, RotateCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
@@ -18,10 +18,8 @@ const StatusCard = ({
     icon: Icon,
     color,
     isLoading,
-    index,
     description,
     gradient,
-    pulseColor,
     onClick,
 }: {
     title: string;

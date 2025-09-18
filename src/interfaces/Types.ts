@@ -72,6 +72,7 @@ export type Role = "admin" | "user";
 export interface AuthUser {
   username: string;
   role: Role;
+  section: number;
 }
 
 export interface Document {
@@ -102,14 +103,6 @@ export interface FailedDocument extends Document {
   errorMessage: string;
   messageId: string;
 }
-
-// // --- API Data Structures (from CLARE_API_URL) ---
-// export interface Supplier {
-// 	supplier_id: number;
-// 	supplier_name: string;
-// 	supplier_address: string;
-// 	supplier_gst: string;
-// }
 
 export interface InvoiceDetails {
 	invoice_id: number;
@@ -220,4 +213,9 @@ export interface FormSection {
     id: 'supplier_invoice' | 'product_details' | 'amount_details';
     title: string;
     fields?: FormField[];
+}
+
+export interface Section {
+  section_id: number;
+  section_name: string;
 }
