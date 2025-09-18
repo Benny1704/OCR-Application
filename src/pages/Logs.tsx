@@ -36,9 +36,10 @@ interface StatCardProps {
   changeType: "increase" | "decrease";
   Icon: React.ElementType;
   index: number;
+  isLoading: boolean;
 }
 
-const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardProps) => {
+const StatCard = ({ title, value, change, changeType, Icon, index, isLoading }: StatCardProps) => {
     const { theme } = useTheme();
     const changeColor = changeType === 'increase' ? 'text-emerald-400' : 'text-rose-400';
 
@@ -56,20 +57,19 @@ const StatCard = ({ title, value, change, changeType, Icon, index }: StatCardPro
       }
     };
 
+    if (isLoading) {
+        return <div className={`h-48 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-200/50'}`} />;
+    }
+
+
     return (
       <motion.div
         variants={cardVariants}
         className={`group relative overflow-hidden rounded-3xl border cursor-pointer backdrop-blur-lg
           ${theme === 'dark'
-            ? 'bg-gradient-to-br from-gray-900/80 via-gray-800/40 to-gray-900/80 border-gray-700/40 hover:border-violet-500/60 hover:shadow-2xl hover:shadow-violet-500/20'
-            : 'bg-gradient-to-br from-white/80 via-gray-50/40 to-white/80 border-gray-200/60 hover:border-violet-400/60 hover:shadow-xl hover:shadow-violet-500/10'
+            ? 'bg-gradient-to-br from-gray-900/80 via-gray-800/40 to-gray-900/80 border-gray-700/40'
+            : 'bg-gradient-to-br from-white/80 via-gray-50/40 to-white/80 border-gray-200/60'
           }`}
-        whileHover={{
-          y: -8,
-          scale: 1.03,
-          transition: { duration: 0.3, ease: "easeOut" }
-        }}
-        whileTap={{ scale: 0.97 }}
       >
         <div className="relative p-6 h-full flex flex-col justify-between">
           <div className="flex items-start justify-between mb-4">
@@ -206,7 +206,7 @@ const Logs = () => {
   const [statsMonth, setStatsMonth] = useState<number | undefined>(new Date().getMonth() + 1);
   const [graphYear, setGraphYear] = useState<number>(new Date().getFullYear());
 
-  const [statsData, setStatsData] = useState<Omit<StatCardProps, 'index'>[]>([]);
+  const [statsData, setStatsData] = useState<Omit<StatCardProps, 'index' | 'isLoading'>[]>([]);
   const [graphData, setGraphData] = useState<any[]>([]);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [isGraphLoading, setIsGraphLoading] = useState(true);
@@ -265,6 +265,7 @@ const Logs = () => {
     if (!isInitialLoad) fetchGraphData();
   }, [graphYear, isInitialLoad, fetchGraphData]);
 
+
   const chartColors = useMemo(() => (
     theme === 'dark' ? {
       grid: 'rgba(139, 92, 246, 0.1)',
@@ -292,20 +293,20 @@ const Logs = () => {
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const headerVariants: Variants = {
     hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
   };
 
   const sectionVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
   };
 
-  if (isInitialLoad) {
+  if (isInitialLoad && isStatsLoading && isGraphLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader type="wifi" />
@@ -315,14 +316,12 @@ const Logs = () => {
 
   return (
     <div className={`h-full w-full overflow-y-auto `}>
-      {/* MODIFICATION: Updated main container to match dashboard layout */}
       <motion.div
         className="flex flex-col gap-6 md:gap-8 mx-auto"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* MODIFICATION: Updated header to match dashboard layout */}
         <motion.div variants={headerVariants}>
           <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             Analytics
@@ -351,15 +350,9 @@ const Logs = () => {
              <ErrorDisplay message={statsError} onRetry={fetchStatsData} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
-                {isStatsLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className={`h-48 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-200/50'}`} />
-                    ))
-                ) : (
-                    statsData.map((stat, index) => (
-                        <StatCard key={stat.title} {...stat} index={index} />
-                    ))
-                )}
+                {statsData.map((stat, index) => (
+                    <StatCard key={stat.title} {...stat} index={index} isLoading={isStatsLoading} />
+                ))}
             </div>
           )}
         </motion.section>
@@ -376,7 +369,6 @@ const Logs = () => {
             <FilterDropdown value={graphYear} options={years.map(y => ({ name: `Year: ${y}`, value: y }))} onChange={setGraphYear} />
           </div>
 
-          {/* MODIFICATION: Updated chart card to match dashboard layout */}
           <div className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'

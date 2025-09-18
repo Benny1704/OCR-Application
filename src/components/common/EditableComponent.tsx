@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { RefreshCw, Save, Eye, ChevronDown, Check, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,6 @@ import { set, get, cloneDeep, isEqual } from 'lodash';
 import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, confirmInvoice } from '../../lib/api/Api';
 import { useParams } from 'react-router-dom';
 
-// --- Default Empty States for Manual Entry ---
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     invoice_id: 0, message_id: '', invoice_number: '', irn: '', invoice_date: null, way_bill: '',
     acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
@@ -25,10 +24,9 @@ const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
     meta_id: 0, invoice_amount: 0, taxable_value: 0, cgst_amount: 0, sgst_amount: 0,
     igst_amount: 0, igst_percentage: null, total_tax_amount: 0, other_deductions: 0,
     freight_charges: 0, other_charges: 0, round_off_amount: 0,
-    discount_percentage: 0, // Added discount_percentage
-    discount_amount: 0,     // Added discount_amount
+    discount_percentage: 0,
+    discount_amount: 0,
 };
-
 
 type EditableComponentProps = {
     isManual?: boolean;
@@ -44,6 +42,8 @@ type EditableComponentProps = {
     formConfig: FormSection[];
     itemSummaryConfig: { columns: FormField[] };
     itemAttributesConfig: { columns: FormField[] };
+    // --- NEW PROP FOR SAVING A PRODUCT ROW ---
+    onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
 };
 
 const EditableComponent = ({
@@ -56,7 +56,9 @@ const EditableComponent = ({
     messageId,
     formConfig,
     itemSummaryConfig,
-    itemAttributesConfig
+    itemAttributesConfig,
+    // --- RECEIVING THE NEW PROP ---
+    onSaveNewProduct
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -78,14 +80,11 @@ const EditableComponent = ({
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
-    // Allow multiple accordions to stay open
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
     const [isDirty, setIsDirty] = useState(false);
-    // Validation modal state
     const [isValidationOpen, setValidationOpen] = useState(false);
     const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
 
-    // Normalized current product rows and live-calculated sum for header display
     const productRows = useMemo(() => (
         Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])
     ), [productDetails]);
@@ -115,46 +114,28 @@ const EditableComponent = ({
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-
         const isInvoiceField = Object.keys(initialEmptyInvoiceDetails).includes(name);
         const isAmountField = Object.keys(initialEmptyAmountAndTaxDetails).includes(name);
 
         if (isInvoiceField) {
-            setInvoiceDetails(prevState => {
-                const newState = cloneDeep(prevState);
-                set(newState, name, value);
-                return newState;
-            });
+            setInvoiceDetails(prevState => set({ ...cloneDeep(prevState) }, name, value));
         } else if (isAmountField) {
-            setAmountDetails(prevState => {
-                const newState = cloneDeep(prevState);
-                set(newState, name, value);
-                return newState;
-            });
+            setAmountDetails(prevState => set({ ...cloneDeep(prevState) }, name, value));
         }
     };
 
-    const handleViewImage = () => {
-        addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
-    };
-
+    const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     const openRetryModal = () => setRetryModalOpen(true);
     const handleSimpleRetry = () => { setRetryModalOpen(false); if (onRetry) onRetry(); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
 
     const finalIsReadOnly = isReadOnly;
 
-    const secondaryButtonClasses = `
-    flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors
-    border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500
-    ${theme === 'dark'
-            ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]'
-            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'
-        }`;
+    const secondaryButtonClasses = `flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 ${theme === 'dark' ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'}`;
 
     const handleOpenPopup = async (product: ProductDetails) => {
-        if (isManual) {
-            addToast({ type: 'error', message: 'Cannot view details for an unsaved invoice.' });
+        if (isManual || !product.item_id) {
+            addToast({ type: 'error', message: 'Cannot view details for an unsaved item.' });
             return;
         }
         setSelectedProduct(product);
@@ -173,9 +154,7 @@ const EditableComponent = ({
 
     const handleSaveLineItems = async (updatedLineItems: LineItem[]) => {
         if (!selectedProduct) return;
-
         const savedLineItems = await updateLineItems(selectedProduct.item_id, updatedLineItems, addToast);
-
         if (savedLineItems) {
             setProductDetails(currentProducts => {
                 const newProducts = cloneDeep(currentProducts);
@@ -189,18 +168,48 @@ const EditableComponent = ({
         setIsPopupOpen(false);
     };
 
+    // --- NEW HANDLER FOR SAVING A ROW ---
+    const handleSaveRow = useCallback(async (productRow: ProductDetails) => {
+        if (onSaveNewProduct) {
+            try {
+                // The parent (Edit.tsx) will handle the API call and state update
+                await onSaveNewProduct(productRow);
+            } catch (error) {
+                // Error toast is already handled in the parent's save function
+                console.error("Failed to save product row from EditableComponent", error);
+            }
+        }
+    }, [onSaveNewProduct]);
+    
+    // --- MODIFIED RENDER FUNCTION ---
+    // This function now decides whether to show a "Save" or "View" button.
     const renderActionCell = (row: DataItem) => {
         const productRow = row as unknown as ProductDetails;
-        return (
-            <button
-                onClick={() => handleOpenPopup(productRow)}
-                className="p-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                title="View Details"
-                disabled={isManual}
-            >
-                <Eye size={16} />
-            </button>
-        );
+        // A new row won't have an `item_id` until it's saved.
+        const isSaved = !!productRow.item_id;
+
+        if (isSaved) {
+            return (
+                <button
+                    onClick={() => handleOpenPopup(productRow)}
+                    className="p-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    title="View Details"
+                    disabled={isManual}
+                >
+                    <Eye size={16} />
+                </button>
+            );
+        } else {
+            return (
+                <button
+                    onClick={() => handleSaveRow(productRow)}
+                    className="p-1.5 rounded-md bg-emerald-500 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    title="Save Row"
+                >
+                    <Save size={16} />
+                </button>
+            );
+        }
     };
 
     const accordionVariants: Variants = {
@@ -210,7 +219,6 @@ const EditableComponent = ({
 
     const getValue = (path: string) => get(combinedData, path, '');
 
-    // Toggle accordion without closing others
     const toggleAccordion = (id: string) => {
         setOpenAccordions(prev => {
             const next = new Set(prev);
@@ -221,13 +229,11 @@ const EditableComponent = ({
 
     const handleSave = async () => {
         if (!invoiceId) return;
-
         const invoiceIdNum = parseInt(invoiceId, 10);
-
         try {
             const [savedInvoice, savedProducts, savedAmount] = await Promise.all([
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, productDetails, addToast),
+                updateProductDetails(invoiceIdNum, productDetails.filter(p => p.item_id), addToast), // Only save products with an item_id
                 updateAmountAndTaxDetails(invoiceIdNum, amountDetails, addToast),
             ]);
 
@@ -247,10 +253,12 @@ const EditableComponent = ({
     }
 
     const handleValidateAndSave = async () => {
-        // Cross-check live calculated vs invoice amount before saving
+        if (productDetails.some(p => !p.item_id)) {
+            addToast({ type: 'warning', message: 'Please save all new product rows before saving the invoice.' });
+            return;
+        }
         const computed = liveCalculatedAmount;
         const invoiceAmt = liveInvoiceAmount;
-
         if (Math.abs(computed - invoiceAmt) >= 0.01) {
             setValidationInfo({ computed, invoice: invoiceAmt });
             setValidationOpen(true);
@@ -275,10 +283,10 @@ const EditableComponent = ({
         }
     };
 
+    // --- REMAINDER OF THE COMPONENT IS UNCHANGED ---
     return (
-        <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
-            {/* Sticky Header */}
-            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+      <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
+           <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div className="min-w-0">
                         <h1 className={`text-xl md:text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
@@ -311,7 +319,6 @@ const EditableComponent = ({
 
             <main className="flex-grow py-6 md:py-8 overflow-y-auto">
                 <div className="px-6 space-y-6 animate-fade-in-up">
-
                     <div className="space-y-5">
                         {formConfig.map((section) => {
                             const isOpen = openAccordions.has(section.id);
@@ -324,7 +331,6 @@ const EditableComponent = ({
                                         <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
                                         <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
                                     </button>
-
                                     <AnimatePresence initial={false}>
                                         {isOpen && (
                                             <motion.section
@@ -336,7 +342,7 @@ const EditableComponent = ({
                                                 <div className={`px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                                                     {section.id === 'product_details' ? (
                                                         <DataTable
-                                                            tableData={Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])}
+                                                            tableData={productRows}
                                                             tableConfig={itemSummaryConfig}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
@@ -344,14 +350,7 @@ const EditableComponent = ({
                                                             actionColumnHeader="Details"
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
-                                                            onDataChange={(newData) => {
-                                                                if (Array.isArray(productDetails)) {
-                                                                    setProductDetails(newData as ProductDetails[]);
-                                                                } else {
-                                                                    const pd: any = productDetails || {};
-                                                                    setProductDetails({ ...pd, items: newData } as any);
-                                                                }
-                                                            }}
+                                                            onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -400,89 +399,32 @@ const EditableComponent = ({
                     </div>
                 </footer>
             )}
-
-            <RetryModal
-                isOpen={isRetryModalOpen}
-                onClose={() => setRetryModalOpen(false)}
-                onRetry={handleSimpleRetry}
-                onRetryWithAlterations={handleRetryWithAlterations}
-            />
-            <ProductDetailPopup
-                isOpen={isPopupOpen}
-                onClose={() => setIsPopupOpen(false)}
-                product={selectedProduct}
-                onSave={handleSaveLineItems}
-                isLoading={isLineItemsLoading}
-                itemAttributesConfig={itemAttributesConfig}
-            />
+            <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
+            <ProductDetailPopup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} product={selectedProduct} onSave={handleSaveLineItems} isLoading={isLineItemsLoading} itemAttributesConfig={itemAttributesConfig} />
             <AnimatePresence>
                 {isValidationOpen && validationInfo && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-100 flex items-center justify-center p-4"
-                    >
-                        <div
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                            onClick={() => setValidationOpen(false)}
-                        ></div>
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-slate-900 text-gray-100 ring-slate-700' : 'bg-white text-gray-900 ring-slate-200'
-                                }`}
-                        >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setValidationOpen(false)}></div>
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-slate-900 text-gray-100 ring-slate-700' : 'bg-white text-gray-900 ring-slate-200'}`}>
                             <div className="p-6 text-center">
-                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
-                                    <AlertTriangle className="h-8 w-8 text-red-600" />
-                                </div>
-                                <h3 className="mt-5 text-2xl font-bold tracking-tight">
-                                    Amount Mismatch
-                                </h3>
-                                <p className={`mt-3 text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    The calculated total from product items does not match the invoice total.
-                                </p>
+                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100"><AlertTriangle className="h-8 w-8 text-red-600" /></div>
+                                <h3 className="mt-5 text-2xl font-bold tracking-tight">Amount Mismatch</h3>
+                                <p className={`mt-3 text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>The calculated total from product items does not match the invoice total.</p>
                             </div>
-
-                            <div className={`px-6 pb-6 space-y-4 text-base ${theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-50'
-                                }`}>
+                            <div className={`px-6 pb-6 space-y-4 text-base ${theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
                                 <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Computed Amount</span>
-                                    <span className="font-mono text-lg font-semibold text-sky-400">
-                                        {validationInfo.computed.toFixed(2)}
-                                    </span>
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Computed Amount</span><span className="font-mono text-lg font-semibold text-sky-400">{validationInfo.computed.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Invoice Amount</span>
-                                    <span className="font-mono text-lg font-semibold text-emerald-400">
-                                        {validationInfo.invoice.toFixed(2)}
-                                    </span>
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Invoice Amount</span><span className="font-mono text-lg font-semibold text-emerald-400">{validationInfo.invoice.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-3">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Difference</span>
-                                    <span className="font-mono text-lg font-semibold text-red-500">
-                                        {(validationInfo.computed - validationInfo.invoice).toFixed(2)}
-                                    </span>
+                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Difference</span><span className="font-mono text-lg font-semibold text-red-500">{(validationInfo.computed - validationInfo.invoice).toFixed(2)}</span>
                                 </div>
                             </div>
-
                             <div className={`px-6 py-4 flex justify-end gap-3 ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
-                                <button
-                                    onClick={() => setValidationOpen(false)}
-                                    className={`px-5 py-2.5 text-base font-semibold rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                                        }`}
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    onClick={handleForceSave}
-                                    className="px-5 py-2.5 text-base font-semibold rounded-lg transition-all bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                                >
-                                    Force Save
-                                </button>
+                                <button onClick={() => setValidationOpen(false)} className={`px-5 py-2.5 text-base font-semibold rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>Close</button>
+                                <button onClick={handleForceSave} className="px-5 py-2.5 text-base font-semibold rounded-lg transition-all bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Force Save</button>
                             </div>
                         </motion.div>
                     </motion.div>

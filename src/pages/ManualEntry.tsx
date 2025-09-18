@@ -4,7 +4,7 @@ import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import { useToast } from '../hooks/useToast';
 import { getInvoiceConfig, getInvoiceMetaConfig, getItemSummaryConfig, getItemAttributesConfig } from '../lib/api/Api';
-import type { FormSection, FormField } from '../interfaces/Types';
+import type { FormSection, FormField, ProductDetails } from '../interfaces/Types';
 
 const ManualEntry = () => {
     const [formConfig, setFormConfig] = useState<FormSection[] | null>(null);
@@ -30,7 +30,6 @@ const ManualEntry = () => {
                 getItemAttributesConfig(addToast),
             ]);
 
-            // Construct formConfig
             const fetchedFormConfig: FormSection[] = [
                 {
                     id: 'supplier_invoice',
@@ -57,11 +56,25 @@ const ManualEntry = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
     }, [fetchConfig]);
+
+    // --- NEW FUNCTION ---
+    // For manual entry, we can't save a single product row to the backend
+    // because there's no invoice_id yet. This function simulates the save
+    // by adding a temporary local item_id, allowing the UI to switch
+    // from "Save" to "View Details".
+    const handleSaveNewProductLocally = async (product: ProductDetails): Promise<ProductDetails> => {
+        addToast({ type: 'success', message: 'Product row staged for saving.' });
+        return {
+            ...product,
+            item_id: `local-${Date.now()}` // Assign a temporary local ID
+        };
+    };
+
 
     if (isLoading) {
         return <Loader type="wifi" />;
@@ -75,10 +88,12 @@ const ManualEntry = () => {
         return (
             <EditableComponent
                 isManual={true}
-                messageId=""
+                messageId="" // No messageId for a new manual entry
                 formConfig={formConfig}
                 itemSummaryConfig={itemSummaryConfig}
                 itemAttributesConfig={itemAttributesConfig}
+                // --- PASSING THE NEW LOCAL SAVE FUNCTION ---
+                onSaveNewProduct={handleSaveNewProductLocally}
             />
         );
     }

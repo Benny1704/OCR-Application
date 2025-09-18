@@ -61,7 +61,6 @@ const Review = () => {
             setProductDetails(productData);
             setAmountAndTaxDetails(amountData);
 
-            // Construct formConfig
             const fetchedFormConfig: FormSection[] = [
                 {
                     id: 'supplier_invoice',
@@ -89,11 +88,22 @@ const Review = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [invoiceId, addToast]);
+    }, [invoiceId]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+    
+    // --- NEW PLACEHOLDER FUNCTION ---
+    // Since the Review page is read-only, this function should never be called.
+    // We provide a placeholder to satisfy the EditableComponent's prop requirements.
+    const handleSaveNotAllowed = async (product: ProductDetails): Promise<ProductDetails> => {
+        console.warn("Attempted to save a product in read-only mode. This should not happen.");
+        addToast({ type: 'error', message: 'Cannot save items in read-only mode.' });
+        // Return the product unchanged
+        return product;
+    };
+
 
     if (isLoading) {
         return <Loader type="wifi" />;
@@ -114,6 +124,8 @@ const Review = () => {
                 formConfig={formConfig}
                 itemSummaryConfig={itemSummaryConfig}
                 itemAttributesConfig={itemAttributesConfig}
+                // --- PASSING THE NEW PLACEHOLDER FUNCTION ---
+                onSaveNewProduct={handleSaveNotAllowed}
             />
         );
     }

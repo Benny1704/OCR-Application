@@ -60,7 +60,7 @@ export type Page =
 export interface Toast {
     id: number;
     message: string;
-    type: 'success' | 'error';
+    type: 'success' | 'error' | 'warning' | 'info';
     action?: {
         label: string;
         onClick: () => void;
