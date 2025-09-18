@@ -1,3 +1,5 @@
+// src/lib/api/Api.ts
+
 import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section } from '../../interfaces/Types';
 
@@ -189,6 +191,16 @@ export const deleteMessage = async (id: string, addToast: any) => {
 export const togglePriority = async (id: string, addToast: any) => {
     try {
         const response = await api.patch(`/messages/${id}/prioritize`);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+    }
+};
+
+export const retryMessage = async (id: string, addToast: any, images?: string[]) => {
+    try {
+        const payload = images ? { images } : {};
+        const response = await api.patch(`/messages/${id}/retry`, payload);
         return response.data;
     } catch (error) {
         handleError(error, addToast);

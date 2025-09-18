@@ -1,9 +1,11 @@
+// src/components/common/Loader.tsx
+
 import BrandLogo from '../../assets/images/RMKV_logo.png';
 import '../../assets/styles/Loader.scss';
 import { useTheme } from '../../hooks/useTheme';
 
 type LoaderProps = {
-  type?: 'ripple' | 'wifi' | 'text' | 'dots' | 'ai';
+  type?: 'ripple' | 'wifi' | 'text' | 'dots' | 'ai' | 'btnLoader';
   text?: string;
 };
 
@@ -26,6 +28,10 @@ const AILoader = () => {
         </div>
     )
 };
+
+const BtnLoader = () => (
+    <div className="w-6 h-6 border-4 border-dashed rounded-full animate-spin border-white"></div>
+);
 
 const RippleLoader = () => (
     <div className="ripple-loader">
@@ -89,13 +95,16 @@ const DotsLoader = () => (
 
 
 const Loader = ({ type = 'ripple', text = "Loading" }: LoaderProps) => {
+    if (type === 'ai' || type === 'btnLoader') {
+        return type === 'ai' ? <AILoader /> : <BtnLoader />;
+    }
+
     return (
         <div className="loader-container">
             {type === 'ripple' && <RippleLoader />}
             {type === 'wifi' && <WifiLoader text={text} />}
             {type === 'text' && <TextLoader text={text} />}
             {type === 'dots' && <DotsLoader />}
-            {type === 'ai' && <AILoader />}
         </div>
     );
 };

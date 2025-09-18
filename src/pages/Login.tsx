@@ -44,7 +44,7 @@ const Login = () => {
             }
         };
         fetchSections();
-    }, [addToast]);
+    }, []);
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();

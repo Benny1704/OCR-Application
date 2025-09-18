@@ -28,6 +28,7 @@ const ImageAlterations = () => {
   const [imageStates, setImageStates] = useState<ImageState[]>([]);
   const [[page, direction], setPage] = useState([0, 0]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     const images = location.state?.imageData 
@@ -86,6 +87,7 @@ const ImageAlterations = () => {
               processedImage: `data:image/png;base64,${response.processed_image_base64}`,
             });
             addToast({ type: 'success', message: 'Image processed successfully!' });
+            handleReset();
         } else {
             addToast({ type: 'error', message: 'Failed to process image.' });
         }
@@ -97,23 +99,34 @@ const ImageAlterations = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const allConfirmed = imageStates.every(state => state.isConfirmed);
     if (!allConfirmed) {
       addToast({ type: 'error', message: 'Please confirm alterations for all images.' });
       return;
     }
     const finalImages = imageStates.map(state => state.processedImage || `data:image/png;base64,${state.initialImageData}`);
-    navigate('/queue', { state: { processedImages: finalImages } });
+    
+    setIsSubmitting(true);
+    try {
+        await api.retryMessage(location.state.messageId, addToast, finalImages);
+        addToast({type: 'success', message: 'Document submitted for reprocessing!'});
+        navigate('/queue', { state: { defaultTab: 'Failed' } });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
-    updateCurrentState({ rotation: 0, noiseReduction: 'None', processedImage: null });
+    updateCurrentState({ rotation: 0, noiseReduction: 'None' });
   };
 
   const handleConfirm = () => {
     setImageStates(prev => prev.map((s, i) => i === currentIndex ? {...s, isConfirmed: true} : s));
     addToast({ type: 'success', message: `Image ${currentIndex + 1} confirmed!` });
+    if (currentIndex < imageStates.length - 1) {
+        paginate(1);
+    }
   };
   
   const currentImageState = imageStates[currentIndex];
@@ -165,7 +178,7 @@ const ImageAlterations = () => {
             </div>
             <div className="pt-6 border-t border-gray-700/50 space-y-3">
                <div className="flex gap-3">
-                    <motion.button onClick={handleProcess} disabled={isProcessing} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50" whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
+                    <motion.button onClick={handleProcess} disabled={isProcessing || !hasPendingAlterations} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50" whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
                       <WandSparkles className="w-5 h-5"/> Process
                     </motion.button>
                      <motion.button onClick={handleReset} className="w-full bg-gray-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2" whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
@@ -188,14 +201,27 @@ const ImageAlterations = () => {
                       custom={direction}
                       variants={imageTransitionVariants}
                       initial="enter"
-                      animate={{...imageTransitionVariants.center, rotate: currentImageState.rotation}}
+                      animate={{
+                        ...imageTransitionVariants.center,
+                        rotate: currentImageState.rotation,
+                        scale: isProcessing ? 0 : 1,
+                      }}
                       exit="exit"
-                      transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 }, rotate: { type: "spring", stiffness: 300, damping: 25 } }}
+                      transition={{ 
+                        x: { type: "spring", stiffness: 300, damping: 30 }, 
+                        opacity: { duration: 0.2 }, 
+                        rotate: { type: "spring", stiffness: 300, damping: 25 },
+                        scale: { duration: 0.3 }
+                      }}
                       className="max-w-full max-h-full object-contain rounded-md absolute"
                   />
               </AnimatePresence>
 
-              {isProcessing && <Loader type="ai" />}
+              {isProcessing && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center">
+                    <Loader type="ai" />
+                </div>
+              )}
 
               {imageStates.length > 1 && (
                 <>
@@ -230,12 +256,12 @@ const ImageAlterations = () => {
               </div>
               <motion.button 
                   onClick={handleSubmit} 
-                  disabled={!allImagesConfirmed} 
+                  disabled={!allImagesConfirmed || isSubmitting} 
                   className="w-full bg-violet-600 text-white font-bold py-3 px-5 rounded-lg shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" 
                   whileHover={{ y: allImagesConfirmed ? -2 : 0, boxShadow: allImagesConfirmed ? '0px 7px 15px rgba(139, 92, 246, 0.3)' : 'none' }} 
                   whileTap={{ y: 0 }}
               >
-                  {allImagesConfirmed ? (
+                  {isSubmitting ? <Loader type="btnLoader" /> : allImagesConfirmed ? (
                       <>
                         Submit All <SendHorizontal className="w-4 h-4"/>
                       </>

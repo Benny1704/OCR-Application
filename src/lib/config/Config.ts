@@ -12,7 +12,6 @@ export interface FormSection {
 }
 
 export const uploadFormConfig: FormField[] = [
-  { key: 'register_id', label: 'Register ID', type: 'number' },
   {
     key: 'section_id',
     label: 'Section Name',
@@ -36,8 +35,8 @@ export const uploadFormConfig: FormField[] = [
   { key: 'supplier_name', label: 'Supplier Name', type: 'text' },
   { key: 'gst_no', label: 'GST No', type: 'text' },
   { key: 'invoice_no', label: 'Invoice No', type: 'text' },
-  { key: 'invoice_date', label: 'Invoice Date', type: 'datetime-local' },
   { key: 'invoice_amount', label: 'Invoice Amount', type: 'number' },
+  { key: 'invoice_date', label: 'Invoice Date', type: 'datetime-local' },
 ];
 
 export const documentConfig = {

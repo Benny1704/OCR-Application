@@ -1,3 +1,5 @@
+// src/pages/Queue.tsx
+
 import {
   useEffect,
   useLayoutEffect,
@@ -33,7 +35,7 @@ import {
 import { Dialog, Transition } from '@headlessui/react'
 import { RetryModal, StatusBadge } from "../components/common/Helper";
 import { motion, AnimatePresence } from "framer-motion";
-import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments, deleteMessage, togglePriority } from "../lib/api/Api";
+import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments, deleteMessage, togglePriority, retryMessage } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
@@ -363,13 +365,17 @@ const Queue = () => {
   };
 
   const openRetryModal = () => setRetryModalOpen(true);
-  const handleSimpleRetry = () => {
+  const handleSimpleRetry = async () => {
     setRetryModalOpen(false);
-    // navigate("/loading");
+    if (selectedDocumentId) {
+        addToast({type: 'info', message: 'Sending document for retry...'})
+        await retryMessage(selectedDocumentId, addToast);
+        await fetchDocuments(true);
+    }
   };
   const handleRetryWithAlterations = () => {
     setRetryModalOpen(false);
-    navigate("/imageAlteration");
+    navigate("/imageAlteration", { state: { messageId: selectedDocumentId } });
   };
 
   const updateActivePosition = () => {
