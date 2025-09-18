@@ -1,10 +1,8 @@
 import {
-  createBrowserRouter,
-  createRoutesFromElements,
   Navigate,
   Outlet,
   Route,
-  RouterProvider,
+  Routes,
 } from "react-router-dom";
 import "./App.css";
 import RootLayout from "./components/layout/RootLayout";
@@ -30,9 +28,14 @@ import Review from "./pages/Review";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   const auth = useContext(AuthContext);
-  if (!auth?.user) {
+  
+  // Handle the case where context is not yet available
+  if (!auth) return null; 
+  
+  if (!auth.user) {
     return <Navigate to="/login" replace />;
   }
+  
   return allowedRoles.includes(auth.user.role) ? (
     <Outlet />
   ) : (
@@ -40,33 +43,30 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   );
 };
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route element={<RootLayout />}>
-      <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/log" element={<Logs />} />
-      </Route>
-      <Route path="/queue" element={<Queue />} />
-      <Route path="/document" element={<Documents />} />
-      <Route path="/upload" element={<Upload />} />
-      <Route path="/imageAlteration" element={<ImageAlterations />} />
-      <Route path="/edit/:invoiceId" element={<Edit />} />
-      <Route path="/review/:invoiceId" element={<Review />} />
-      <Route path="/preview/:invoiceId" element={<Preview />} />
-      <Route path="/manualEntry/:invoiceId" element={<ManualEntry />} />
-    </Route>
-  )
-);
-
-const AppWithToasts = () => {
+const AppRoutesAndToasts = () => {
   const { toasts, removeToast, uploadFiles, hideUploadStatus } = useToast();
 
   return (
     <>
-      <RouterProvider router={router} />
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/log" element={<Logs />} />
+          </Route>
+          <Route path="/queue" element={<Queue />} />
+          <Route path="/document" element={<Documents />} />
+          <Route path="/upload" element={<Upload />} />
+          <Route path="/imageAlteration" element={<ImageAlterations />} />
+          <Route path="/edit/:invoiceId" element={<Edit />} />
+          <Route path="/review/:invoiceId" element={<Review />} />
+          <Route path="/preview/:invoiceId" element={<Preview />} />
+          <Route path="/manualEntry/:invoiceId" element={<ManualEntry />} />
+        </Route>
+      </Routes>
+      
       <div className="fixed top-4 right-4 z-[100] flex flex-col items-end gap-2">
         <AnimatePresence>
           {uploadFiles && uploadFiles.length > 0 && (
@@ -84,11 +84,11 @@ const AppWithToasts = () => {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <AppWithToasts />
-        </ToastProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppRoutesAndToasts />
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
