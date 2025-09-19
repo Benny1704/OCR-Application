@@ -123,7 +123,7 @@ export interface InvoiceDetails {
   [key: string]: any;
 }
 
-export interface ProductDetails {
+export interface ProductDetails extends DataItem {
   item_id: number;
   invoice_id: number;
   category: string;
@@ -160,7 +160,7 @@ export interface AmountAndTaxDetails {
   [key: string]: any;
 }
 
-export interface LineItem {
+export interface LineItem extends DataItem {
   attribute_id: number;
   item_id: number;
   item_description: string;

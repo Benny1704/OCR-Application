@@ -320,6 +320,7 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
+        console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -332,6 +333,7 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
     try {
 
         const { items } = data;
+        console.log("updateProductDetails: "+JSON.stringify(items));
 
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
@@ -343,6 +345,7 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
+        console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
@@ -353,6 +356,7 @@ export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountA
 
 export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
     try {
+        console.log("updateLineItems: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
@@ -390,16 +394,12 @@ export const getMonthlyProcessingStats = async (year: number) => {
 
 export const confirmInvoice = async (messageId: string, data: { isEdited: boolean; state: string }, addToast: any): Promise<boolean> => {
     try {
-        // Build query parameters from the data object
         const params = new URLSearchParams({
             state: data.state,
             is_edited: String(data.isEdited)
         }).toString();
 
         console.log("params: "+params);
-        
-
-        // Make a POST request with an empty body and the query params in the URL
         const response = await api.post(`/confirm/${messageId}?${params}`);
         
         if (response.data.message) {
