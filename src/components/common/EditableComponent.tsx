@@ -1,49 +1,59 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, Save, Eye, ChevronDown, Check, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Save, Eye, ChevronDown, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, FormSection, FormField } from '../../interfaces/Types';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, EditableComponentProps } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
-import { set, get, cloneDeep, isEqual } from 'lodash';
-import { getLineItems, updateLineItems, updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, confirmInvoice } from '../../lib/api/Api';
+import { set, get, cloneDeep } from 'lodash';
+import { getLineItems } from '../../lib/api/Api';
 import { useParams } from 'react-router-dom';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
-    invoice_id: 0, message_id: '', invoice_number: '', irn: '', invoice_date: null, way_bill: '',
-    acknowledgement_number: '', acknowledgement_date: '', order_number: null, order_date: null,
-    supplier_id: 0, supplier_name: '', supplier_address: '', supplier_gst: ''
-};
-const initialEmptyProductDetails: ProductDetails[] = [];
-const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
-    meta_id: 0, invoice_amount: 0, taxable_value: 0, cgst_amount: 0, sgst_amount: 0,
-    igst_amount: 0, igst_percentage: null, total_tax_amount: 0, other_deductions: 0,
-    freight_charges: 0, other_charges: 0, round_off_amount: 0,
-    discount_percentage: 0,
-    discount_amount: 0,
+    supplier_id: 0,
+    invoice_id: 0,
+    invoice_number: '',
+    irn: '',
+    invoice_date: null,
+    way_bill: '',
+    acknowledgement_number: '',
+    acknowledgement_date: null,
+    created_at: null,
+    order_number: null,
+    order_date: null,
+    supplier_name: '',
+    supplier_address: '',
+    supplier_gst: '',
+    supplier_code: ''
 };
 
-type EditableComponentProps = {
-    isManual?: boolean;
-    initialInvoiceDetails?: InvoiceDetails | null;
-    initialProductDetails?: ProductDetails[] | null;
-    initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
-    isReadOnly?: boolean;
-    invoiceError?: string | null;
-    productError?: string | null;
-    amountError?: string | null;
-    onRetry?: () => void;
-    messageId: string;
-    formConfig: FormSection[];
-    itemSummaryConfig: { columns: FormField[] };
-    itemAttributesConfig: { columns: FormField[] };
-    // --- NEW PROP FOR SAVING A PRODUCT ROW ---
-    onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
+const initialEmptyProductDetails: ProductDetails[] = [];
+
+const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
+    invoice_id: 0,
+    meta_id: 0,
+    invoice_amount: 0,
+    taxable_value: 0,
+    cgst_amount: 0,
+    sgst_amount: 0,
+    igst_amount: 0,
+    igst_percentage: null,
+    total_tax_amount: 0,
+    other_deductions: 0,
+    freight_charges: 0,
+    other_charges: 0,
+    round_off_amount: 0,
+    misc_additions: 0,
+    misc_deductions: 0,
+    discount_id: 0,
+    discount_percentage: 0,
+    discount_amount: 0,
+    discount_round_off: 0,
 };
 
 const EditableComponent = ({
@@ -57,8 +67,9 @@ const EditableComponent = ({
     formConfig,
     itemSummaryConfig,
     itemAttributesConfig,
-    // --- RECEIVING THE NEW PROP ---
-    onSaveNewProduct
+    onSaveNewProduct,
+    onFormChange,
+    footer
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -81,7 +92,6 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
-    const [isDirty, setIsDirty] = useState(false);
     const [isValidationOpen, setValidationOpen] = useState(false);
     const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
 
@@ -96,15 +106,10 @@ const EditableComponent = ({
     const liveInvoiceAmount = useMemo(() => Number((amountDetails as any)?.invoice_amount) || 0, [amountDetails]);
 
     useEffect(() => {
-        const initialInv = isManual ? initialEmptyInvoiceDetails : initialInvoiceDetails;
-        const initialProd = isManual ? initialEmptyProductDetails : initialProductDetails;
-        const initialAmt = isManual ? initialEmptyAmountAndTaxDetails : initialAmountAndTaxDetails;
-
-        const hasChanged = !isEqual(initialInv, invoiceDetails) ||
-            !isEqual(initialProd, productDetails) ||
-            !isEqual(initialAmt, amountDetails);
-        setIsDirty(hasChanged);
-    }, [invoiceDetails, productDetails, amountDetails, initialInvoiceDetails, initialProductDetails, initialAmountAndTaxDetails, isManual]);
+        if (onFormChange) {
+            onFormChange(invoiceDetails, productDetails, amountDetails);
+        }
+    }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
 
     const combinedData = useMemo(() => ({
         ...invoiceDetails,
@@ -153,39 +158,39 @@ const EditableComponent = ({
     };
 
     const handleSaveLineItems = async (updatedLineItems: LineItem[]) => {
-        if (!selectedProduct) return;
-        const savedLineItems = await updateLineItems(selectedProduct.item_id, updatedLineItems, addToast);
-        if (savedLineItems) {
-            setProductDetails(currentProducts => {
-                const newProducts = cloneDeep(currentProducts);
-                const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
-                if (productIndex !== -1) {
-                    newProducts[productIndex].line_items = savedLineItems;
-                }
-                return newProducts;
-            });
-        }
+        if (!selectedProduct || !invoiceId) return;
+        // const invoiceIdNum = parseInt(invoiceId, 10);
+
+        // This assumes you have an endpoint to update line items for a *specific* product
+        // If your new `updateLineItems` is for the whole invoice, you might need a different approach here
+        // For now, let's assume a hypothetical `updateProductLineItems` exists or adapt `updateLineItems`
+        // For simplicity, let's update the local state and let the main "Save" handle the full update
+        
+        setProductDetails(currentProducts => {
+            const newProducts = cloneDeep(currentProducts);
+            const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
+            if (productIndex !== -1) {
+                newProducts[productIndex].line_items = updatedLineItems;
+            }
+            return newProducts;
+        });
+        
+        addToast({ type: 'success', message: 'Line items updated locally. Save the draft to persist changes.' });
         setIsPopupOpen(false);
     };
 
-    // --- NEW HANDLER FOR SAVING A ROW ---
     const handleSaveRow = useCallback(async (productRow: ProductDetails) => {
         if (onSaveNewProduct) {
             try {
-                // The parent (Edit.tsx) will handle the API call and state update
                 await onSaveNewProduct(productRow);
             } catch (error) {
-                // Error toast is already handled in the parent's save function
                 console.error("Failed to save product row from EditableComponent", error);
             }
         }
     }, [onSaveNewProduct]);
     
-    // --- MODIFIED RENDER FUNCTION ---
-    // This function now decides whether to show a "Save" or "View" button.
     const renderActionCell = (row: DataItem) => {
         const productRow = row as unknown as ProductDetails;
-        // A new row won't have an `item_id` until it's saved.
         const isSaved = !!productRow.item_id;
 
         if (isSaved) {
@@ -226,64 +231,7 @@ const EditableComponent = ({
             return next;
         });
     };
-
-    const handleSave = async () => {
-        if (!invoiceId) return;
-        const invoiceIdNum = parseInt(invoiceId, 10);
-        try {
-            const [savedInvoice, savedProducts, savedAmount] = await Promise.all([
-                updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, productDetails.filter(p => p.item_id), addToast), // Only save products with an item_id
-                updateAmountAndTaxDetails(invoiceIdNum, amountDetails, addToast),
-            ]);
-
-            if (savedInvoice) setInvoiceDetails(savedInvoice);
-            if (savedProducts) setProductDetails(savedProducts);
-            if (savedAmount) setAmountDetails(savedAmount);
-
-            if (savedInvoice && savedProducts && savedAmount) {
-                addToast({ type: 'success', message: 'Invoice saved successfully!' });
-                navigate('/document');
-            } else {
-                addToast({ type: 'error', message: 'An error occurred while saving. Please try again.' });
-            }
-        } catch (error: any) {
-            addToast({ type: 'error', message: `An error occurred while saving: ${error.message}` });
-        }
-    }
-
-    const handleValidateAndSave = async () => {
-        if (productDetails.some(p => !p.item_id)) {
-            addToast({ type: 'warning', message: 'Please save all new product rows before saving the invoice.' });
-            return;
-        }
-        const computed = liveCalculatedAmount;
-        const invoiceAmt = liveInvoiceAmount;
-        if (Math.abs(computed - invoiceAmt) >= 0.01) {
-            setValidationInfo({ computed, invoice: invoiceAmt });
-            setValidationOpen(true);
-            return;
-        }
-        await handleSave();
-    };
-
-    const handleForceSave = async () => {
-        setValidationOpen(false);
-        await handleSave();
-    }
-
-    const handleConfirm = async () => {
-        if (!messageId) {
-            addToast({ type: 'error', message: 'Message ID not found.' });
-            return;
-        }
-        const success = await confirmInvoice(messageId, addToast);
-        if (success) {
-            navigate('/document');
-        }
-    };
-
-    // --- REMAINDER OF THE COMPONENT IS UNCHANGED ---
+    
     return (
       <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
@@ -350,7 +298,7 @@ const EditableComponent = ({
                                                             actionColumnHeader="Details"
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
-                                                            onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
+                                                            onDataChange={(newData) => setProductDetails(newData as unknown as ProductDetails[])}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -378,27 +326,8 @@ const EditableComponent = ({
                 </div>
             </main>
 
-            {!finalIsReadOnly && (
-                <footer className={`flex-shrink-0 py-4 border-t backdrop-blur-sm ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                    <div className="px-6 flex justify-end">
-                        {(isDirty || isManual) ? (
-                            <button
-                                onClick={handleValidateAndSave}
-                                className={`flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 ${theme === 'dark' ? 'focus:ring-purple-800' : ''}`}
-                            >
-                                <Save className="w-5 h-5" /> Save
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleConfirm}
-                                className={`flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-2.5 px-6 text-base rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-300 ${theme === 'dark' ? 'focus:ring-emerald-800' : ''}`}
-                            >
-                                <Check className="w-5 h-5" /> Confirm
-                            </button>
-                        )}
-                    </div>
-                </footer>
-            )}
+            {!finalIsReadOnly && footer}
+
             <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
             <ProductDetailPopup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} product={selectedProduct} onSave={handleSaveLineItems} isLoading={isLineItemsLoading} itemAttributesConfig={itemAttributesConfig} />
             <AnimatePresence>
@@ -424,7 +353,6 @@ const EditableComponent = ({
                             </div>
                             <div className={`px-6 py-4 flex justify-end gap-3 ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
                                 <button onClick={() => setValidationOpen(false)} className={`px-5 py-2.5 text-base font-semibold rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>Close</button>
-                                <button onClick={handleForceSave} className="px-5 py-2.5 text-base font-semibold rounded-lg transition-all bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Force Save</button>
                             </div>
                         </motion.div>
                     </motion.div>

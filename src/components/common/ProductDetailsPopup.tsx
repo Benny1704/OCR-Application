@@ -6,9 +6,12 @@ import Loader from './Loader';
 import { Save, AlertTriangle, Eye } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal } from './Helper';
+import { updateLineItems } from '../../lib/api/Api';
+import { useToast } from '../../hooks/useToast';
 
-const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onViewImage, itemAttributesConfig }: any) => {
+const ProductDetailPopup = ({ isOpen, onClose, product, onSaveSuccess, isLoading, onViewImage, itemAttributesConfig }: any) => {
     const { theme } = useTheme();
+    const { addToast } = useToast();
     const [lineItems, setLineItems] = useState<LineItem[]>([]);
     const [initialLineItems, setInitialLineItems] = useState<LineItem[]>([]);
     const [isDirty, setIsDirty] = useState(false);
@@ -32,9 +35,16 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onVie
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
-        onSave(lineItems);
-        setIsDirty(false);
+    const handleSave = async () => {
+        if (!product?.item_id) {
+            addToast({ type: 'error', message: 'Cannot save: Missing product item ID.' });
+            return;
+        }
+        const savedLineItems = await updateLineItems(product.item_id, lineItems, addToast);
+        if (savedLineItems) {
+            onSaveSuccess(savedLineItems);
+            setIsDirty(false);
+        }
     };
 
     const handleClose = () => {

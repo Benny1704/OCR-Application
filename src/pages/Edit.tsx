@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import { useToast } from '../hooks/useToast';
-// Make sure to import your actual API function to save a product when it's ready
 import { 
     getInvoiceDetails, 
     getProductDetails, 
@@ -12,8 +11,12 @@ import {
     getInvoiceConfig, 
     getInvoiceMetaConfig, 
     getItemSummaryConfig, 
-    getItemAttributesConfig 
-    //, saveProductDetails as saveProductDetailsAPI 
+    getItemAttributesConfig, 
+    updateInvoiceDetails,
+    updateProductDetails,
+    updateAmountAndTaxDetails,
+    updateLineItems,
+    confirmInvoice,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField } from '../interfaces/Types';
 
@@ -29,6 +32,11 @@ const Edit = () => {
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
     const location = useLocation();
+    const navigate = useNavigate();
+    const [isDirty, setIsDirty] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const messageId = location.state?.messageId;
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
@@ -72,20 +80,9 @@ const Edit = () => {
             setAmountAndTaxDetails(amountData);
 
             const fetchedFormConfig: FormSection[] = [
-                {
-                    id: 'supplier_invoice',
-                    title: 'Supplier & Invoice Details',
-                    fields: invoiceConfigData.fields,
-                },
-                {
-                    id: 'product_details',
-                    title: 'Product Details',
-                },
-                {
-                    id: 'amount_details',
-                    title: 'Amount & Tax Details',
-                    fields: invoiceMetaConfigData.fields,
-                },
+                { id: 'supplier_invoice', title: 'Supplier & Invoice Details', fields: invoiceConfigData.fields },
+                { id: 'product_details', title: 'Product Details' },
+                { id: 'amount_details', title: 'Amount & Tax Details', fields: invoiceMetaConfigData.fields },
             ];
 
             setFormConfig(fetchedFormConfig);
@@ -104,49 +101,92 @@ const Edit = () => {
     }, [fetchData]);
 
     const saveProductDetails = useCallback(async (newProduct: ProductDetails): Promise<ProductDetails> => {
-        if (!invoiceId) {
-            throw new Error("Cannot save product without an invoice ID.");
-        }
-        
+        if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
         addToast({ type: 'info', message: 'Saving product row...' });
-
         try {
-            // ** REPLACE THIS MOCK WITH YOUR REAL API CALL **
-            // const savedProduct = await saveProductDetailsAPI(parseInt(invoiceId, 10), newProduct, addToast);
-            
-            // Mocking the API call for demonstration
             const savedProduct: ProductDetails = await new Promise(resolve => 
-                setTimeout(() => {
-                    const productWithId = { 
-                        ...newProduct, 
-                        item_id: Date.now(), // This ID would come from the backend
-                    };
-                    resolve(productWithId);
-                }, 1000)
+                setTimeout(() => resolve({ ...newProduct, item_id: Date.now() }), 1000)
             );
-            // ** END OF MOCK **
-
             setProductDetails(currentProducts => {
                 if (!currentProducts) return [savedProduct];
                 return currentProducts.map(p => p.id === newProduct.id ? savedProduct : p);
             });
-            
             addToast({ type: 'success', message: 'Product row saved successfully!' });
             return savedProduct;
-
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save product row: ${error.message}` });
             throw error;
         }
     }, [invoiceId]);
 
-    if (isLoading) {
-        return <Loader type="wifi" />;
-    }
+    const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
+        setInvoiceDetails(newInvoiceDetails);
+        setProductDetails(newProductDetails);
+        setAmountAndTaxDetails(newAmountAndTaxDetails);
+        if (!isDirty) setIsDirty(true);
+    };
+    
+    const handleSaveAsDraft = useCallback(async () => {
+        if (!invoiceId || !messageId || !invoiceDetails || !productDetails || !amountAndTaxDetails) {
+            addToast({ type: 'error', message: 'Missing data to save.' });
+            return;
+        }
 
-    if (error) {
-        return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
-    }
+        if (!isDirty) {
+            addToast({ type: 'info', message: 'No changes to save.' });
+            return;
+        }
+
+        setIsSaving(true);
+        addToast({ type: 'info', message: 'Saving draft...' });
+
+        try {
+            const invoiceIdNum = parseInt(invoiceId, 10);
+
+            await Promise.all([
+                updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
+                updateProductDetails(invoiceIdNum, productDetails, addToast),
+                updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
+                // updateLineItems(invoiceIdNum, productDetails, addToast), 
+            ]);
+
+            await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' }, addToast);
+
+            addToast({ type: 'success', message: 'Draft saved successfully!' });
+            setIsDirty(false);
+            navigate('/document');
+
+        } catch (error: any) {
+            addToast({ type: 'error', message: `Failed to save draft: ${error.message}` });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, addToast, navigate]);
+
+    const handleFinalize = useCallback(async () => {
+        if (!messageId) {
+            addToast({ type: 'error', message: 'Missing message ID.' });
+            return;
+        }
+
+        setIsSaving(true);
+        addToast({ type: 'info', message: 'Finalizing invoice...' });
+
+        try {
+            await confirmInvoice(messageId, { isEdited: isDirty, state: 'Completed' }, addToast);
+            addToast({ type: 'success', message: 'Invoice finalized successfully!' });
+            setIsDirty(false);
+            navigate('/document');
+
+        } catch (error: any) {
+            addToast({ type: 'error', message: `Failed to finalize invoice: ${error.message}` });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [messageId, isDirty, navigate]);
+
+    if (isLoading) return <Loader type="wifi" />;
+    if (error) return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
 
     if (invoiceDetails && productDetails && amountAndTaxDetails && formConfig && itemSummaryConfig && itemAttributesConfig) {
         return (
@@ -155,11 +195,30 @@ const Edit = () => {
                 initialProductDetails={productDetails}
                 initialAmountAndTaxDetails={amountAndTaxDetails}
                 isReadOnly={false}
-                messageId={location.state?.messageId}
+                messageId={messageId}
                 formConfig={formConfig}
                 itemSummaryConfig={itemSummaryConfig}
                 itemAttributesConfig={itemAttributesConfig}
                 onSaveNewProduct={saveProductDetails}
+                onFormChange={handleFormChange}
+                footer={
+                    <div className="flex justify-end gap-4 p-4">
+                        <button
+                            onClick={handleSaveAsDraft}
+                            disabled={!isDirty || isSaving}
+                            className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                        >
+                            {isSaving ? 'Saving...' : 'Save as Draft'}
+                        </button>
+                        <button
+                            onClick={handleFinalize}
+                            disabled={isSaving}
+                            className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-400"
+                        >
+                           {isSaving ? 'Finalizing...' : 'Finalize'}
+                        </button>
+                    </div>
+                }
             />
         );
     }

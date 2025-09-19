@@ -188,7 +188,7 @@ const Preview = () => {
 
     const handleCloseSuccess = () => {
         setShowSuccess(false);
-        navigate('/documents');
+        navigate('/document');
     };
 
     const supplierData = {
