@@ -1,7 +1,7 @@
 // src/lib/api/Api.ts
 
 import axios, { AxiosError } from 'axios';
-import type { AmountAndTaxDetails, InvoiceDetails, LineItem, ProductDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section } from '../../interfaces/Types';
+import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section, LineItem } from '../../interfaces/Types';
 
 // --- Base URLs ---
 const API_URL = import.meta.env.VITE_API_URL;
@@ -25,7 +25,7 @@ api.interceptors.request.use(
 
 
 // --- Centralized Error Handler ---
-const handleError = (error: any, addToast: (toast: { id?: number, message: string, type: "error" }) => void) => {
+const handleError = (error: any, addToast: (toast: { message: string, type: "error" }) => void) => {
     let errorMessage = "An unknown error occurred.";
 
     if (axios.isAxiosError(error)) {
@@ -320,7 +320,6 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -329,9 +328,12 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
     }
 };
 
-export const updateProductDetails = async (invoiceId: number, data: ProductDetails[], addToast: any) => {
+export const updateProductDetails = async (invoiceId: number, data: any, addToast: any) => {
     try {
-        const response = await api.put(`/invoice/${invoiceId}/item-summary`, data);
+
+        const { items } = data;
+
+        const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -386,9 +388,20 @@ export const getMonthlyProcessingStats = async (year: number) => {
     return response.data;
 };
 
-export const confirmInvoice = async (messageId: string, addToast: any): Promise<boolean> => {
+export const confirmInvoice = async (messageId: string, data: { isEdited: boolean; state: string }, addToast: any): Promise<boolean> => {
     try {
-        const response = await api.post(`/confirm/${messageId}`);
+        // Build query parameters from the data object
+        const params = new URLSearchParams({
+            state: data.state,
+            is_edited: String(data.isEdited)
+        }).toString();
+
+        console.log("params: "+params);
+        
+
+        // Make a POST request with an empty body and the query params in the URL
+        const response = await api.post(`/confirm/${messageId}?${params}`);
+        
         if (response.data.message) {
             addToast({ type: 'success', message: response.data.message });
         }

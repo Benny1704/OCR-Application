@@ -105,76 +105,102 @@ export interface FailedDocument extends Document {
 }
 
 export interface InvoiceDetails {
-	invoice_id: number;
-	invoice_number: string;
-	irn: string;
-	invoice_date: string | null;
-	way_bill: string;
-	acknowledgement_number: string;
-	acknowledgement_date: string;
-	order_number: string | null;
-	order_date: string | null;
-	supplier_id: number;
-	supplier_name: string;
-	supplier_address: string;
-	supplier_gst: string;
+  supplier_id: number;
+  invoice_id: number;
+  invoice_number: string;
+  irn: string;
+  invoice_date: string | null;
+  way_bill: string;
+  acknowledgement_number: string;
+  acknowledgement_date: string | null;
+  created_at: string | null;
+  order_number: string | null;
+  order_date: string | null;
+  supplier_name: string;
+  supplier_address: string;
+  supplier_gst: string;
+  supplier_code: string;
   [key: string]: any;
 }
 
 export interface ProductDetails {
-	id: number; // Renamed from item_id to conform to DataItem
-	invoice_id: number;
-	category: string;
-	UOM: string;
-	item_description: string;
-	design_code: string;
-	total_quantity: number;
-	total_amount: number;
-	HSN: string;
+  item_id: number;
+  invoice_id: number;
+  category: string;
+  uom: string;
+  design_code: string;
+  total_quantity: number;
+  total_pieces: number;
+  total_amount: number;
+  gst_percentage: string;
   line_items?: LineItem[];
   [key: string]: any;
 }
 
 export interface AmountAndTaxDetails {
-	meta_id: number;
-	invoice_amount: number;
-	taxable_value: number;
-	cgst_amount: number;
-	sgst_amount: number;
-	igst_amount: number;
-	igst_percentage: number | null;
-	total_tax_amount: number;
-	other_deductions: number;
-	freight_charges: number;
-	other_charges: number;
-	round_off_amount: number;
-  discount_percentage?: number | null;
-  discount_amount?: number | null;
+  invoice_id: number;
+  meta_id: number;
+  invoice_amount: number;
+  taxable_value: number;
+  cgst_amount: number;
+  sgst_amount: number;
+  igst_amount: number;
+  igst_percentage: string | null;
+  total_tax_amount: number;
+  other_deductions: number;
+  freight_charges: number;
+  other_charges: number;
+  round_off_amount: number;
+  misc_additions: number;
+  misc_deductions: number;
+  discount_id: number;
+  discount_percentage: number | null;
+  discount_amount: number | null;
+  discount_round_off: number;
   [key: string]: any;
 }
 
 export interface LineItem {
-	id: number; // Renamed from attribute_id to conform to DataItem
-	size: string;
-	total_count: number;
-	color_code: string;
-	single_unit_price: number;
-	single_unit_mrp: number;
-	no_item_split: number;
-	attributes: null;
+  attribute_id: number;
+  item_id: number;
+  item_description: string;
+  size: string;
+  total_count: number;
+  pieces: number;
+  color_code: string;
+  single_unit_price: number;
+  single_unit_mrp: number;
+  ean_code: string;
+  discount_percentage: string | null;
+  discount_amount: number;
+  cgst_percentage: string | null;
+  sgst_percentage: string | null;
+  igst_percentage: string | null;
+  hsn: string;
   [key: string]: any;
 }
 
 export interface EditableComponentProps {
-  initialInvoiceDetails: InvoiceDetails;
-  initialProductDetails: ProductDetails[];
-  initialAmountAndTaxDetails: AmountAndTaxDetails;
-  isReadOnly: boolean;
-  onPreview?: (
-      invoiceDetails: InvoiceDetails,
-      productDetails: ProductDetails[],
-      amountAndTaxDetails: AmountAndTaxDetails
-  ) => void;
+    isManual?: boolean;
+    initialInvoiceDetails?: InvoiceDetails | null;
+    initialProductDetails?: ProductDetails[] | null;
+    initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
+    isReadOnly?: boolean;
+    invoiceError?: string | null;
+    productError?: string | null;
+    amountError?: string | null;
+    onRetry?: () => void;
+    messageId: string;
+    formConfig: FormSection[];
+    itemSummaryConfig: { columns: FormField[] };
+    itemAttributesConfig: { columns: FormField[] };
+    onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
+    onFormChange?: (
+        newInvoiceDetails: InvoiceDetails,
+        newProductDetails: ProductDetails[],
+        newAmountAndTaxDetails: AmountAndTaxDetails
+    ) => void;
+    footer?: React.ReactNode;
 }
 
 // --- Component Prop Interfaces ---

@@ -103,9 +103,6 @@ const Edit = () => {
         fetchData();
     }, [fetchData]);
 
-    // --- NEW FUNCTION ---
-    // This function handles saving a new product row.
-    // Replace the mock promise with your actual API call.
     const saveProductDetails = useCallback(async (newProduct: ProductDetails): Promise<ProductDetails> => {
         if (!invoiceId) {
             throw new Error("Cannot save product without an invoice ID.");
@@ -131,8 +128,6 @@ const Edit = () => {
 
             setProductDetails(currentProducts => {
                 if (!currentProducts) return [savedProduct];
-                // Replace the temporary new row (identified by its temporary `id`) 
-                // with the final saved product from the API response.
                 return currentProducts.map(p => p.id === newProduct.id ? savedProduct : p);
             });
             
@@ -141,7 +136,7 @@ const Edit = () => {
 
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save product row: ${error.message}` });
-            throw error; // Re-throw to be handled by the calling component if necessary
+            throw error;
         }
     }, [invoiceId]);
 
