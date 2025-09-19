@@ -4,7 +4,7 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, LineItem, EditableComponentProps } from '../../interfaces/Types';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, EditableComponentProps } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { DynamicField } from './DynamicField';
 import { RetryModal } from './Helper';
@@ -63,7 +63,6 @@ const EditableComponent = ({
     initialAmountAndTaxDetails,
     isReadOnly = false,
     onRetry,
-    messageId,
     formConfig,
     itemSummaryConfig,
     itemAttributesConfig,
@@ -94,6 +93,7 @@ const EditableComponent = ({
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
     const [isValidationOpen, setValidationOpen] = useState(false);
     const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
+    const [isEdited, setIsEdited] = useState(false); // New state for tracking edits
 
     const productRows = useMemo(() => (
         Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])
@@ -157,26 +157,10 @@ const EditableComponent = ({
         }
     };
 
-    const handleSaveLineItems = async (updatedLineItems: LineItem[]) => {
-        if (!selectedProduct || !invoiceId) return;
-        // const invoiceIdNum = parseInt(invoiceId, 10);
-
-        // This assumes you have an endpoint to update line items for a *specific* product
-        // If your new `updateLineItems` is for the whole invoice, you might need a different approach here
-        // For now, let's assume a hypothetical `updateProductLineItems` exists or adapt `updateLineItems`
-        // For simplicity, let's update the local state and let the main "Save" handle the full update
-        
-        setProductDetails(currentProducts => {
-            const newProducts = cloneDeep(currentProducts);
-            const productIndex = newProducts.findIndex(p => p.id === selectedProduct.id);
-            if (productIndex !== -1) {
-                newProducts[productIndex].line_items = updatedLineItems;
-            }
-            return newProducts;
-        });
-        
-        addToast({ type: 'success', message: 'Line items updated locally. Save the draft to persist changes.' });
-        setIsPopupOpen(false);
+    const handleSaveLineItems = (edited: boolean) => {
+        if (edited) {
+            setIsEdited(true);
+        }
     };
 
     const handleSaveRow = useCallback(async (productRow: ProductDetails) => {
@@ -329,7 +313,14 @@ const EditableComponent = ({
             {!finalIsReadOnly && footer}
 
             <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
-            <ProductDetailPopup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} product={selectedProduct} onSave={handleSaveLineItems} isLoading={isLineItemsLoading} itemAttributesConfig={itemAttributesConfig} />
+            <ProductDetailPopup 
+                isOpen={isPopupOpen} 
+                onClose={() => setIsPopupOpen(false)} 
+                product={selectedProduct} 
+                onSave={handleSaveLineItems} 
+                isLoading={isLineItemsLoading} 
+                itemAttributesConfig={itemAttributesConfig} 
+            />
             <AnimatePresence>
                 {isValidationOpen && validationInfo && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center p-4">

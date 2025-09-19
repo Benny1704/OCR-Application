@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ProductDetailPopupProps, LineItem, DataItem, FormField } from '../../interfaces/Types';
+import type { LineItem, DataItem } from '../../interfaces/Types';
 import DataTable from './DataTable';
 import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
@@ -9,7 +9,7 @@ import { ConfirmationModal } from './Helper';
 import { updateLineItems } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 
-const ProductDetailPopup = ({ isOpen, onClose, product, onSaveSuccess, isLoading, onViewImage, itemAttributesConfig }: any) => {
+const ProductDetailPopup = ({ isOpen, onClose, product, onSave, isLoading, onViewImage, itemAttributesConfig }: any) => {
     const { theme } = useTheme();
     const { addToast } = useToast();
     const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -19,8 +19,9 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSaveSuccess, isLoading
 
     useEffect(() => {
         if (product && product.line_items) {
-            setLineItems(product.line_items);
-            setInitialLineItems(product.line_items);
+            const newInitialLineItems = product.line_items.map((item: any) => ({ ...item }));
+            setLineItems(newInitialLineItems);
+            setInitialLineItems(newInitialLineItems);
             setIsDirty(false);
         } else {
             setLineItems([]);
@@ -42,8 +43,8 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSaveSuccess, isLoading
         }
         const savedLineItems = await updateLineItems(product.item_id, lineItems, addToast);
         if (savedLineItems) {
-            onSaveSuccess(savedLineItems);
-            setIsDirty(false);
+            onSave(isDirty);
+            onClose();
         }
     };
 
