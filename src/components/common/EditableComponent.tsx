@@ -11,7 +11,6 @@ import { RetryModal } from './Helper';
 import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
-import { getLineItems } from '../../lib/api/Api';
 import { useParams } from 'react-router-dom';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
@@ -89,7 +88,6 @@ const EditableComponent = ({
     const [isRetryModalOpen, setRetryModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [isLineItemsLoading, setIsLineItemsLoading] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
     const [isValidationOpen, setValidationOpen] = useState(false);
     const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
@@ -138,23 +136,13 @@ const EditableComponent = ({
 
     const secondaryButtonClasses = `flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 ${theme === 'dark' ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'}`;
 
-    const handleOpenPopup = async (product: ProductDetails) => {
+    const handleOpenPopup = (product: ProductDetails) => {
         if (isManual || !product.item_id) {
             addToast({ type: 'error', message: 'Cannot view details for an unsaved item.' });
             return;
         }
         setSelectedProduct(product);
         setIsPopupOpen(true);
-        setIsLineItemsLoading(true);
-        try {
-            const invoiceIdNum = parseInt(invoiceId!, 10);
-            const lineItems = await getLineItems(invoiceIdNum, product.item_id, addToast);
-            setSelectedProduct({ ...product, line_items: lineItems || [] });
-        } catch (err: any) {
-            addToast({ type: "error", message: err.message || "Failed to fetch line items." });
-        } finally {
-            setIsLineItemsLoading(false);
-        }
     };
 
     const handleSaveLineItems = (edited: boolean) => {
@@ -172,7 +160,7 @@ const EditableComponent = ({
             }
         }
     }, [onSaveNewProduct]);
-    
+
     const renderActionCell = (row: DataItem) => {
         const productRow = row as unknown as ProductDetails;
         const isSaved = !!productRow.item_id;
@@ -215,7 +203,7 @@ const EditableComponent = ({
             return next;
         });
     };
-    
+
     return (
       <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
@@ -313,13 +301,14 @@ const EditableComponent = ({
             {!finalIsReadOnly && footer}
 
             <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
-            <ProductDetailPopup 
-                isOpen={isPopupOpen} 
-                onClose={() => setIsPopupOpen(false)} 
-                product={selectedProduct} 
-                onSave={handleSaveLineItems} 
-                isLoading={isLineItemsLoading} 
-                itemAttributesConfig={itemAttributesConfig} 
+            <ProductDetailPopup
+                isOpen={isPopupOpen}
+                onClose={() => setIsPopupOpen(false)}
+                product={selectedProduct}
+                onSave={handleSaveLineItems}
+                onViewImage={handleViewImage}
+                itemAttributesConfig={itemAttributesConfig}
+                invoiceId={parseInt(invoiceId!, 10)}
             />
             <AnimatePresence>
                 {isValidationOpen && validationInfo && (

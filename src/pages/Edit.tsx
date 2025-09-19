@@ -4,14 +4,14 @@ import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import { useToast } from '../hooks/useToast';
-import { 
-    getInvoiceDetails, 
-    getProductDetails, 
-    getAmountAndTaxDetails, 
-    getInvoiceConfig, 
-    getInvoiceMetaConfig, 
-    getItemSummaryConfig, 
-    getItemAttributesConfig, 
+import {
+    getInvoiceDetails,
+    getProductDetails,
+    getAmountAndTaxDetails,
+    getInvoiceConfig,
+    getInvoiceMetaConfig,
+    getItemSummaryConfig,
+    getItemAttributesConfig,
     updateInvoiceDetails,
     updateProductDetails,
     updateAmountAndTaxDetails,
@@ -19,6 +19,7 @@ import {
     confirmInvoice,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField } from '../interfaces/Types';
+import { Save, CheckCircle } from 'lucide-react';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
@@ -104,7 +105,7 @@ const Edit = () => {
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
         addToast({ type: 'info', message: 'Saving product row...' });
         try {
-            const savedProduct: ProductDetails = await new Promise(resolve => 
+            const savedProduct: ProductDetails = await new Promise(resolve =>
                 setTimeout(() => resolve({ ...newProduct, item_id: Date.now() }), 1000)
             );
             setProductDetails(currentProducts => {
@@ -125,7 +126,7 @@ const Edit = () => {
         setAmountAndTaxDetails(newAmountAndTaxDetails);
         if (!isDirty) setIsDirty(true);
     };
-    
+
     const handleSaveAsDraft = useCallback(async () => {
         if (!invoiceId || !messageId || !invoiceDetails || !productDetails || !amountAndTaxDetails) {
             addToast({ type: 'error', message: 'Missing data to save.' });
@@ -147,7 +148,7 @@ const Edit = () => {
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
                 updateProductDetails(invoiceIdNum, productDetails, addToast),
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
-                // updateLineItems(invoiceIdNum, productDetails, addToast), 
+                // updateLineItems(invoiceIdNum, productDetails, addToast),
             ]);
 
             await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' }, addToast);
@@ -206,16 +207,18 @@ const Edit = () => {
                         <button
                             onClick={handleSaveAsDraft}
                             disabled={!isDirty || isSaving}
-                            className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                            className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out"
                         >
-                            {isSaving ? 'Saving...' : 'Save as Draft'}
+                            <Save size={16} />
+                            Save as Draft
                         </button>
                         <button
                             onClick={handleFinalize}
                             disabled={isSaving}
-                            className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600 disabled:bg-gray-400"
+                            className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 ease-in-out"
                         >
-                           {isSaving ? 'Finalizing...' : 'Finalize'}
+                           <CheckCircle size={16} />
+                           Finalize
                         </button>
                     </div>
                 }
