@@ -456,7 +456,8 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
     try {
         const payload = {
             ...invoiceData,
-            message_id: messageID
+            // message_id: messageID
+            message_id: "queue_10006"
         };
         console.log("invoice payload"+JSON.stringify(payload))
         const response = await api.post('/manual_invoice_entry/invoice', payload);
