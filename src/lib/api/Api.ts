@@ -457,7 +457,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
         const payload = {
             ...invoiceData,
             // message_id: messageID
-            message_id: "queue_10006"
+            message_id: "queue_10008"
         };
         console.log("invoice payload"+JSON.stringify(payload))
         const response = await api.post('/manual_invoice_entry/invoice', payload);
@@ -480,7 +480,9 @@ export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndT
     }
 };
 
-export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetails>[], invoice_id: number, addToast: any): Promise<{ data: ProductDetails[], message: string }> => {
+export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetails>[], invoice_id: number, addToast: any): Promise<{
+    status: string; data: ProductDetails[], message: string 
+}> => {
     try {
         const itemsWithInvoiceId = items.map(item => ({ ...item, invoice_id }));
         console.log("invoice itemsWithInvoiceId"+JSON.stringify(itemsWithInvoiceId))
