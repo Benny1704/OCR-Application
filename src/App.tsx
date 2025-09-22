@@ -18,24 +18,23 @@ import Preview from "./pages/Preview";
 import ManualEntry from "./pages/ManualEntry";
 import { type Role } from "./interfaces/Types";
 import { useContext } from "react";
-import { AuthContext, AuthProvider } from "./contexts/AuthContext";
-import { ThemeProvider } from "./contexts/ThemeContexts";
-import { ToastProvider } from "./contexts/ToastContext";
+import { AuthContext } from "./contexts/AuthContext";
 import { useToast } from "./hooks/useToast";
 import { Toast, UploadStatus } from "./components/common/Helper";
 import { AnimatePresence } from "framer-motion";
 import Review from "./pages/Review";
 
+// The ProtectedRoute component is used to protect routes that require authentication.
+// It checks if the user is authenticated and has the required role to access the route.
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   const auth = useContext(AuthContext);
   
-  // Handle the case where context is not yet available
-  if (!auth) return null; 
-  
+  if (!auth) return null;
+
   if (!auth.user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return allowedRoles.includes(auth.user.role) ? (
     <Outlet />
   ) : (
@@ -43,6 +42,7 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   );
 };
 
+// The AppRoutesAndToasts component defines the application's routes and renders toast notifications.
 const AppRoutesAndToasts = () => {
   const { toasts, removeToast, uploadFiles, hideUploadStatus } = useToast();
 
@@ -52,10 +52,12 @@ const AppRoutesAndToasts = () => {
         <Route element={<RootLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/log" element={<Logs />} />
           </Route>
+          
           <Route path="/queue" element={<Queue />} />
           <Route path="/document" element={<Documents />} />
           <Route path="/upload" element={<Upload />} />
@@ -81,16 +83,12 @@ const AppRoutesAndToasts = () => {
   );
 };
 
-function App() {
+// The App component is the root component of the application.
+// It wraps the AppRoutesAndToasts component in the necessary providers.
+const App = () => {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <AppRoutesAndToasts />
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+    <AppRoutesAndToasts />
   );
-}
+};
 
 export default App;
