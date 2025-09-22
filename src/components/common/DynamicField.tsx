@@ -5,7 +5,7 @@ interface DynamicFieldProps {
   name: string;
   value: string | number | null | undefined;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  readOnly?: boolean;
+  disabled?: boolean;
   theme?: string;
 }
 
@@ -14,7 +14,7 @@ export const DynamicField = ({
   name,
   value,
   onChange,
-  readOnly = false,
+  disabled = false,
   theme = 'light',
 }: DynamicFieldProps) => {
   // The original error was likely caused by trying to access a property on a null value.
@@ -27,9 +27,9 @@ export const DynamicField = ({
     name: name,
     value: displayValue,
     onChange: onChange,
-    readOnly: readOnly,
+    disabled: disabled,
     className: `w-full px-3 py-2 text-sm md:text-base rounded-lg border focus:outline-none focus:ring-2 transition-colors ${
-      readOnly
+      disabled
         ? 'cursor-not-allowed bg-opacity-50'
         : 'focus:ring-violet-500'
     } ${

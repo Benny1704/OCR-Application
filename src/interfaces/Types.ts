@@ -24,6 +24,25 @@ export interface DataTableProps {
   [key: string]: any; // Allow other props
 }
 
+// --- Table Configuration ---
+export interface TableColumnConfig {
+    key: string;
+    label: string;
+    type?: 'string' | 'number' | 'boolean' | 'date';
+    width?: string;
+    sortable?: boolean;
+    isEditable?: boolean;
+    isRequired?: boolean;
+    isCalculated?: boolean;
+    fixed?: boolean;
+}
+
+export interface TableConfig {
+    columns: TableColumnConfig[];
+    fixedColumn?: string;
+}
+
+
 // --- Pagination ---
 export interface Pagination {
   page: number;

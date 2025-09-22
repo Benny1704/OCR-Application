@@ -2,25 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo } from '../../interfaces/Types';
+import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
 
-export interface TableColumnConfig {
-    key: string;
-    label: string;
-    type?: 'string' | 'number' | 'boolean' | 'date';
-    width?: string;
-    sortable?: boolean;
-    isEditable?: boolean;
-    isRequired?: boolean;
-    isCalculated?: boolean;
-    fixed?: boolean;
-}
-
-export interface TableConfig {
-    columns: TableColumnConfig[];
-    fixedColumn?: string;
-}
 
 export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
     tableData: DataItem[];

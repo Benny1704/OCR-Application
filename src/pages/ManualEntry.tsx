@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { ChevronDown, CheckCircle, ArrowRight, Save } from 'lucide-react';
 import { cloneDeep, set } from 'lodash';
@@ -23,7 +23,7 @@ import {
     manualInvoiceEntryInvoiceMeta,
     manualInvoiceEntryItemSummary
 } from '../lib/api/Api';
-import type { FormSection, FormField, ProductDetails, InvoiceDetails, AmountAndTaxDetails, DataItem, LineItem } from '../interfaces/Types';
+import type { FormSection, ProductDetails, InvoiceDetails, AmountAndTaxDetails, DataItem, TableConfig } from '../interfaces/Types';
 
 // --- Helper: Initial Empty State Definitions ---
 const initialEmptyInvoiceDetails: InvoiceDetails = {
@@ -47,12 +47,13 @@ const ManualEntry = () => {
     const [step, setStep] = useState<'supplier' | 'details'>('supplier');
     const [configs, setConfigs] = useState<{
         form: FormSection[] | null;
-        summary: { columns: FormField[] } | null;
-        attributes: { columns: FormField[] } | null;
+        summary: TableConfig | null;
+        attributes: TableConfig | null;
     }>({ form: null, summary: null, attributes: null });
     
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isReadOnly, setIsReadOnly] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Form Data State
@@ -68,7 +69,6 @@ const ManualEntry = () => {
     // --- Hooks ---
     const { addToast } = useToast();
     const { theme } = useTheme();
-    const navigate = useNavigate();
     const location = useLocation();
 
     // --- Data Fetching ---
@@ -105,7 +105,7 @@ const ManualEntry = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
@@ -123,6 +123,7 @@ const ManualEntry = () => {
                 setInvoiceDetails(prev => ({ ...prev, invoice_id: newInvoiceId }));
                 setAmountDetails(prev => ({ ...prev, invoice_id: newInvoiceId }));
                 setStep('details');
+                setIsReadOnly(true); // Make the form read-only after this step
                 addToast({ type: 'success', message: 'Supplier details saved successfully.' });
             }
         } catch (apiError) {
@@ -148,22 +149,13 @@ const ManualEntry = () => {
         }
     };
 
-    const handleFinalSave = async () => {
+    const handleSaveAmountDetails = async () => {
         setIsSubmitting(true);
         try {
-            // 1. Save Amount Details
             await manualInvoiceEntryInvoiceMeta(amountDetails, addToast);
-
-            // 2. Save any unsaved product rows
-            const unsavedProducts = productDetails.filter(p => !p.item_id);
-            if (unsavedProducts.length > 0) {
-                await manualInvoiceEntryItemSummary(unsavedProducts, invoiceDetails.invoice_id, addToast);
-            }
-            
-            addToast({ type: 'success', message: 'Invoice created successfully!' });
-            navigate('/documents');
+            addToast({ type: 'success', message: 'Amount & Tax details saved successfully!' });
         } catch (apiError) {
-            console.error("Failed to create invoice:", apiError);
+            console.error("Failed to save amount details:", apiError);
         } finally {
             setIsSubmitting(false);
         }
@@ -207,6 +199,18 @@ const ManualEntry = () => {
         const productRow = row as ProductDetails;
         const isSaved = !!productRow.item_id;
 
+        if (isReadOnly && !isSaved) {
+            return (
+                <button
+                    onClick={() => handleSaveProductRow(productRow)}
+                    className="p-1.5 rounded-md bg-emerald-500 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    title="Save Row"
+                >
+                    <Save size={16} />
+                </button>
+            );
+        }
+
         return isSaved ? (
             <button
                 onClick={() => handleOpenPopup(productRow)}
@@ -247,7 +251,7 @@ const ManualEntry = () => {
                     {/* --- Step 1: Supplier Form --- */}
                     <motion.div
                         initial={{ opacity: 1 }}
-                        animate={{ opacity: step === 'supplier' ? 1 : 0.6, pointerEvents: step === 'supplier' ? 'auto' : 'none' }}
+                        animate={{ opacity: step === 'supplier' && !isReadOnly ? 1 : 0.6 }}
                         transition={{ duration: 0.4 }}
                         className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}
                     >
@@ -273,19 +277,22 @@ const ManualEntry = () => {
                                                 value={(invoiceDetails as any)[field.key] || ''}
                                                 onChange={(e) => handleInputChange(e, 'invoice')}
                                                 theme={theme}
+                                                disabled={isReadOnly}
                                             />
                                         ))}
                                     </div>
-                                    <div className="mt-6 flex justify-end">
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:bg-violet-400"
-                                        >
-                                            {isSubmitting ? <Loader type="btnLoader" /> : <ArrowRight size={16} />}
-                                            {isSubmitting ? 'Saving...' : 'Save & Continue'}
-                                        </button>
-                                    </div>
+                                    {!isReadOnly && (
+                                        <div className="mt-6 flex justify-end">
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmitting}
+                                                className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:bg-violet-400"
+                                            >
+                                                {isSubmitting ? <Loader type="btnLoader" /> : <ArrowRight size={16} />}
+                                                {isSubmitting ? 'Saving...' : 'Save & Continue'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </form>
                             </motion.div>
                         )}
@@ -324,8 +331,8 @@ const ManualEntry = () => {
                                                             {section.id === 'product_details' ? (
                                                                 <DataTable
                                                                     tableData={productDetails}
-                                                                    tableConfig={configs.summary}
-                                                                    isEditable={true}
+                                                                    tableConfig={configs.summary!}
+                                                                    isEditable={!isReadOnly}
                                                                     isSearchable={true}
                                                                     renderActionCell={renderActionCell}
                                                                     actionColumnHeader="Status"
@@ -333,17 +340,32 @@ const ManualEntry = () => {
                                                                     onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
                                                                 />
                                                             ) : (
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                                                    {section.fields?.map((field: any) => (
-                                                                        <DynamicField
-                                                                            key={field.key}
-                                                                            label={field.label}
-                                                                            name={field.key}
-                                                                            value={(amountDetails as any)[field.key] || ''}
-                                                                            onChange={(e) => handleInputChange(e, 'amount')}
-                                                                            theme={theme}
-                                                                        />
-                                                                    ))}
+                                                                <div className="space-y-6">
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                                                        {section.fields?.map((field: any) => (
+                                                                            <DynamicField
+                                                                                key={field.key}
+                                                                                label={field.label}
+                                                                                name={field.key}
+                                                                                value={(amountDetails as any)[field.key] || ''}
+                                                                                onChange={(e) => handleInputChange(e, 'amount')}
+                                                                                theme={theme}
+                                                                                disabled={isReadOnly}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                    {!isReadOnly && (
+                                                                        <div className="flex justify-end">
+                                                                            <button
+                                                                                onClick={handleSaveAmountDetails}
+                                                                                disabled={isSubmitting}
+                                                                                className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400"
+                                                                            >
+                                                                                {isSubmitting ? <Loader type="btnLoader" /> : <Save size={16} />}
+                                                                                {isSubmitting ? 'Saving...' : 'Save Amount Details'}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -358,19 +380,6 @@ const ManualEntry = () => {
                     </AnimatePresence>
                 </div>
             </main>
-
-            {step === 'details' && (
-                <footer className={`flex-shrink-0 px-6 py-4 border-t flex justify-end items-center ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
-                    <button
-                        onClick={handleFinalSave}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center gap-2 font-bold py-2.5 px-6 rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400"
-                    >
-                        {isSubmitting ? <Loader type="btnLoader" /> : <Save size={18} />}
-                        {isSubmitting ? 'Creating Invoice...' : 'Create Invoice'}
-                    </button>
-                </footer>
-            )}
             
             <ProductDetailPopup
                 isOpen={isPopupOpen}

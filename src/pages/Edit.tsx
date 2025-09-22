@@ -15,7 +15,6 @@ import {
     updateInvoiceDetails,
     updateProductDetails,
     updateAmountAndTaxDetails,
-    updateLineItems,
     confirmInvoice,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField } from '../interfaces/Types';
