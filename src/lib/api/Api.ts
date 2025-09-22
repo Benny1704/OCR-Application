@@ -1,7 +1,5 @@
-// src/lib/api/Api.ts
-
 import axios, { AxiosError } from 'axios';
-import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section, LineItem } from '../../interfaces/Types';
+import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section, LineItem, ProductDetails } from '../../interfaces/Types';
 
 // --- Base URLs ---
 const API_URL = import.meta.env.VITE_API_URL;
@@ -71,7 +69,6 @@ export const login = async (credentials: { username: string; password: string; s
             section_id: credentials.section_id.toString()
         }).toString();
 
-        // The API expects a POST request with parameters in the URL and an empty body.
         const response = await api.post(`/users/token?${params}`);
         return response.data;
     } catch (error) {
@@ -452,3 +449,53 @@ export const getItemAttributesConfig = async (addToast: any): Promise<{ fields: 
         return { fields: [] };
     }
 }
+
+// --- NEW MANUAL ENTRY APIS ---
+
+export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: Partial<InvoiceDetails>, addToast: any): Promise<{ invoice_id: number }> => {
+    try {
+        const payload = {
+            ...invoiceData,
+            message_id: "q_2"
+        };
+        console.log("invoice payload"+JSON.stringify(payload))
+        const response = await api.post('/manual_invoice_entry/invoice', payload);
+        console.log("invoice response"+JSON.stringify(response))
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        throw error;
+    }
+};
+
+export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
+    try {
+        console.log("invoice metaData"+JSON.stringify(metaData))
+        const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        throw error;
+    }
+};
+
+export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetails>[], invoice_id: number, addToast: any): Promise<{ data: ProductDetails[], message: string }> => {
+    try {
+        const itemsWithInvoiceId = items.map(item => ({ ...item, invoice_id }));
+        const response = await api.post('/manual_invoice_entry/item_summary', { items: itemsWithInvoiceId });
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        throw error;
+    }
+};
+
+export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineItem>[], addToast: any): Promise<{ data: LineItem[], message: string }> => {
+    try {
+        const response = await api.post('/manual_invoice_entry/item_attributes', { attributes });
+        return response.data;
+    } catch (error) {
+        handleError(error, addToast);
+        throw error;
+    }
+};
