@@ -151,7 +151,7 @@ export interface ProductDetails extends DataItem {
   total_quantity: number;
   total_pieces: number;
   total_amount: number;
-  gst_percentage: string;
+  gst_percentage: number;
   line_items?: LineItem[];
   [key: string]: any;
 }

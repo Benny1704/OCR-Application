@@ -47,7 +47,7 @@ const formatLastUpdated = (date: Date | null) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const formatDateTime = (dateString: string) => {
+export const formatDateTime = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleString('en-US', {
     year: 'numeric',
@@ -234,18 +234,21 @@ const Queue = () => {
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Processed') {
             processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
+            console.log(JSON.stringify(processedResponse));
             setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
                 id: item.message_id,
                 sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
                 name: item.file_name,
                 supplierName: item.supplier_name,
+                supplierNumber: item.supplier_gst_in,
+                invoiceNumber: item.invoice_id,
                 invoiceId: item.invoice_id,
                 irnNumber: item.irn,
                 uploadedBy: item.uploaded_by,
                 uploadDate: formatDateTime(item.uploaded_at),
                 invoiceDate: formatDateTime(item.invoice_date),
                 messageId: item.message_id,
-                status: "Processed",
+                status: item.status,
             })));
             setPagination(prev => ({...prev, Processed: processedResponse.pagination}));
         } else if (activeTab === 'Failed') {

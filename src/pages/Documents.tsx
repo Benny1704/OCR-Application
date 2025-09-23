@@ -10,6 +10,7 @@ import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { TableSkeleton } from "../components/common/SkeletonLoaders";
+import { formatDateTime } from "./Queue";
 
 const Documents = () => {
   const { theme } = useTheme();
@@ -32,13 +33,15 @@ const Documents = () => {
           sno: (page - 1) * size + index + 1,
           name: item.file_name,
           supplierName: item.supplier_name,
+          supplierNumber: item.supplier_gst_in,
+          invoiceNumber: item.invoice_id,
           invoiceId: item.invoice_id,
           irnNumber: item.irn,
           uploadedBy: item.uploaded_by,
-          uploadDate: item.uploaded_at,
-          invoiceDate: item.invoice_date,
+          uploadDate: formatDateTime(item.uploaded_at),
+          invoiceDate: formatDateTime(item.invoice_date),
           messageId: item.message_id,
-          status: "Processed",
+          status: item.status,
         })));
         setPagination(paginationData);
     } catch (err: any) {

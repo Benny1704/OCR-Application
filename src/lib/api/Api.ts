@@ -448,6 +448,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
             // message_id: messageID
             message_id: messageID
         };
+        console.log("manualInvoiceEntryInvoice: "+JSON.stringify(payload));
         const response = await api.post('/manual_invoice_entry/invoice', payload);
         return response.data;
     } catch (error) {
@@ -458,6 +459,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
 
 export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
     try {
+        console.log("manualInvoiceEntryInvoiceMeta: "+JSON.stringify(metaData));
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
@@ -466,12 +468,13 @@ export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndT
     }
 };
 
-export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetails>[], invoice_id: number, addToast: any): Promise<{
-    status: string; data: ProductDetails[], message: string 
+export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<ProductDetails>[] }, addToast: any): Promise<{
+    status: string; data: ProductDetails[], message: string
 }> => {
     try {
-        const itemsWithInvoiceId = items.map(item => ({ ...item, invoice_id }));
-        const response = await api.post('/manual_invoice_entry/item_summary', { items: itemsWithInvoiceId });
+        console.log("manualInvoiceEntryItemSummary payload: ", JSON.stringify(payload, null, 2));
+        const response = await api.post('/manual_invoice_entry/item_summary', payload);
+        console.log("manualInvoiceEntryItemSummary response: ", JSON.stringify(response.data, null, 2));
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -502,6 +505,7 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
         }));
 
         // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
+        console.log("cleanedAttributes: "+JSON.stringify(cleanedAttributes));
         const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
 
         if (response.data && response.data.status === 'success') {

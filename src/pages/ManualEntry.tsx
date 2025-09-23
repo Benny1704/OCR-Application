@@ -110,7 +110,7 @@ const ManualEntry = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [addToast]);
 
     useEffect(() => {
         fetchConfig();
@@ -125,7 +125,7 @@ const ManualEntry = () => {
             console.error("Failed to fetch product details", err);
             addToast({ type: 'error', message: 'Could not load product details.' });
         }
-    }, []);
+    }, [addToast]);
 
 
     // --- Event Handlers ---
@@ -148,26 +148,36 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [invoiceDetails, location.state?.messageId]);
+    }, [invoiceDetails, location.state?.messageId, addToast]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
-        // A new row from the DataTable won't have a real `item_id`, but it will have a temporary `id` for UI tracking.
         const temporaryRowId = productRow.id;
         setSavingRowId(temporaryRowId);
 
+        // Create a clean payload object with only the keys the API expects.
+        const payload = {
+            items: [
+                {
+                    invoice_id: invoiceDetails.invoice_id,
+                    total_quantity: Number(productRow.total_quantity) || 0,
+                    total_pieces: Number(productRow.total_pieces) || 0,
+                    total_amount: Number(productRow.total_amount) || 0,
+                    gst_percentage: Number(productRow.gst_percentage) || 0,
+                    style_code: productRow.style_code || ""
+                }
+            ]
+        };
+
         try {
-            const response = await manualInvoiceEntryItemSummary([productRow], invoiceDetails.invoice_id, addToast);
+            const response = await manualInvoiceEntryItemSummary(payload, addToast);
 
             if (response && response.status === 'success' && response.data?.length > 0) {
-                // The server responds with the saved data, which now includes the real `item_id`.
                 const savedProduct = response.data[0];
                 addToast({ type: 'success', message: response.message || 'Product row saved.' });
 
-                // We find the row in our state using its temporary ID and replace the entire object
-                // with the final, saved version from the server.
                 setProductDetails(currentProducts =>
                     currentProducts.map(p =>
-                        p.id === temporaryRowId ? savedProduct : p
+                        p.id === temporaryRowId ? { ...savedProduct, id: savedProduct.item_id } : p
                     )
                 );
             } else {
@@ -180,7 +190,7 @@ const ManualEntry = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceDetails.invoice_id, fetchProductDetails]);
+    }, [invoiceDetails.invoice_id, fetchProductDetails, addToast]);
 
 
     const handleSaveAmountDetails = useCallback(async () => {
@@ -194,7 +204,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [amountDetails]);
+    }, [amountDetails, addToast]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
         const { name, value } = e.target;
@@ -209,7 +219,7 @@ const ManualEntry = () => {
         }
         setSelectedProduct(product);
         setIsPopupOpen(true);
-    }, []);
+    }, [addToast]);
 
     const handleEdit = useCallback(() => {
         navigate(`/edit/${invoiceDetails.invoice_id}`);
@@ -222,10 +232,13 @@ const ManualEntry = () => {
                 next.delete(id);
             } else {
                 next.add(id);
+                if (id === 'product_details' && invoiceDetails.invoice_id) {
+                    fetchProductDetails(invoiceDetails.invoice_id);
+                }
             }
             return next;
         });
-    }, []);
+    }, [invoiceDetails.invoice_id, fetchProductDetails]);
 
     // --- Render Logic ---
     if (isLoading) return <Loader type="wifi" />;
@@ -247,21 +260,32 @@ const ManualEntry = () => {
 
     const renderActionCell = (row: DataItem) => {
         const productRow = row as ProductDetails;
-        // THIS IS THE KEY: We check for the existence of `item_id` (the real ID from the database).
-        // A new, unsaved row will not have this property.
-        const isSaved = !!productRow.item_id;
+        const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
         const isSaving = savingRowId === productRow.id;
 
         return (
-            <button
-                // The button's action depends on whether the row is saved or not.
-                onClick={() => isSaved ? handleOpenPopup(productRow) : handleSaveProductRow(productRow)}
-                disabled={isSaving}
-                className={`p-1.5 rounded-md text-white focus:outline-none focus:ring-2 ${isSaved ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400' : 'bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400'} ${isSaving ? 'cursor-not-allowed' : ''}`}
-                title={isSaved ? "View Details" : "Save Row"}
-            >
-                {isSaving ? <Loader type="btnLoader" /> : (isSaved ? <CheckCircle size={16} /> : <Save size={16} />)}
-            </button>
+            <div className="text-center">
+                {isSaving ? (
+                    <Loader type="btnLoader" />
+                ) : isSaved ? (
+                     <button
+                        onClick={() => handleOpenPopup(productRow)}
+                        className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        title="View Details"
+                    >
+                        <CheckCircle size={16} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => handleSaveProductRow(productRow)}
+                        disabled={isSaving}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        title="Save Row"
+                    >
+                        <Save size={16} />
+                    </button>
+                )}
+            </div>
         );
     };
 
