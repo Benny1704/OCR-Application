@@ -67,6 +67,7 @@ const ManualEntry = () => {
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['product_details']));
+    const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
 
     // --- Hooks ---
     const { addToast } = useToast();
@@ -108,7 +109,7 @@ const ManualEntry = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
@@ -123,12 +124,12 @@ const ManualEntry = () => {
             console.error("Failed to fetch product details", err);
             addToast({ type: 'error', message: 'Could not load product details.' });
         }
-    }, [addToast]);
+    }, []);
 
 
     // --- Event Handlers ---
 
-    const handleSupplierSubmit = async (e: React.FormEvent) => {
+    const handleSupplierSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
@@ -138,32 +139,49 @@ const ManualEntry = () => {
                 setInvoiceDetails(prev => ({ ...prev, invoice_id: newInvoiceId }));
                 setAmountDetails(prev => ({ ...prev, invoice_id: newInvoiceId }));
                 setStep('details');
-                setIsInvoiceSubmitted(true); // Only lock the invoice section
+                setIsInvoiceSubmitted(true);
                 addToast({ type: 'success', message: 'Supplier details saved successfully.' });
-                await fetchProductDetails(newInvoiceId);
             }
         } catch (apiError) {
-            // Error toast is already handled by the apiRequest utility
             console.error(apiError);
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [, invoiceDetails, location.state?.messageId]);
 
-    const handleSaveProductRow = async (productRow: ProductDetails): Promise<void> => {
+    const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
+        const temporaryRowId = productRow.id; // ID of the row in the UI before it's saved
+        setSavingRowId(temporaryRowId);
+
         try {
             const response = await manualInvoiceEntryItemSummary([productRow], invoiceDetails.invoice_id, addToast);
-            if (response && response.status === 'success') {
+
+            // Check for a successful response with the saved data
+            if (response && response.status === 'success' && response.data?.length > 0) {
+                const savedProduct = response.data[0];
                 addToast({ type: 'success', message: response.message || 'Product row saved.' });
-                // Re-fetch the entire list from the database to ensure UI is in sync with the source of truth
+
+                // Update the state by replacing the temporary row with the saved one from the server
+                setProductDetails(currentProducts =>
+                    currentProducts.map(p =>
+                        p.id === temporaryRowId ? savedProduct : p
+                    )
+                );
+            } else {
+                // As a fallback, refresh the entire list if the response is unexpected
+                addToast({ type: 'warning', message: 'Could not update the row in place. Refreshing list.' });
                 await fetchProductDetails(invoiceDetails.invoice_id);
             }
         } catch (apiError) {
             console.error("Failed to save product row:", apiError);
+            addToast({ type: 'error', message: 'An error occurred while saving the product.' });
+        } finally {
+            setSavingRowId(null);
         }
-    };
+    }, [, invoiceDetails.invoice_id, fetchProductDetails]);
 
-    const handleSaveAmountDetails = async () => {
+
+    const handleSaveAmountDetails = useCallback(async () => {
         setIsSubmitting(true);
         try {
             await manualInvoiceEntryInvoiceMeta(amountDetails, addToast);
@@ -174,34 +192,38 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [, amountDetails]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
         const { name, value } = e.target;
         const updater = section === 'invoice' ? setInvoiceDetails : setAmountDetails;
         updater((prevState: any) => set(cloneDeep(prevState), name, value));
-    };
+    }, []);
 
-    const handleOpenPopup = (product: ProductDetails) => {
+    const handleOpenPopup = useCallback((product: ProductDetails) => {
         if (!product.item_id) {
             addToast({ type: 'warning', message: 'Please save the row before viewing details.' });
             return;
         }
         setSelectedProduct(product);
         setIsPopupOpen(true);
-    };
+    }, []);
 
-    const handleEdit = () => {
+    const handleEdit = useCallback(() => {
         navigate(`/edit/${invoiceDetails.invoice_id}`);
-    };
+    }, [navigate, invoiceDetails.invoice_id]);
 
-    const toggleAccordion = (id: string) => {
+    const toggleAccordion = useCallback((id: string) => {
         setOpenAccordions(prev => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id); else next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
             return next;
         });
-    };
+    }, []);
 
     // --- Render Logic ---
     if (isLoading) return <Loader type="wifi" />;
@@ -210,25 +232,30 @@ const ManualEntry = () => {
         return <div className="p-4"><ErrorDisplay message="Could not display the manual entry form." onRetry={fetchConfig} /></div>;
     }
 
-    const supplierSection = configs.form.find(s => s.id === 'supplier_invoice')!;
-    const productSection = configs.form.find(s => s.id === 'product_details')!;
-    const amountSection = configs.form.find(s => s.id === 'amount_details')!;
+    const supplierSection = configs.form.find(s => s.id === 'supplier_invoice');
+    const productSection = configs.form.find(s => s.id === 'product_details');
+    const amountSection = configs.form.find(s => s.id === 'amount_details');
+
+    if (!supplierSection) {
+        return <div className="p-4"><ErrorDisplay message="Supplier form configuration is missing." onRetry={fetchConfig} /></div>;
+    }
 
     const areAllProductsSaved = productDetails.length > 0 && productDetails.every(p => !!p.item_id);
     const showEditButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
 
-
     const renderActionCell = (row: DataItem) => {
         const productRow = row as ProductDetails;
         const isSaved = !!productRow.item_id;
+        const isSaving = savingRowId === productRow.id;
 
         return (
             <button
                 onClick={() => isSaved ? handleOpenPopup(productRow) : handleSaveProductRow(productRow)}
-                className={`p-1.5 rounded-md text-white focus:outline-none focus:ring-2 ${isSaved ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400' : 'bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400'}`}
+                disabled={isSaving}
+                className={`p-1.5 rounded-md text-white focus:outline-none focus:ring-2 ${isSaved ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400' : 'bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400'} ${isSaving ? 'cursor-not-allowed' : ''}`}
                 title={isSaved ? "View Details" : "Save Row"}
             >
-                {isSaved ? <CheckCircle size={16} /> : <Save size={16} />}
+                {isSaving ? <Loader type="btnLoader" /> : (isSaved ? <CheckCircle size={16} /> : <Save size={16} />)}
             </button>
         );
     };
@@ -319,78 +346,83 @@ const ManualEntry = () => {
                     <AnimatePresence>
                         {step === 'details' && (
                             <motion.div
+                                key="details-step-content"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.2 }}
                                 className="space-y-6"
                             >
-                                {[productSection, amountSection].map((section) => {
-                                    const isOpen = openAccordions.has(section.id);
-                                    return (
-                                        <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                            <button
-                                                className="w-full flex justify-between items-center px-5 py-4 text-left"
-                                                onClick={() => toggleAccordion(section.id)}
-                                            >
-                                                <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
-                                                <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
-                                            </button>
-                                            <AnimatePresence initial={false}>
-                                                {isOpen && (
-                                                    <motion.section
-                                                        key="content"
-                                                        initial="collapsed" animate="open" exit="collapsed"
-                                                        variants={accordionVariants}
-                                                        className="overflow-hidden"
-                                                    >
-                                                        <div className={`px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                                                            {section.id === 'product_details' ? (
-                                                                <DataTable
-                                                                    tableData={productDetails}
-                                                                    tableConfig={configs.summary!}
-                                                                    isEditable={true}
-                                                                    isSearchable={true}
-                                                                    renderActionCell={renderActionCell}
-                                                                    actionColumnHeader="Status"
-                                                                    pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
-                                                                    onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
-                                                                />
-                                                            ) : (
-                                                                <div className="space-y-6">
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                                                                        {section.fields?.map((field: any) => (
-                                                                            <DynamicField
-                                                                                key={field.key}
-                                                                                label={field.label}
-                                                                                name={field.key}
-                                                                                value={(amountDetails as any)[field.key] || ''}
-                                                                                onChange={(e) => handleInputChange(e, 'amount')}
-                                                                                theme={theme}
-                                                                                disabled={isAmountDetailsSaved}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                    {!isAmountDetailsSaved && (
-                                                                        <div className="flex justify-end">
-                                                                            <button
-                                                                                onClick={handleSaveAmountDetails}
-                                                                                disabled={isSubmitting}
-                                                                                className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400"
-                                                                            >
-                                                                                {isSubmitting ? <Loader type="btnLoader" /> : <Save size={16} />}
-                                                                                {isSubmitting ? 'Saving...' : 'Save Amount Details'}
-                                                                            </button>
+                                {productSection && amountSection ? (
+                                    [productSection, amountSection].map((section) => {
+                                        const isOpen = openAccordions.has(section.id);
+                                        return (
+                                            <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                                <button
+                                                    className="w-full flex justify-between items-center px-5 py-4 text-left"
+                                                    onClick={() => toggleAccordion(section.id)}
+                                                >
+                                                    <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
+                                                    <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
+                                                </button>
+                                                <AnimatePresence initial={false}>
+                                                    {isOpen && (
+                                                        <motion.section
+                                                            key="content"
+                                                            initial="collapsed" animate="open" exit="collapsed"
+                                                            variants={accordionVariants}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className={`px-6 pb-6 border-t pt-6 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                                                                {section.id === 'product_details' ? (
+                                                                    <DataTable
+                                                                        tableData={productDetails}
+                                                                        tableConfig={configs.summary!}
+                                                                        isEditable={true}
+                                                                        isSearchable={true}
+                                                                        renderActionCell={renderActionCell}
+                                                                        actionColumnHeader="Status"
+                                                                        pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
+                                                                        onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="space-y-6">
+                                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                                                            {section.fields?.map((field: any) => (
+                                                                                <DynamicField
+                                                                                    key={field.key}
+                                                                                    label={field.label}
+                                                                                    name={field.key}
+                                                                                    value={(amountDetails as any)[field.key] || ''}
+                                                                                    onChange={(e) => handleInputChange(e, 'amount')}
+                                                                                    theme={theme}
+                                                                                    disabled={isAmountDetailsSaved}
+                                                                                />
+                                                                            ))}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </motion.section>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    )
-                                })}
+                                                                        {!isAmountDetailsSaved && (
+                                                                            <div className="flex justify-end">
+                                                                                <button
+                                                                                    onClick={handleSaveAmountDetails}
+                                                                                    disabled={isSubmitting}
+                                                                                    className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400"
+                                                                                >
+                                                                                    {isSubmitting ? <Loader type="btnLoader" /> : <Save size={16} />}
+                                                                                    {isSubmitting ? 'Saving...' : 'Save Amount Details'}
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </motion.section>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                     <ErrorDisplay message="Could not load product and amount sections." onRetry={fetchConfig} />
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>

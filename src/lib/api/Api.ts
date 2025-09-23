@@ -457,7 +457,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
         const payload = {
             ...invoiceData,
             // message_id: messageID
-            message_id: "queue_10008"
+            message_id: "queue_10011"
         };
         console.log("invoice payload"+JSON.stringify(payload))
         const response = await api.post('/manual_invoice_entry/invoice', payload);
@@ -494,10 +494,37 @@ export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetail
     }
 };
 
-export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineItem>[], addToast: any): Promise<{ data: LineItem[], message: string }> => {
+export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineItem>[], addToast: any): Promise<{
+    status: string; data: LineItem[], message: string
+}> => {
     try {
-        console.log("invoice attributes"+JSON.stringify(attributes))
-        const response = await api.post('/manual_invoice_entry/item_attributes', { attributes });
+        // Clean each attribute object to match the exact payload structure required by the API.
+        const cleanedAttributes = attributes.map(attr => ({
+            item_id: attr.item_id,
+            item_description: attr.item_description || "",
+            total_count: Number(attr.total_count) || 0,
+            single_unit_price: Number(attr.single_unit_price) || 0,
+            discount_percentage: String(attr.discount_percentage) || "0",
+            discount_amount: Number(attr.discount_amount) || 0,
+            single_unit_mrp: Number(attr.single_unit_mrp) || 0,
+            // Use property from 'row' if it exists, otherwise use the capitalized version.
+            HSN: String((attr as any).hsn || attr.HSN || ""),
+            cgst_percentage: String(attr.cgst_percentage) || "0",
+            sgst_percentage: String(attr.sgst_percentage) || "0",
+            igst_percentage: String(attr.igst_percentage) || "0",
+            // Use property from 'row' if it exists, otherwise use the capitalized version.
+            EAN: String((attr as any).ean_code || attr.EAN || "")
+        }));
+
+        console.log("Sending cleaned attributes: " + JSON.stringify({ attributes: cleanedAttributes }));
+
+        // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
+        const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
+
+        if (response.data && response.data.status === 'success') {
+            addToast({ type: 'success', message: response.data.message || 'Row saved!' });
+        }
+
         return response.data;
     } catch (error) {
         handleError(error, addToast);
