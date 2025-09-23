@@ -67,6 +67,7 @@ const ManualEntry = () => {
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['product_details']));
+    // This state tracks the row currently being saved using its temporary client-side ID.
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
 
     // --- Hooks ---
@@ -147,28 +148,29 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [, invoiceDetails, location.state?.messageId]);
+    }, [invoiceDetails, location.state?.messageId]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
-        const temporaryRowId = productRow.id; // ID of the row in the UI before it's saved
+        // A new row from the DataTable won't have a real `item_id`, but it will have a temporary `id` for UI tracking.
+        const temporaryRowId = productRow.id;
         setSavingRowId(temporaryRowId);
 
         try {
             const response = await manualInvoiceEntryItemSummary([productRow], invoiceDetails.invoice_id, addToast);
 
-            // Check for a successful response with the saved data
             if (response && response.status === 'success' && response.data?.length > 0) {
+                // The server responds with the saved data, which now includes the real `item_id`.
                 const savedProduct = response.data[0];
                 addToast({ type: 'success', message: response.message || 'Product row saved.' });
 
-                // Update the state by replacing the temporary row with the saved one from the server
+                // We find the row in our state using its temporary ID and replace the entire object
+                // with the final, saved version from the server.
                 setProductDetails(currentProducts =>
                     currentProducts.map(p =>
                         p.id === temporaryRowId ? savedProduct : p
                     )
                 );
             } else {
-                // As a fallback, refresh the entire list if the response is unexpected
                 addToast({ type: 'warning', message: 'Could not update the row in place. Refreshing list.' });
                 await fetchProductDetails(invoiceDetails.invoice_id);
             }
@@ -178,7 +180,7 @@ const ManualEntry = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [, invoiceDetails.invoice_id, fetchProductDetails]);
+    }, [invoiceDetails.invoice_id, fetchProductDetails]);
 
 
     const handleSaveAmountDetails = useCallback(async () => {
@@ -192,7 +194,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [, amountDetails]);
+    }, [amountDetails]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
         const { name, value } = e.target;
@@ -245,11 +247,14 @@ const ManualEntry = () => {
 
     const renderActionCell = (row: DataItem) => {
         const productRow = row as ProductDetails;
+        // THIS IS THE KEY: We check for the existence of `item_id` (the real ID from the database).
+        // A new, unsaved row will not have this property.
         const isSaved = !!productRow.item_id;
         const isSaving = savingRowId === productRow.id;
 
         return (
             <button
+                // The button's action depends on whether the row is saved or not.
                 onClick={() => isSaved ? handleOpenPopup(productRow) : handleSaveProductRow(productRow)}
                 disabled={isSaving}
                 className={`p-1.5 rounded-md text-white focus:outline-none focus:ring-2 ${isSaved ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-400' : 'bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-400'} ${isSaving ? 'cursor-not-allowed' : ''}`}
