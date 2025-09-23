@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { ChevronDown, Eye, ArrowRight, Save, Edit } from 'lucide-react';
+import { ChevronDown, Eye, ArrowRight, Save, CheckCircle } from 'lucide-react';
 import { cloneDeep, set } from 'lodash';
 
 // Component & Hook Imports
@@ -22,7 +22,8 @@ import {
     manualInvoiceEntryInvoice,
     manualInvoiceEntryInvoiceMeta,
     manualInvoiceEntryItemSummary,
-    getProductDetails // Fetches all item summaries for an invoice
+    getProductDetails, // Fetches all item summaries for an invoice
+    confirmInvoice,
 } from '../lib/api/Api';
 import type { FormSection, ProductDetails, InvoiceDetails, AmountAndTaxDetails, DataItem, TableConfig } from '../interfaces/Types';
 
@@ -205,6 +206,25 @@ const ManualEntry = () => {
         }
     }, [amountDetails]);
 
+    const handleConfirmInvoice = useCallback(async () => {
+        if (!location.state?.messageId) {
+            addToast({ type: 'error', message: 'Message ID not found, cannot confirm invoice.' });
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'Reviewed' }, addToast);
+            addToast({ type: 'success', message: 'Invoice confirmed successfully!' });
+            navigate('/queue', { state: { defaultTab: "Processed" } });
+        } catch (apiError) {
+            console.error("Failed to confirm invoice:", apiError);
+            addToast({ type: 'error', message: 'An error occurred while confirming the invoice.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [location.state?.messageId, navigate]);
+
+
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
         const { name, value } = e.target;
         const updater = section === 'invoice' ? setInvoiceDetails : setAmountDetails;
@@ -219,10 +239,6 @@ const ManualEntry = () => {
         setSelectedProduct(product);
         setIsPopupOpen(true);
     }, []);
-
-    const handleEdit = useCallback(() => {
-        navigate(`/edit/${invoiceDetails.invoice_id}`);
-    }, [navigate, invoiceDetails.invoice_id]);
 
     const toggleAccordion = useCallback((id: string) => {
         setOpenAccordions(prev => {
@@ -297,7 +313,7 @@ const ManualEntry = () => {
     }
 
     const areAllProductsSaved = productDetails.length > 0 && productDetails.every(p => !!p.item_id);
-    const showEditButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
+    const showConfirmButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
 
     const accordionVariants: Variants = {
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
@@ -316,13 +332,14 @@ const ManualEntry = () => {
                             {step === 'supplier' ? 'Step 1: Enter supplier and invoice details to begin.' : 'Step 2: Add products and finalize amount details.'}
                         </p>
                     </div>
-                    {showEditButton && (
+                    {showConfirmButton && (
                         <button
-                            onClick={handleEdit}
-                            className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400"
+                            onClick={handleConfirmInvoice}
+                            disabled={isSubmitting}
+                            className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400"
                         >
-                            <Edit size={16} />
-                            Edit Invoice
+                            {isSubmitting ? <Loader type="btnLoader" /> : <CheckCircle size={16} />}
+                            Confirm Invoice
                         </button>
                     )}
                 </div>

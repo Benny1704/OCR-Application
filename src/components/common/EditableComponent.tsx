@@ -281,7 +281,7 @@ const EditableComponent = ({
                                                                     name={field.key}
                                                                     value={getValue(field.key)}
                                                                     onChange={handleInputChange}
-                                                                    readOnly={finalIsReadOnly}
+                                                                    disabled={finalIsReadOnly}
                                                                     theme={theme}
                                                                 />
                                                             ))}

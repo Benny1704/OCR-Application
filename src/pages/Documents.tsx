@@ -34,7 +34,7 @@ const Documents = () => {
           name: item.file_name,
           supplierName: item.supplier_name,
           supplierNumber: item.supplier_gst_in,
-          invoiceNumber: item.invoice_id,
+          invoiceNumber: item.invoice_number,
           invoiceId: item.invoice_id,
           irnNumber: item.irn,
           uploadedBy: item.uploaded_by,
