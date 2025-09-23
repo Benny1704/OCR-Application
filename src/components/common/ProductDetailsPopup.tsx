@@ -47,7 +47,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             setInitialLineItems([]);
             setIsDirty(false);
         }
-    }, [product, invoiceId, addToast]);
+    }, [product, invoiceId]);
 
     useEffect(() => {
         if (isOpen) {

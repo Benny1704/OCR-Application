@@ -161,7 +161,7 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, addToast, navigate]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate]);
 
     const handleFinalize = useCallback(async () => {
         if (!messageId) {

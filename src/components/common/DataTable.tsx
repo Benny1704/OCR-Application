@@ -64,13 +64,11 @@ const DataTable = ({
     // Validation UI removed; parent handles any save-time validation
 
     useEffect(() => {
-        // Initialize or update from external data only when uncontrolled
-        if (!onDataChange) {
-            setHistory([tableData]);
-            setHistoryIndex(0);
-            setCurrentView(tableData);
-        }
-    }, [tableData, onDataChange]);
+        // When the tableData prop changes (from the parent), we need to sync our internal state.
+        // This is crucial for "controlled" components where the parent manages the data state.
+        setCurrentView(tableData);
+    }, [tableData]);
+
 
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
         const snoColumn: TableColumnConfig = {
@@ -82,12 +80,13 @@ const DataTable = ({
         };
 
         let finalColumns: TableColumnConfig[];
+        const data = tableData || currentView;
 
         if (tableConfig && tableConfig.columns.length > 0) {
             const userColumns = tableConfig.columns.filter(col => col.key !== 'sno');
             finalColumns = [snoColumn, ...userColumns];
-        } else if (currentView.length > 0) {
-            const allHeaders = Object.keys(currentView[0]).filter(h => h !== 'sno' && h !== 'id');
+        } else if (data.length > 0) {
+            const allHeaders = Object.keys(data[0]).filter(h => h !== 'sno' && h !== 'id');
             const derivedColumns = allHeaders.map(label => ({
                 key: label,
                 label: label.replace(/_/g, ' '),
@@ -112,12 +111,13 @@ const DataTable = ({
             movableHeaders: movable, 
             columnConfig: configMap 
         };
-    }, [currentView, tableConfig]);
+    }, [currentView, tableConfig, tableData]);
 
     const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
-        let dataToProcess = onDataChange ? currentView : tableData;
+        // When the component is controlled (onDataChange is provided), tableData is the source of truth.
+        const dataToProcess = tableData;
 
         let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
             const processedRow: ProcessedDataItem = { 
@@ -145,7 +145,7 @@ const DataTable = ({
         }
 
         return processed;
-    }, [currentView, tableData, onDataChange, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize]);
+    }, [tableData, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize]);
 
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
@@ -224,7 +224,7 @@ const DataTable = ({
             }
         });
 
-        const newData = [...currentView, newRow];
+        const newData = [...tableData, newRow];
         updateData(newData);
         
         if (pagination.enabled) {
@@ -244,7 +244,7 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, columnConfig, currentView, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange]);
+    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange]);
     
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
@@ -252,7 +252,7 @@ const DataTable = ({
         
         if (originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(currentView);
+        const newData: DataItem[] = structuredClone(tableData);
         if (newData[originalRowIndex]) {
             newData[originalRowIndex][colKey] = value;
         }
@@ -282,7 +282,7 @@ const DataTable = ({
 
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
-        const newData: DataItem[] = structuredClone(currentView);
+        const newData: DataItem[] = structuredClone(tableData);
         const newSelectedCells: CellIdentifier[] = [];
 
         const sortedSelected = [...selectedCells].sort((a, b) => {
@@ -329,7 +329,7 @@ const DataTable = ({
         });
 
         updateData(newData, newSelectedCells);
-    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -338,7 +338,7 @@ const DataTable = ({
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         if(originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(currentView);
+        const newData: DataItem[] = structuredClone(tableData);
         let newSelectedCells = [...selectedCells];
 
         const colIndex = movableHeaders.indexOf(colKey);
@@ -353,13 +353,13 @@ const DataTable = ({
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex - 1 }));
-        } else if (direction === 'down' && originalRowIndex < currentView.length - 1) {
+        } else if (direction === 'down' && originalRowIndex < tableData.length - 1) {
             [newData[originalRowIndex], newData[originalRowIndex + 1]] = [newData[originalRowIndex + 1], newData[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
 
         updateData(newData, newSelectedCells);
-    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
@@ -372,7 +372,7 @@ const DataTable = ({
                     const { rowIndex, colKey } = selectedCells[0];
                     const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
                     if (originalRowIndex !== undefined) {
-                        const value = currentView[originalRowIndex]?.[colKey];
+                        const value = tableData[originalRowIndex]?.[colKey];
                         setCopiedCell({ rowIndex, colKey, value });
                     }
                 }
@@ -380,7 +380,7 @@ const DataTable = ({
             else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
-                    const newData: DataItem[] = structuredClone(currentView);
+                    const newData: DataItem[] = structuredClone(tableData);
                     selectedCells.forEach(targetCell => {
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.isEditable === false) return;
                         
@@ -421,7 +421,7 @@ const DataTable = ({
             });
         }
     }, [
-        editingCell, isEditable, undo, redo, selectedCells, copiedCell, currentView, 
+        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData, 
         updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, 
         fixedHeaderKey, paginatedData, columnConfig
     ]);
@@ -440,7 +440,7 @@ const DataTable = ({
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
         
-        const newData: DataItem[] = structuredClone(currentView);
+        const newData: DataItem[] = structuredClone(tableData);
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
         

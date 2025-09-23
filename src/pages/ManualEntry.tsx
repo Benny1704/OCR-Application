@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { ChevronDown, CheckCircle, ArrowRight, Save, Edit } from 'lucide-react';
+import { ChevronDown, Eye, ArrowRight, Save, Edit } from 'lucide-react';
 import { cloneDeep, set } from 'lodash';
 
 // Component & Hook Imports
@@ -110,7 +110,7 @@ const ManualEntry = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
@@ -125,7 +125,7 @@ const ManualEntry = () => {
             console.error("Failed to fetch product details", err);
             addToast({ type: 'error', message: 'Could not load product details.' });
         }
-    }, [addToast]);
+    }, []);
 
 
     // --- Event Handlers ---
@@ -148,7 +148,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [invoiceDetails, location.state?.messageId, addToast]);
+    }, [invoiceDetails, location.state?.messageId]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
         const temporaryRowId = productRow.id;
@@ -181,8 +181,7 @@ const ManualEntry = () => {
                     )
                 );
             } else {
-                addToast({ type: 'warning', message: 'Could not update the row in place. Refreshing list.' });
-                await fetchProductDetails(invoiceDetails.invoice_id);
+                addToast({ type: 'warning', message: 'Could not update the row in place. The list was not refreshed.' });
             }
         } catch (apiError) {
             console.error("Failed to save product row:", apiError);
@@ -190,7 +189,7 @@ const ManualEntry = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceDetails.invoice_id, fetchProductDetails, addToast]);
+    }, [invoiceDetails.invoice_id]);
 
 
     const handleSaveAmountDetails = useCallback(async () => {
@@ -204,7 +203,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [amountDetails, addToast]);
+    }, [amountDetails]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
         const { name, value } = e.target;
@@ -219,7 +218,7 @@ const ManualEntry = () => {
         }
         setSelectedProduct(product);
         setIsPopupOpen(true);
-    }, [addToast]);
+    }, []);
 
     const handleEdit = useCallback(() => {
         navigate(`/edit/${invoiceDetails.invoice_id}`);
@@ -239,6 +238,48 @@ const ManualEntry = () => {
             return next;
         });
     }, [invoiceDetails.invoice_id, fetchProductDetails]);
+    
+    const onDataChange = useCallback((newData: DataItem[]) => {
+        setProductDetails(newData as ProductDetails[]);
+    }, []);
+
+    const paginationConfig = useMemo(() => ({
+        enabled: true,
+        pageSize: 5,
+        pageSizeOptions: [5, 10, 25]
+    }), []);
+
+    const renderActionCell = useCallback((row: DataItem) => {
+        const productRow = row as ProductDetails;
+        const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
+        const isSaving = savingRowId === productRow.id;
+
+        return (
+            <div className="text-center">
+                {isSaving ? (
+                    <Loader type="btnLoader" />
+                ) : isSaved ? (
+                     <button
+                        onClick={() => handleOpenPopup(productRow)}
+                        className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        title="View Details"
+                    >
+                        <Eye size={16} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => handleSaveProductRow(productRow)}
+                        disabled={isSaving}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        title="Save Row"
+                    >
+                        <Save size={16} />
+                    </button>
+                )}
+            </div>
+        );
+    }, [savingRowId, handleOpenPopup, handleSaveProductRow]);
+
 
     // --- Render Logic ---
     if (isLoading) return <Loader type="wifi" />;
@@ -257,37 +298,6 @@ const ManualEntry = () => {
 
     const areAllProductsSaved = productDetails.length > 0 && productDetails.every(p => !!p.item_id);
     const showEditButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
-
-    const renderActionCell = (row: DataItem) => {
-        const productRow = row as ProductDetails;
-        const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
-        const isSaving = savingRowId === productRow.id;
-
-        return (
-            <div className="text-center">
-                {isSaving ? (
-                    <Loader type="btnLoader" />
-                ) : isSaved ? (
-                     <button
-                        onClick={() => handleOpenPopup(productRow)}
-                        className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        title="View Details"
-                    >
-                        <CheckCircle size={16} />
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => handleSaveProductRow(productRow)}
-                        disabled={isSaving}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                        title="Save Row"
-                    >
-                        <Save size={16} />
-                    </button>
-                )}
-            </div>
-        );
-    };
 
     const accordionVariants: Variants = {
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
@@ -329,7 +339,7 @@ const ManualEntry = () => {
                     >
                         <div className="w-full flex justify-between items-center px-5 py-4 text-left">
                             <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{supplierSection.title}</h2>
-                            {isInvoiceSubmitted && <CheckCircle className="w-6 h-6 text-emerald-500" />}
+                            {isInvoiceSubmitted && <Eye className="w-6 h-6 text-emerald-500" />}
                         </div>
                         <AnimatePresence>
                             {step === 'supplier' && (
@@ -410,8 +420,8 @@ const ManualEntry = () => {
                                                                         isSearchable={true}
                                                                         renderActionCell={renderActionCell}
                                                                         actionColumnHeader="Status"
-                                                                        pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
-                                                                        onDataChange={(newData) => setProductDetails(newData as ProductDetails[])}
+                                                                        pagination={paginationConfig}
+                                                                        onDataChange={onDataChange}
                                                                     />
                                                                 ) : (
                                                                     <div className="space-y-6">
