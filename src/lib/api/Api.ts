@@ -63,13 +63,7 @@ export const getSections = async (addToast: any): Promise<Section[]> => {
 
 export const login = async (credentials: { username: string; password: string; section_id: number }, addToast: any): Promise<{ access_token: string }> => {
     try {
-        const params = new URLSearchParams({
-            username: credentials.username,
-            password: credentials.password,
-            section_id: credentials.section_id.toString()
-        }).toString();
-
-        const response = await api.post(`/users/token?${params}`);
+        const response = await api.post('/users/token', credentials);
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -317,7 +311,6 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-        console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -330,7 +323,6 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
     try {
 
         const { items } = data;
-        console.log("updateProductDetails: "+JSON.stringify(items));
 
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
@@ -342,7 +334,6 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
-        console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
@@ -353,7 +344,6 @@ export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountA
 
 export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
     try {
-        console.log("updateLineItems: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
@@ -396,7 +386,6 @@ export const confirmInvoice = async (messageId: string, data: { isEdited: boolea
             is_edited: String(data.isEdited)
         }).toString();
 
-        console.log("params: "+params);
         const response = await api.post(`/confirm/${messageId}?${params}`);
         
         if (response.data.message) {
@@ -457,11 +446,9 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
         const payload = {
             ...invoiceData,
             // message_id: messageID
-            message_id: "queue_10011"
+            message_id: messageID
         };
-        console.log("invoice payload"+JSON.stringify(payload))
         const response = await api.post('/manual_invoice_entry/invoice', payload);
-        console.log("invoice response"+JSON.stringify(response.data))
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -471,7 +458,6 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
 
 export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
     try {
-        console.log("invoice metaData"+JSON.stringify(metaData))
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
@@ -485,7 +471,6 @@ export const manualInvoiceEntryItemSummary = async (items: Partial<ProductDetail
 }> => {
     try {
         const itemsWithInvoiceId = items.map(item => ({ ...item, invoice_id }));
-        console.log("invoice itemsWithInvoiceId"+JSON.stringify(itemsWithInvoiceId))
         const response = await api.post('/manual_invoice_entry/item_summary', { items: itemsWithInvoiceId });
         return response.data;
     } catch (error) {
@@ -515,8 +500,6 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
             // Use property from 'row' if it exists, otherwise use the capitalized version.
             EAN: String((attr as any).ean_code || attr.EAN || "")
         }));
-
-        console.log("Sending cleaned attributes: " + JSON.stringify({ attributes: cleanedAttributes }));
 
         // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
         const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
