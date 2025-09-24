@@ -30,6 +30,10 @@ import {
   ChevronRight,
   RotateCw,
   FileSignature,
+  Calendar,
+  Hash,
+  DollarSign,
+  Building,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { RetryModal, StatusBadge } from "../components/common/Helper";
@@ -410,32 +414,25 @@ const Queue = () => {
     };
   }, [activeTab]);
 
-  const InfoCard = ({
-    icon,
-    label,
-    value,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-    value: string | number;
+  // Improved compact info display component
+  const CompactInfo = ({ 
+    icon, 
+    label, 
+    value, 
+    className = "" 
+  }: { 
+    icon: React.ReactNode; 
+    label: string; 
+    value: string | number; 
+    className?: string;
   }) => (
-    <div
-      className={`p-3 rounded-lg flex items-center gap-3 transition-colors ${theme === "dark"
-          ? "bg-gray-800/60 border border-gray-700/80"
-          : "bg-gray-100 border border-gray-200"
-        }`}
-    >
-      <div
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${theme === "dark"
-            ? "bg-violet-600/10 text-violet-400"
-            : "bg-violet-100 text-violet-600"
-          }`}
-      >
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className={`flex-shrink-0 w-5 h-5 flex items-center justify-center ${textSecondary}`}>
         {icon}
       </div>
-      <div>
-        <p className={`text-xs ${textSecondary}`}>{label}</p>
-        <p className={`font-semibold text-sm ${textPrimary}`}>{value}</p>
+      <div className="flex-1 min-w-0">
+        <span className={`text-xs ${textSecondary}`}>{label}: </span>
+        <span className={`text-sm font-medium ${textPrimary} truncate`}>{value}</span>
       </div>
     </div>
   );
@@ -447,17 +444,17 @@ const Queue = () => {
     return (
       <button
         onClick={() => navigate(`/edit/${document.invoiceId}`, { state: { messageId: document.messageId } })}
-        className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${
+        className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium transition-all ${
           isReviewed
             ? theme === "dark"
-              ? "bg-green-900/40 border-green-700/60 text-green-300 hover:bg-green-900/60"
-              : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              ? "bg-green-900/30 text-green-300 hover:bg-green-900/50"
+              : "bg-green-100 text-green-700 hover:bg-green-200"
             : theme === "dark"
-            ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
-            : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+            ? "bg-blue-900/30 text-blue-300 hover:bg-blue-900/50"
+            : "bg-blue-100 text-blue-700 hover:bg-blue-200"
         }`}
       >
-        {isReviewed ? <FileSignature className="w-4 h-4" /> : <i className="fi fi-rr-file-edit"></i>}
+        {isReviewed ? <FileSignature className="w-3 h-3" /> : <i className="fi fi-rr-file-edit text-xs"></i>}
         {isReviewed ? "Draft" : "Review"}
       </button>
     );
@@ -588,7 +585,7 @@ const Queue = () => {
           >
             {selectedDocument ? (
               <div className="h-full flex flex-col p-4">
-                <div className="flex justify-between items-start pb-4 flex-shrink-0">
+                <div className="flex justify-between items-start pb-3 flex-shrink-0">
                   <div className="flex-1 overflow-hidden pr-4">
                     <h3
                       className={`text-lg font-bold truncate ${textHeader}`}
@@ -607,18 +604,14 @@ const Queue = () => {
                 </div>
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
-                <div className="py-4 space-y-4 flex-grow overflow-y-auto">
+                <div className="py-3 space-y-3 flex-grow overflow-y-auto">
                   {activeTab === "Queued" && 'queue_position' in selectedDocument && selectedDocument.queue_position !== null && (
-                    <div className={`p-3 rounded-lg flex items-center gap-3 transition-colors ${theme === 'dark' ? 'bg-gray-800/60 border border-gray-700/80' : 'bg-gray-100 border border-gray-200'}`}>
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-                        <ClipboardClock size={18} />
-                      </div>
-                      <div>
-                        <p className={`text-xs ${textSecondary}`}>Queue Position</p>
-                        <p className={`font-semibold text-sm ${textPrimary}`}>
-                          {selectedDocument.queue_position} document{selectedDocument.queue_position === 1 ? '' : 's'} ahead
-                        </p>
-                      </div>
+                    <div className={`p-2 rounded-lg border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-700/40' : 'bg-blue-50 border-blue-200'}`}>
+                      <CompactInfo 
+                        icon={<ClipboardClock size={16} />} 
+                        label="Queue Position" 
+                        value={`${selectedDocument.queue_position} document${selectedDocument.queue_position === 1 ? '' : 's'} ahead`}
+                      />
                     </div>
                   )}
 
@@ -626,79 +619,102 @@ const Queue = () => {
                     'errorMessage' in selectedDocument &&
                     selectedDocument.errorMessage && (
                       <div
-                        className={`p-3 rounded-lg flex items-start gap-3 text-xs ${theme === "dark"
-                            ? "bg-red-900/20 border border-red-700/40"
-                            : "bg-red-50 border border-red-200"
+                        className={`p-2 rounded-lg border text-xs ${theme === "dark"
+                            ? "bg-red-900/20 border-red-700/40"
+                            : "bg-red-50 border-red-200"
                           }`}
                       >
-                        <AlertCircle
-                          className={`w-5 h-5 flex-shrink-0 mt-0.5 ${theme === "dark"
-                              ? "text-red-400"
-                              : "text-red-500"
-                            }`}
-                        />
-                        <div>
-                          <p
-                            className={`font-semibold ${theme === "dark"
-                                ? "text-red-300"
-                                : "text-red-800"
-                              }`}
-                          >
-                            Processing Error
-                          </p>
-                          <p
-                            className={`mt-1 ${theme === "dark"
+                        <div className="flex items-start gap-2">
+                          <AlertCircle
+                            className={`w-4 h-4 flex-shrink-0 mt-0.5 ${theme === "dark"
                                 ? "text-red-400"
-                                : "text-red-700"
+                                : "text-red-500"
                               }`}
-                          >
-                            {selectedDocument.errorMessage}
-                          </p>
+                          />
+                          <div>
+                            <p
+                              className={`font-semibold text-xs ${theme === "dark"
+                                  ? "text-red-300"
+                                  : "text-red-800"
+                                }`}
+                            >
+                              Processing Error
+                            </p>
+                            <p
+                              className={`mt-1 text-xs ${theme === "dark"
+                                  ? "text-red-400"
+                                  : "text-red-700"
+                                }`}
+                            >
+                              {selectedDocument.errorMessage}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
+                  {/* Compact Document Information */}
                   <div>
-                    <h4
-                      className={`font-semibold text-base mb-3 ${textHeader}`}
-                    >
+                    <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                       Document Information
                     </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <InfoCard
-                        icon={<Database size={18} />}
-                        label="File Size"
+                    <div className={`p-2 rounded-lg border space-y-1.5 ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60" : "bg-gray-50 border-gray-200"}`}>
+                      <CompactInfo 
+                        icon={<Database size={14} />} 
+                        label="Size" 
                         value={'size' in selectedDocument ? (selectedDocument as QueuedDocument | FailedDocument).size : 'N/A'}
                       />
-                      <InfoCard
-                        icon={<User size={18} />}
-                        label="Uploaded By"
+                      <CompactInfo 
+                        icon={<User size={14} />} 
+                        label="Uploaded By" 
                         value={selectedDocument.uploadedBy || "Admin"}
                       />
                     </div>
                   </div>
                   
+                  {/* Compact Supplier Information */}
                   {(activeTab === "Queued" || activeTab === "Failed") && 'supplier_meta' in selectedDocument && selectedDocument.supplier_meta && (
                     <div>
-                      <h4 className={`font-semibold text-base mt-4 mb-3 ${textHeader}`}>
+                      <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                         Supplier Information
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <InfoCard icon={<User size={18} />} label="Supplier Name" value={selectedDocument.supplier_meta.supplier_name} />
-                        <InfoCard icon={<FileText size={18} />} label="Supplier GST" value={selectedDocument.supplier_meta.supplier_gst_in} />
+                      <div className={`p-2 rounded-lg border space-y-1.5 ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60" : "bg-gray-50 border-gray-200"}`}>
+                        <CompactInfo 
+                          icon={<Building size={14} />} 
+                          label="Name" 
+                          value={selectedDocument.supplier_meta.supplier_name} 
+                        />
+                        <CompactInfo 
+                          icon={<Hash size={14} />} 
+                          label="GST" 
+                          value={selectedDocument.supplier_meta.supplier_gst_in} 
+                        />
                       </div>
                     </div>
                   )}
 
+                  {/* Compact Invoice Information */}
                   {(activeTab === "Queued" || activeTab === "Failed") && 'invoice_meta' in selectedDocument && selectedDocument.invoice_meta && (
                     <div>
-                      <h4 className={`font-semibold text-base mt-4 mb-3 ${textHeader}`}>
+                      <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                         Invoice Information
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <InfoCard icon={<FileText size={18} />} label="Invoice No" value={selectedDocument.invoice_meta.invoice_no} />
-                        <InfoCard icon={<FileText size={18} />} label="Invoice Amount" value={selectedDocument.invoice_meta.invoice_amount} />
-                        <InfoCard icon={<FileText size={18} />} label="Invoice Date" value={formatDateTime(selectedDocument.invoice_meta.invoice_date)} />
+                      <div className={`p-2 rounded-lg border space-y-1.5 ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60" : "bg-gray-50 border-gray-200"}`}>
+                        <CompactInfo 
+                          icon={<FileText size={14} />} 
+                          label="Number" 
+                          value={selectedDocument.invoice_meta.invoice_no} 
+                        />
+                        <CompactInfo 
+                          icon={<DollarSign size={14} />} 
+                          label="Amount" 
+                          value={selectedDocument.invoice_meta.invoice_amount} 
+                        />
+                        <CompactInfo 
+                          icon={<Calendar size={14} />} 
+                          label="Date" 
+                          value={formatDateTime(selectedDocument.invoice_meta.invoice_date)} 
+                        />
                       </div>
                     </div>
                   )}
@@ -706,13 +722,11 @@ const Queue = () => {
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
                 {user?.role === 'admin' && (
-                  <div className="pt-4 flex-shrink-0">
-                    <h4
-                      className={`font-semibold text-base mb-3 ${textHeader}`}
-                    >
+                  <div className="pt-3 flex-shrink-0">
+                    <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                       Actions
                     </h4>
-                    <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       {activeTab === "Queued" && (
                         <>
                           <button
@@ -722,13 +736,13 @@ const Queue = () => {
                             disabled={
                               selectedDocument.status === "Processing" || ('isPriority' in selectedDocument && selectedDocument.isPriority)
                             }
-                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
-                                ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
+                                ? "bg-gray-700 border border-gray-600 text-white hover:bg-gray-600"
+                                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
                               }`}
                           >
                             <Star
-                              className={`w-4 h-4 ${'isPriority' in selectedDocument && selectedDocument.isPriority
+                              className={`w-3.5 h-3.5 ${'isPriority' in selectedDocument && selectedDocument.isPriority
                                   ? "text-yellow-400"
                                   : ""
                                 }`}
@@ -747,12 +761,12 @@ const Queue = () => {
                             disabled={
                               selectedDocument.status === "Processing"
                             }
-                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
-                                ? "bg-red-900/40 border-red-700/60 text-red-300 hover:bg-red-900/60"
-                                : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
+                                ? "bg-red-900/40 border border-red-700/60 text-red-300 hover:bg-red-900/60"
+                                : "bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"
                               }`}
                           >
-                            <Trash2 className="w-4 h-4" /> Delete
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </>
                       )}
@@ -760,28 +774,28 @@ const Queue = () => {
                         <>
                           <button
                             onClick={() => navigate(`/manualEntry/${selectedDocument.id}`, { state: { messageId: selectedDocument.messageId } })}
-                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
-                                ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
-                                : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
+                                ? "bg-blue-900/40 border border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
+                                : "bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100"
                               }`}
                           >
-                            <i className="fi fi-rr-add-document"></i> Manual Entry
+                            <i className="fi fi-rr-add-document text-xs"></i> Manual Entry
                           </button>
                           <button
                             onClick={openRetryModal}
-                            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${theme === "dark"
-                                ? "bg-yellow-900/40 border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
-                                : "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
+                                ? "bg-yellow-900/40 border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
+                                : "bg-yellow-50 border border-yellow-200 text-yellow-800 hover:bg-yellow-100"
                               }`}
                           >
-                            <RefreshCw className="w-4 h-4" /> Retry
+                            <RefreshCw className="w-3.5 h-3.5" /> Retry
                           </button>
                         </>
                       )}
                     </div>
                     {selectedDocument.status === "Processing" && (
                       <p
-                        className={`text-xs mt-3 ${theme === "dark"
+                        className={`text-xs mt-2 ${theme === "dark"
                             ? "text-yellow-400"
                             : "text-yellow-600"
                           }`}
