@@ -68,7 +68,7 @@ const EditableComponent = ({
     onSaveNewProduct,
     onFormChange,
     footer,
-    renderActionCell: passedRenderActionCell // Accept the new prop
+    renderActionCell: passedRenderActionCell
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -130,8 +130,6 @@ const EditableComponent = ({
     const handleSimpleRetry = () => { setRetryModalOpen(false); if (onRetry) onRetry(); };
     const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
 
-    const finalIsReadOnly = isReadOnly;
-
     const secondaryButtonClasses = `flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 ${theme === 'dark' ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'}`;
 
     const handleOpenPopup = (product: ProductDetails) => {
@@ -145,7 +143,7 @@ const EditableComponent = ({
 
     const handleSaveLineItems = (edited: boolean) => {
         if (edited) {
-            // setIsEdited(true); // This was unused
+            // Unused
         }
     };
 
@@ -208,7 +206,7 @@ const EditableComponent = ({
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div className="min-w-0">
                         <h1 className={`text-xl md:text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
-                            {isManual ? "Manual Entry" : (finalIsReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
+                            {isManual ? "Manual Entry" : (isReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
                         </h1>
                         <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                             <span className="mr-4">Supplier: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.supplier_name || '-'}</span></span>
@@ -226,7 +224,7 @@ const EditableComponent = ({
                         <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
                             <Eye className="w-4 h-4" /> View Image
                         </button>
-                        {!finalIsReadOnly && user?.role === 'admin' && (
+                        {!isReadOnly && user?.role === 'admin' && (
                             <button onClick={openRetryModal} className={secondaryButtonClasses}>
                                 <RefreshCw className="w-4 h-4" /> Retry
                             </button>
@@ -262,7 +260,7 @@ const EditableComponent = ({
                                                         <DataTable
                                                             tableData={productRows}
                                                             tableConfig={itemSummaryConfig}
-                                                            isEditable={!finalIsReadOnly}
+                                                            isEditable={!isReadOnly}
                                                             isSearchable={true}
                                                             renderActionCell={passedRenderActionCell || renderActionCell}
                                                             actionColumnHeader="Details"
@@ -279,7 +277,7 @@ const EditableComponent = ({
                                                                     name={field.key}
                                                                     value={getValue(field.key)}
                                                                     onChange={handleInputChange}
-                                                                    disabled={finalIsReadOnly}
+                                                                    disabled={isReadOnly}
                                                                     theme={theme}
                                                                 />
                                                             ))}
@@ -296,7 +294,7 @@ const EditableComponent = ({
                 </div>
             </main>
 
-            {!finalIsReadOnly && footer}
+            {!isReadOnly && footer}
 
             <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
             <ProductDetailPopup
@@ -307,10 +305,8 @@ const EditableComponent = ({
                 onViewImage={handleViewImage}
                 itemAttributesConfig={itemAttributesConfig}
                 invoiceId={parseInt(invoiceId!, 10)}
+                isReadOnly={isReadOnly}
             />
-            <AnimatePresence>
-                {/* This section was removed as isValidationOpen was not being used */}
-            </AnimatePresence>
         </div>
     );
 };

@@ -17,9 +17,10 @@ interface ProductDetailPopupProps {
     onViewImage: () => void;
     itemAttributesConfig: any;
     invoiceId: number;
+    isReadOnly?: boolean;
 }
 
-const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, itemAttributesConfig, invoiceId }: ProductDetailPopupProps) => {
+const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, itemAttributesConfig, invoiceId, isReadOnly = false }: ProductDetailPopupProps) => {
     const { theme } = useTheme();
     const { addToast } = useToast();
     const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -62,6 +63,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     if (!isOpen) return null;
 
     const handleSave = async () => {
+        if (isReadOnly) return;
         if (!product?.item_id) {
             addToast({ type: 'error', message: 'Cannot save: Missing product item ID.' });
             return;
@@ -74,7 +76,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     };
 
     const handleClose = () => {
-        if (isDirty) {
+        if (isDirty && !isReadOnly) {
             setConfirmModalOpen(true);
         } else {
             onClose();
@@ -91,12 +93,12 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     };
 
     const handleSaveRow = async (row: any) => {
+        if (isReadOnly) return;
         if (!product?.item_id) {
             addToast({ type: 'error', message: 'Product ID is missing.' });
             return;
         }
         try {
-            // **Create a clean payload object with the exact keys the API expects**
             const attributePayload = {
                 item_id: product.item_id,
                 item_description: row.item_description || "",
@@ -105,30 +107,28 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 discount_percentage: String(row.discount_percentage) || "0",
                 discount_amount: Number(row.discount_amount) || 0,
                 single_unit_mrp: Number(row.single_unit_mrp) || 0,
-                HSN: String(row.hsn || row.HSN || ""), // Handle both hsn and HSN from table
+                HSN: String(row.hsn || row.HSN || ""),
                 cgst_percentage: String(row.cgst_percentage) || "0",
                 sgst_percentage: String(row.sgst_percentage) || "0",
                 igst_percentage: String(row.igst_percentage) || "0",
-                EAN: String(row.ean_code || row.EAN || "") // Handle both ean_code and EAN
+                EAN: String(row.ean_code || row.EAN || "")
             };
 
             const response = await manualInvoiceEntryItemAttributes([attributePayload], addToast);
 
             if (response && response.status === 'success') {
                 addToast({ type: 'success', message: response.message || 'Row saved successfully!' });
-                await fetchLineItems(); // Refresh data to get the new attribute_id
+                await fetchLineItems();
             }
         } catch (error) {
             console.error("Failed to save line item:", error);
-            // The API handler should show the error toast
         }
     };
 
 
     const handleAddRow = () => {
+        if (isReadOnly) return;
         const newRow: LineItem = {
-            // A temporary ID to signify a new, unsaved row
-            // attribute_id: `new-${Date.now()}`,
             item_id: product?.item_id || 0,
             item_description: '',
             total_count: 0,
@@ -154,8 +154,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
 
     const renderActionCell = (row: DataItem) => {
         const lineItem = row as LineItem;
-        // A saved row will have a numeric attribute_id from the database.
-        // An unsaved row will have a string id like "new-12345" or no id.
         const isSaved = typeof lineItem.attribute_id === 'number' && lineItem.attribute_id > 0;
 
         return (
@@ -165,8 +163,9 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 ) : (
                     <button
                         onClick={() => handleSaveRow(lineItem)}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
                         title="Save Row"
+                        disabled={isReadOnly}
                     >
                         <Save size={16} />
                     </button>
@@ -217,9 +216,9 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                                 <DataTable
                                     tableData={lineItems}
                                     tableConfig={itemAttributesConfig}
-                                    isEditable={true}
+                                    isEditable={!isReadOnly}
                                     isSearchable={true}
-                                    isDraggable={true}
+                                    isDraggable={!isReadOnly}
                                     pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                     maxHeight="100%"
                                     onDataChange={handleDataChange}
@@ -230,20 +229,24 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                         )}
                     </main>
 
-                    <footer className={`flex-shrink-0 flex justify-between items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                        <button
-                            onClick={handleAddRow}
-                            className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-blue-700"
-                        >
-                            <PlusCircle size={16} /> Add Row
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700"
-                        >
-                            <Save size={16} /> Save Changes
-                        </button>
-                    </footer>
+                    {!isReadOnly && (
+                        <footer className={`flex-shrink-0 flex justify-between items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
+                            <button
+                                onClick={handleAddRow}
+                                className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-blue-700 disabled:opacity-50"
+                                disabled={isReadOnly}
+                            >
+                                <PlusCircle size={16} /> Add Row
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700 disabled:opacity-50"
+                                disabled={isReadOnly || !isDirty}
+                            >
+                                <Save size={16} /> Save Changes
+                            </button>
+                        </footer>
+                    )}
                 </div>
             </div>
             <ConfirmationModal
