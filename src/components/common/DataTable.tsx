@@ -114,14 +114,13 @@ const DataTable = ({
     const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
-        // When the component is controlled (onDataChange is provided), tableData is the source of truth.
         const dataToProcess = tableData;
-
+    
         let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
-            const processedRow: ProcessedDataItem = { 
-                ...row, 
-                sno: (finalCurrentPage - 1) * pageSize + index + 1,
-                originalIndex: index 
+            const processedRow: ProcessedDataItem = {
+                ...row,
+                sno: paginationInfo ? (finalCurrentPage - 1) * pageSize + index + 1 : index + 1,
+                originalIndex: index
             };
             if (tableConfig) {
                 tableConfig.columns.forEach(col => {
@@ -132,7 +131,7 @@ const DataTable = ({
             }
             return processedRow;
         });
-
+    
         if (isSearchable && searchQuery) {
             const lowerCaseQuery = searchQuery.toLowerCase();
             processed = processed.filter(row =>
@@ -141,9 +140,9 @@ const DataTable = ({
                 )
             );
         }
-
+    
         return processed;
-    }, [tableData, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize]);
+    }, [tableData, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize, paginationInfo]);
 
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
