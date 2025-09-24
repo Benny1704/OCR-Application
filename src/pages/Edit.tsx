@@ -104,7 +104,7 @@ const Edit = () => {
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<ProductDetails> => {
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
-        
+
         const temporaryRowId = productRow.id;
         setSavingRowId(temporaryRowId);
         addToast({ type: 'info', message: 'Saving product row...' });
@@ -121,19 +121,22 @@ const Edit = () => {
                 }
             ]
         };
-    
+
         try {
             const response = await manualInvoiceEntryItemSummary(payload, addToast);
             if (response && response.status === 'success' && response.data?.length > 0) {
-                const savedProduct = { ...response.data[0], id: response.data[0].item_id };
                 addToast({ type: 'success', message: 'Product row saved successfully!' });
-    
-                setProductDetails(currentProducts => {
-                    if (!currentProducts) return [savedProduct];
-                    return currentProducts.map(p => p.id === temporaryRowId ? savedProduct : p);
-                });
+
+                // Refetch product details to ensure the list is up-to-date
+                const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10), addToast);
+                setProductDetails(updatedProductDetails);
+
                 if (!isDirty) setIsDirty(true);
-                return savedProduct;
+
+                // Find the newly saved product in the updated list to return it
+                const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+
+                return savedProduct || { ...response.data[0], id: response.data[0].item_id };
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
             }
@@ -179,7 +182,7 @@ const Edit = () => {
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
-            navigate('/document');
+            navigate('/queue', { state: { defaultTab: "Processed" } });
 
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save draft: ${error.message}` });
