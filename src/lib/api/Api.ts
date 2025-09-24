@@ -447,7 +447,9 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
             ...invoiceData,
             message_id: messageID
         };
+        console.log("manualInvoiceEntryInvoice: "+JSON.stringify(payload));
         const response = await api.post('/manual_invoice_entry/invoice', payload);
+        console.log("manualInvoiceEntryInvoice response: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -457,6 +459,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
 
 export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
     try {
+        console.log("manualInvoiceEntryInvoiceMeta: "+JSON.stringify(metaData));
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
@@ -469,6 +472,7 @@ export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<Pr
     status: string; data: ProductDetails[], message: string
 }> => {
     try {
+        console.log("manualInvoiceEntryItemSummary: "+JSON.stringify(payload));
         const response = await api.post('/manual_invoice_entry/item_summary', payload);
         return response.data;
     } catch (error) {

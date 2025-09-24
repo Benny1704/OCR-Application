@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
+import ProductDetailPopup from '../components/common/ProductDetailsPopup'; // Import the popup component
 import { useToast } from '../hooks/useToast';
 import {
     getInvoiceDetails,
@@ -37,6 +38,10 @@ const Edit = () => {
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
+
+    // State for managing the popup
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
 
     const messageId = location.state?.messageId;
 
@@ -127,16 +132,19 @@ const Edit = () => {
             if (response && response.status === 'success' && response.data?.length > 0) {
                 addToast({ type: 'success', message: 'Product row saved successfully!' });
 
-                // Refetch product details to ensure the list is up-to-date
                 const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10), addToast);
-                setProductDetails(updatedProductDetails);
 
-                if (!isDirty) setIsDirty(true);
-
-                // Find the newly saved product in the updated list to return it
-                const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
-
-                return savedProduct || { ...response.data[0], id: response.data[0].item_id };
+                if (Array.isArray(updatedProductDetails)) {
+                    setProductDetails(updatedProductDetails);
+                    if (!isDirty) setIsDirty(true);
+                    const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+                    return savedProduct || { ...response.data[0], id: response.data[0].item_id };
+                } else {
+                    addToast({ type: 'error', message: 'Could not refresh product list.' });
+                    // Fallback to refetching all data if the product list isn't an array
+                    fetchData();
+                    return { ...response.data[0], id: response.data[0].item_id };
+                }
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
             }
@@ -146,7 +154,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty]);
+    }, [invoiceId, isDirty, fetchData]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -213,12 +221,10 @@ const Edit = () => {
         }
     }, [messageId, isDirty, navigate]);
 
-    // Placeholder for opening a popup with product details
     const handleOpenPopup = useCallback((product: ProductDetails) => {
-        // Here you would typically set some state to open a modal or popup
-        console.log("Viewing details for:", product);
-        addToast({ type: 'info', message: `Viewing details for item #${product.item_id}` });
-    }, [addToast]);
+        setSelectedProduct(product);
+        setIsPopupOpen(true);
+    }, []);
 
     const renderActionCell = useCallback((row: DataItem) => {
         const productRow = row as ProductDetails;
@@ -256,39 +262,57 @@ const Edit = () => {
 
     if (invoiceDetails && productDetails && amountAndTaxDetails && formConfig && itemSummaryConfig && itemAttributesConfig) {
         return (
-            <EditableComponent
-                initialInvoiceDetails={invoiceDetails}
-                initialProductDetails={productDetails}
-                initialAmountAndTaxDetails={amountAndTaxDetails}
-                isReadOnly={false}
-                messageId={messageId}
-                formConfig={formConfig}
-                itemSummaryConfig={itemSummaryConfig}
-                itemAttributesConfig={itemAttributesConfig}
-                onSaveNewProduct={handleSaveProductRow}
-                onFormChange={handleFormChange}
-                renderActionCell={renderActionCell} // Pass the render function here
-                footer={
-                    <div className="flex justify-end gap-4 p-4">
-                        <button
-                            onClick={handleSaveAsDraft}
-                            disabled={!isDirty || isSaving}
-                            className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out"
-                        >
-                            <Save size={16} />
-                            Save as Draft
-                        </button>
-                        <button
-                            onClick={handleFinalize}
-                            disabled={isSaving}
-                            className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 ease-in-out"
-                        >
-                           <CheckCircle size={16} />
-                           Finalize
-                        </button>
-                    </div>
-                }
-            />
+            <>
+                <EditableComponent
+                    initialInvoiceDetails={invoiceDetails}
+                    initialProductDetails={productDetails}
+                    initialAmountAndTaxDetails={amountAndTaxDetails}
+                    isReadOnly={false}
+                    messageId={messageId}
+                    formConfig={formConfig}
+                    itemSummaryConfig={itemSummaryConfig}
+                    itemAttributesConfig={itemAttributesConfig}
+                    onSaveNewProduct={handleSaveProductRow}
+                    onFormChange={handleFormChange}
+                    renderActionCell={renderActionCell}
+                    footer={
+                        <div className="flex justify-end gap-4 p-4">
+                            <button
+                                onClick={handleSaveAsDraft}
+                                disabled={!isDirty || isSaving}
+                                className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out"
+                            >
+                                <Save size={16} />
+                                Save as Draft
+                            </button>
+                            <button
+                                onClick={handleFinalize}
+                                disabled={isSaving}
+                                className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 ease-in-out"
+                            >
+                               <CheckCircle size={16} />
+                               Finalize
+                            </button>
+                        </div>
+                    }
+                />
+                <ProductDetailPopup
+                    isOpen={isPopupOpen}
+                    onClose={() => setIsPopupOpen(false)}
+                    product={selectedProduct}
+                    onSave={(dirty) => {
+                        if (dirty) {
+                            fetchData(); // Refetch data if changes were made in the popup
+                        }
+                    }}
+                    onViewImage={() => {
+                        // Implement your logic to view the image here
+                        addToast({ type: 'info', message: 'Viewing image...' });
+                    }}
+                    itemAttributesConfig={itemAttributesConfig}
+                    invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
+                />
+            </>
         );
     }
 
