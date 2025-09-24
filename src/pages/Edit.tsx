@@ -140,7 +140,7 @@ const Edit = () => {
                     const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
                     return savedProduct || { ...response.data[0], id: response.data[0].item_id };
                 } else {
-                    addToast({ type: 'error', message: 'Could not refresh product list.' });
+                    // addToast({ type: 'error', message: 'Could not refresh product list.' });
                     // Fallback to refetching all data if the product list isn't an array
                     fetchData();
                     return { ...response.data[0], id: response.data[0].item_id };

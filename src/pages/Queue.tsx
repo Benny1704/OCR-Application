@@ -1,5 +1,3 @@
-// src/pages/Queue.tsx
-
 import {
   useEffect,
   useLayoutEffect,
@@ -30,7 +28,8 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
-  RotateCw, // Import refresh icon
+  RotateCw,
+  FileSignature,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { RetryModal, StatusBadge } from "../components/common/Helper";
@@ -48,6 +47,7 @@ const formatLastUpdated = (date: Date | null) => {
 };
 
 export const formatDateTime = (dateString: string) => {
+  if (!dateString) return "N/A";
   const date = new Date(dateString);
   return date.toLocaleString('en-US', {
     year: 'numeric',
@@ -230,11 +230,13 @@ const Queue = () => {
                 messageId: item.message_id,
                 isPriority: item.is_priority,
                 status: item.status || "Queued",
+                queue_position: item.queue_position,
+                supplier_meta: item.supplier_meta,
+                invoice_meta: item.invoice_meta
             })));
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Processed') {
             processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
-            console.log(JSON.stringify(processedResponse));
             setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
                 id: item.message_id,
                 sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
@@ -262,6 +264,8 @@ const Queue = () => {
                 messageId: item.message_id,
                 errorMessage: item.error_message,
                 status: "Failed",
+                supplier_meta: item.supplier_meta,
+                invoice_meta: item.invoice_meta
             })));
             setPagination(prev => ({...prev, Failed: failedResponse.pagination}));
         }
@@ -413,7 +417,7 @@ const Queue = () => {
   }: {
     icon: React.ReactNode;
     label: string;
-    value: string;
+    value: string | number;
   }) => (
     <div
       className={`p-3 rounded-lg flex items-center gap-3 transition-colors ${theme === "dark"
@@ -438,12 +442,23 @@ const Queue = () => {
 
   const renderActionCell = (row: DataItem) => {
     const document = row as ProcessedDocument;
+    const isReviewed = document.status === "Reviewed";
+    
     return (
       <button
         onClick={() => navigate(`/edit/${document.invoiceId}`, { state: { messageId: document.messageId } })}
-        className="edit-btn"
+        className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-semibold shadow-sm transition-all border ${
+          isReviewed
+            ? theme === "dark"
+              ? "bg-green-900/40 border-green-700/60 text-green-300 hover:bg-green-900/60"
+              : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+            : theme === "dark"
+            ? "bg-blue-900/40 border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
+            : "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+        }`}
       >
-        <i className="fi fi-rr-file-edit"></i> Review
+        {isReviewed ? <FileSignature className="w-4 h-4" /> : <i className="fi fi-rr-file-edit"></i>}
+        {isReviewed ? "Draft" : "Review"}
       </button>
     );
   };
@@ -593,6 +608,20 @@ const Queue = () => {
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
                 <div className="py-4 space-y-4 flex-grow overflow-y-auto">
+                  {activeTab === "Queued" && 'queue_position' in selectedDocument && selectedDocument.queue_position !== null && (
+                    <div className={`p-3 rounded-lg flex items-center gap-3 transition-colors ${theme === 'dark' ? 'bg-gray-800/60 border border-gray-700/80' : 'bg-gray-100 border border-gray-200'}`}>
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                        <ClipboardClock size={18} />
+                      </div>
+                      <div>
+                        <p className={`text-xs ${textSecondary}`}>Queue Position</p>
+                        <p className={`font-semibold text-sm ${textPrimary}`}>
+                          {selectedDocument.queue_position} document{selectedDocument.queue_position === 1 ? '' : 's'} ahead
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {activeTab === "Failed" &&
                     'errorMessage' in selectedDocument &&
                     selectedDocument.errorMessage && (
@@ -648,6 +677,31 @@ const Queue = () => {
                       />
                     </div>
                   </div>
+                  
+                  {(activeTab === "Queued" || activeTab === "Failed") && 'supplier_meta' in selectedDocument && selectedDocument.supplier_meta && (
+                    <div>
+                      <h4 className={`font-semibold text-base mt-4 mb-3 ${textHeader}`}>
+                        Supplier Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <InfoCard icon={<User size={18} />} label="Supplier Name" value={selectedDocument.supplier_meta.supplier_name} />
+                        <InfoCard icon={<FileText size={18} />} label="Supplier GST" value={selectedDocument.supplier_meta.supplier_gst_in} />
+                      </div>
+                    </div>
+                  )}
+
+                  {(activeTab === "Queued" || activeTab === "Failed") && 'invoice_meta' in selectedDocument && selectedDocument.invoice_meta && (
+                    <div>
+                      <h4 className={`font-semibold text-base mt-4 mb-3 ${textHeader}`}>
+                        Invoice Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <InfoCard icon={<FileText size={18} />} label="Invoice No" value={selectedDocument.invoice_meta.invoice_no} />
+                        <InfoCard icon={<FileText size={18} />} label="Invoice Amount" value={selectedDocument.invoice_meta.invoice_amount} />
+                        <InfoCard icon={<FileText size={18} />} label="Invoice Date" value={formatDateTime(selectedDocument.invoice_meta.invoice_date)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 

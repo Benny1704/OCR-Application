@@ -97,7 +97,7 @@ export interface AuthUser {
 export interface Document {
   id: string;
   name: string;
-  status: "Queued" | "Processing" | "Processed" | "Failed";
+  status: "Queued" | "Processing" | "Processed" | "Failed" | "Reviewed";
   uploadDate: string;
   uploadedBy: string;
 }
@@ -106,6 +106,17 @@ export interface QueuedDocument extends Document {
   size: string;
   isPriority: boolean;
   messageId: string;
+  queue_position: number;
+  supplier_meta: {
+    supplier_code: string;
+    supplier_name: string;
+    supplier_gst_in: string;
+  };
+  invoice_meta: {
+    invoice_no: string;
+    invoice_date: string;
+    invoice_amount: number;
+  };
 }
 
 export interface ProcessedDocument extends Document {
@@ -121,6 +132,16 @@ export interface FailedDocument extends Document {
   size: string;
   errorMessage: string;
   messageId: string;
+  supplier_meta: {
+    supplier_code: string;
+    supplier_name: string;
+    supplier_gst_in: string;
+  };
+  invoice_meta: {
+    invoice_no: string;
+    invoice_date: string;
+    invoice_amount: number;
+  };
 }
 
 export interface InvoiceDetails {
