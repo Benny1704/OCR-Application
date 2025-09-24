@@ -16,6 +16,7 @@ import {
     updateProductDetails,
     updateAmountAndTaxDetails,
     confirmInvoice,
+    manualInvoiceEntryItemSummary,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField } from '../interfaces/Types';
 import { Save, CheckCircle } from 'lucide-react';
@@ -103,16 +104,34 @@ const Edit = () => {
     const saveProductDetails = useCallback(async (newProduct: ProductDetails): Promise<ProductDetails> => {
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
         addToast({ type: 'info', message: 'Saving product row...' });
+
+        const payload = {
+            items: [
+                {
+                    invoice_id: parseInt(invoiceId, 10),
+                    total_quantity: Number(newProduct.total_quantity) || 0,
+                    total_pieces: Number(newProduct.total_pieces) || 0,
+                    total_amount: Number(newProduct.total_amount) || 0,
+                    gst_percentage: Number(newProduct.gst_percentage) || 0,
+                    style_code: newProduct.style_code || ""
+                }
+            ]
+        };
+    
         try {
-            const savedProduct: ProductDetails = await new Promise(resolve =>
-                setTimeout(() => resolve({ ...newProduct, item_id: Date.now() }), 1000)
-            );
-            setProductDetails(currentProducts => {
-                if (!currentProducts) return [savedProduct];
-                return currentProducts.map(p => p.id === newProduct.id ? savedProduct : p);
-            });
-            addToast({ type: 'success', message: 'Product row saved successfully!' });
-            return savedProduct;
+            const response = await manualInvoiceEntryItemSummary(payload, addToast);
+            if (response && response.status === 'success' && response.data?.length > 0) {
+                const savedProduct = { ...response.data[0], id: response.data[0].item_id };
+                addToast({ type: 'success', message: 'Product row saved successfully!' });
+    
+                setProductDetails(currentProducts => {
+                    if (!currentProducts) return [savedProduct];
+                    return currentProducts.map(p => p.id === newProduct.id ? savedProduct : p);
+                });
+                return savedProduct;
+            } else {
+                throw new Error(response.message || 'Failed to save product row.');
+            }
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save product row: ${error.message}` });
             throw error;
