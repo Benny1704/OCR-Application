@@ -67,7 +67,8 @@ const EditableComponent = ({
     itemAttributesConfig,
     onSaveNewProduct,
     onFormChange,
-    footer
+    footer,
+    renderActionCell: passedRenderActionCell // Accept the new prop
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -266,7 +267,7 @@ const EditableComponent = ({
                                                             tableConfig={itemSummaryConfig}
                                                             isEditable={!finalIsReadOnly}
                                                             isSearchable={true}
-                                                            renderActionCell={renderActionCell}
+                                                            renderActionCell={passedRenderActionCell || renderActionCell}
                                                             actionColumnHeader="Details"
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"

@@ -1,4 +1,4 @@
-import type { ReactNode, Dispatch, SetStateAction } from "react";
+import type { ReactNode, Dispatch, SetStateAction, JSX } from "react";
 
 // --- Generic & Reusable Interfaces ---
 export interface DataItem {
@@ -219,6 +219,7 @@ export interface EditableComponentProps {
         newProductDetails: ProductDetails[],
         newAmountAndTaxDetails: AmountAndTaxDetails
     ) => void;
+    renderActionCell?: (row: DataItem) => JSX.Element;
     footer?: React.ReactNode;
 }
 

@@ -311,7 +311,6 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
-        console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -322,10 +321,9 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
 
 export const updateProductDetails = async (invoiceId: number, data: any, addToast: any) => {
     try {
-
         const { items } = data;
-
         console.log("updateProductDetails: "+JSON.stringify(data));
+
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
     } catch (error) {
@@ -336,7 +334,6 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
-        console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
@@ -448,10 +445,8 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
     try {
         const payload = {
             ...invoiceData,
-            // message_id: messageID
             message_id: messageID
         };
-        console.log("manualInvoiceEntryInvoice: "+JSON.stringify(payload));
         const response = await api.post('/manual_invoice_entry/invoice', payload);
         return response.data;
     } catch (error) {
@@ -462,7 +457,6 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
 
 export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
     try {
-        console.log("manualInvoiceEntryInvoiceMeta: "+JSON.stringify(metaData));
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
@@ -475,9 +469,7 @@ export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<Pr
     status: string; data: ProductDetails[], message: string
 }> => {
     try {
-        console.log("manualInvoiceEntryItemSummary payload: ", JSON.stringify(payload, null, 2));
         const response = await api.post('/manual_invoice_entry/item_summary', payload);
-        console.log("manualInvoiceEntryItemSummary response: ", JSON.stringify(response.data, null, 2));
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -508,7 +500,6 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
         }));
 
         // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
-        console.log("cleanedAttributes: "+JSON.stringify(cleanedAttributes));
         const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
 
         if (response.data && response.data.status === 'success') {

@@ -18,8 +18,8 @@ import {
     confirmInvoice,
     manualInvoiceEntryItemSummary,
 } from '../lib/api/Api';
-import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField } from '../interfaces/Types';
-import { Save, CheckCircle } from 'lucide-react';
+import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
+import { Save, CheckCircle, Eye } from 'lucide-react';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
@@ -36,6 +36,7 @@ const Edit = () => {
     const navigate = useNavigate();
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
 
     const messageId = location.state?.messageId;
 
@@ -101,19 +102,22 @@ const Edit = () => {
         fetchData();
     }, [fetchData]);
 
-    const saveProductDetails = useCallback(async (newProduct: ProductDetails): Promise<ProductDetails> => {
+    const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<ProductDetails> => {
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
+        
+        const temporaryRowId = productRow.id;
+        setSavingRowId(temporaryRowId);
         addToast({ type: 'info', message: 'Saving product row...' });
 
         const payload = {
             items: [
                 {
                     invoice_id: parseInt(invoiceId, 10),
-                    total_quantity: Number(newProduct.total_quantity) || 0,
-                    total_pieces: Number(newProduct.total_pieces) || 0,
-                    total_amount: Number(newProduct.total_amount) || 0,
-                    gst_percentage: Number(newProduct.gst_percentage) || 0,
-                    style_code: newProduct.style_code || ""
+                    total_quantity: Number(productRow.total_quantity) || 0,
+                    total_pieces: Number(productRow.total_pieces) || 0,
+                    total_amount: Number(productRow.total_amount) || 0,
+                    gst_percentage: Number(productRow.gst_percentage) || 0,
+                    style_code: productRow.style_code || ""
                 }
             ]
         };
@@ -126,8 +130,9 @@ const Edit = () => {
     
                 setProductDetails(currentProducts => {
                     if (!currentProducts) return [savedProduct];
-                    return currentProducts.map(p => p.id === newProduct.id ? savedProduct : p);
+                    return currentProducts.map(p => p.id === temporaryRowId ? savedProduct : p);
                 });
+                if (!isDirty) setIsDirty(true);
                 return savedProduct;
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
@@ -135,8 +140,10 @@ const Edit = () => {
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save product row: ${error.message}` });
             throw error;
+        } finally {
+            setSavingRowId(null);
         }
-    }, [invoiceId]);
+    }, [invoiceId, isDirty]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -166,7 +173,6 @@ const Edit = () => {
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
                 updateProductDetails(invoiceIdNum, productDetails, addToast),
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
-                // updateLineItems(invoiceIdNum, productDetails, addToast),
             ]);
 
             await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' }, addToast);
@@ -204,6 +210,44 @@ const Edit = () => {
         }
     }, [messageId, isDirty, navigate]);
 
+    // Placeholder for opening a popup with product details
+    const handleOpenPopup = useCallback((product: ProductDetails) => {
+        // Here you would typically set some state to open a modal or popup
+        console.log("Viewing details for:", product);
+        addToast({ type: 'info', message: `Viewing details for item #${product.item_id}` });
+    }, [addToast]);
+
+    const renderActionCell = useCallback((row: DataItem) => {
+        const productRow = row as ProductDetails;
+        const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
+        const isSaving = savingRowId === productRow.id;
+
+        return (
+            <div className="text-center">
+                {isSaving ? (
+                    <Loader type="btnLoader" />
+                ) : isSaved ? (
+                     <button
+                        onClick={() => handleOpenPopup(productRow)}
+                        className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        title="View Details"
+                    >
+                        <Eye size={16} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => handleSaveProductRow(productRow)}
+                        disabled={isSaving}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        title="Save Row"
+                    >
+                        <Save size={16} />
+                    </button>
+                )}
+            </div>
+        );
+    }, [savingRowId, handleOpenPopup, handleSaveProductRow]);
+
     if (isLoading) return <Loader type="wifi" />;
     if (error) return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
 
@@ -218,8 +262,9 @@ const Edit = () => {
                 formConfig={formConfig}
                 itemSummaryConfig={itemSummaryConfig}
                 itemAttributesConfig={itemAttributesConfig}
-                onSaveNewProduct={saveProductDetails}
+                onSaveNewProduct={handleSaveProductRow}
                 onFormChange={handleFormChange}
+                renderActionCell={renderActionCell} // Pass the render function here
                 footer={
                     <div className="flex justify-end gap-4 p-4">
                         <button
