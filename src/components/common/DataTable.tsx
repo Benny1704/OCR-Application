@@ -53,8 +53,6 @@ const DataTable = ({
     const [selectedCells, setSelectedCells] = useState<CellIdentifier[]>([]);
     const [copiedCell, setCopiedCell] = useState<CopiedCell | null>(null);
     const [draggedCell, setDraggedCell] = useState<CellIdentifier | null>(null);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [popupData] = useState<DataItem | null>(null);
     const [lastSelected, setLastSelected] = useState<CellIdentifier | null>(null);
     const [showHelp, setShowHelp] = useState(false);
     const [editingCell, setEditingCell] = useState<CellIdentifier | null>(null);
@@ -796,7 +794,7 @@ const DataTable = ({
 
             {renderPaginationControls()}
             
-            <Popup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} data={popupData} />
+            <Popup isOpen={false} onClose={() => {}} data={null} />
             
             {isEditable && (
                 <div className={`flex-shrink-0 p-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>

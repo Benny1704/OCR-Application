@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, Save, Eye, ChevronDown, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -90,9 +90,6 @@ const EditableComponent = ({
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
-    const [isValidationOpen, setValidationOpen] = useState(false);
-    const [validationInfo, setValidationInfo] = useState<{ computed: number; invoice: number } | null>(null);
-    const [isEdited, setIsEdited] = useState(false); // New state for tracking edits
 
     const productRows = useMemo(() => (
         Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])
@@ -148,7 +145,7 @@ const EditableComponent = ({
 
     const handleSaveLineItems = (edited: boolean) => {
         if (edited) {
-            setIsEdited(true);
+            // setIsEdited(true); // This was unused
         }
     };
 
@@ -312,32 +309,7 @@ const EditableComponent = ({
                 invoiceId={parseInt(invoiceId!, 10)}
             />
             <AnimatePresence>
-                {isValidationOpen && validationInfo && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-100 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setValidationOpen(false)}></div>
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden ring-1 ${theme === 'dark' ? 'bg-slate-900 text-gray-100 ring-slate-700' : 'bg-white text-gray-900 ring-slate-200'}`}>
-                            <div className="p-6 text-center">
-                                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100"><AlertTriangle className="h-8 w-8 text-red-600" /></div>
-                                <h3 className="mt-5 text-2xl font-bold tracking-tight">Amount Mismatch</h3>
-                                <p className={`mt-3 text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>The calculated total from product items does not match the invoice total.</p>
-                            </div>
-                            <div className={`px-6 pb-6 space-y-4 text-base ${theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
-                                <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Computed Amount</span><span className="font-mono text-lg font-semibold text-sky-400">{validationInfo.computed.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-dashed border-slate-700">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Invoice Amount</span><span className="font-mono text-lg font-semibold text-emerald-400">{validationInfo.invoice.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-3">
-                                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Difference</span><span className="font-mono text-lg font-semibold text-red-500">{(validationInfo.computed - validationInfo.invoice).toFixed(2)}</span>
-                                </div>
-                            </div>
-                            <div className={`px-6 py-4 flex justify-end gap-3 ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
-                                <button onClick={() => setValidationOpen(false)} className={`px-5 py-2.5 text-base font-semibold rounded-lg transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>Close</button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
+                {/* This section was removed as isValidationOpen was not being used */}
             </AnimatePresence>
         </div>
     );

@@ -21,8 +21,8 @@ const decodeToken = (token: string): { usr: string, role: Role, section: number 
     }
 };
 
-
-interface AuthContextType {
+// Ensure the type is exported
+export interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (credentials: { username: string; password: string; section_id: number }) => Promise<AuthUser | null>;

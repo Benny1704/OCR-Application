@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Building, CheckCircle2, DollarSign, FileText, Package, Truck, X, Eye, Loader2
 } from "lucide-react";
-import type { AmountAndTaxDetails, InvoiceDetails, ProductDetails, LineItem } from "../interfaces/Types";
+import type { AmountAndTaxDetails, InvoiceDetails, ProductDetails } from "../interfaces/Types";
 import { updateInvoiceDetails, updateProductDetails, updateAmountAndTaxDetails, updateLineItems } from "../lib/api/Api";
 import DataTable from "../components/common/DataTable";
 
@@ -172,7 +172,10 @@ const Preview = () => {
             // 4. Update line items for each product that has them
             productDetails.forEach(p => {
                 if (p.line_items && p.line_items.length > 0) {
-                    promises.push(updateLineItems(p.id, p.line_items, addToast));
+                    const productId = typeof p.id === 'string' ? parseInt(p.id, 10) : p.id;
+                    if (!isNaN(productId)) {
+                        promises.push(updateLineItems(productId, p.line_items, addToast));
+                    }
                 }
             });
 

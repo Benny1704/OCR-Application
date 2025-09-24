@@ -30,7 +30,6 @@ const StatusCard = ({
     index: number;
     description: string;
     gradient: string;
-    pulseColor: string;
     onClick: () => void;
 }) => {
     const { theme } = useTheme();
@@ -187,7 +186,6 @@ const DashboardStatusTable = () => {
             color: "text-blue-400",
             description: "Awaiting processing",
             gradient: "bg-gradient-to-br from-blue-500/20 to-blue-600/5",
-            pulseColor: "bg-blue-400",
             onClick: () => handleNavigation('Queued')
         },
         {
@@ -197,7 +195,6 @@ const DashboardStatusTable = () => {
             color: "text-amber-400",
             description: "Needs verification",
             gradient: "bg-gradient-to-br from-amber-500/20 to-amber-600/5",
-            pulseColor: "bg-amber-400",
             onClick: () => handleNavigation('Processed')
         },
         {
@@ -207,7 +204,6 @@ const DashboardStatusTable = () => {
             color: "text-green-400",
             description: "Successfully reviewed",
             gradient: "bg-gradient-to-br from-green-500/20 to-green-600/5",
-            pulseColor: "bg-green-400",
             onClick: () => handleNavigation('Completed')
         },
         {
@@ -217,7 +213,6 @@ const DashboardStatusTable = () => {
             color: "text-red-400",
             description: "Requires attention",
             gradient: "bg-gradient-to-br from-red-500/20 to-red-600/5",
-            pulseColor: "bg-red-400",
             onClick: () => handleNavigation('Failed')
         }
     ];
@@ -268,7 +263,6 @@ const DashboardStatusTable = () => {
                         index={index}
                         description={config.description}
                         gradient={config.gradient}
-                        pulseColor={config.pulseColor}
                         onClick={config.onClick}
                     />
                 ))}
