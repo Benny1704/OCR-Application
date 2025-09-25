@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
-import ProductDetailPopup from '../components/common/ProductDetailsPopup'; // Import the popup component
+import ProductDetailPopup from '../components/common/ProductDetailsPopup';
+import { ConfirmationModal, WarningConfirmationModal } from '../components/common/Helper';
 import { useToast } from '../hooks/useToast';
 import {
     getInvoiceDetails,
@@ -20,11 +21,11 @@ import {
     manualInvoiceEntryItemSummary,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
-import { Save, CheckCircle, Eye } from 'lucide-react';
+import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
-    const [productDetails, setProductDetails] = useState<ProductDetails[] | null>(null);
+    const [productDetails, setProductDetails] = useState<ProductDetails[] | { items: ProductDetails[] } | null>(null);
     const [amountAndTaxDetails, setAmountAndTaxDetails] = useState<AmountAndTaxDetails | null>(null);
     const [formConfig, setFormConfig] = useState<FormSection[] | null>(null);
     const [itemSummaryConfig, setItemSummaryConfig] = useState<{ columns: FormField[] } | null>(null);
@@ -39,11 +40,26 @@ const Edit = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
 
-    // State for managing the popup
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
 
+    const [isAmountMismatchModalOpen, setAmountMismatchModalOpen] = useState(false);
+    const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
+    const [actionToConfirm, setActionToConfirm] = useState<'save' | 'finalize' | null>(null);
+
     const messageId = location.state?.messageId;
+
+    const liveCalculatedAmount = useMemo(() => {
+        if (!productDetails) {
+            return 0;
+        }
+        const rows = Array.isArray(productDetails) ? productDetails : productDetails.items || [];
+        return rows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0);
+    }, [productDetails]);
+
+    const liveInvoiceAmount = useMemo(() => {
+        return Number(amountAndTaxDetails?.invoice_amount) || 0;
+    }, [amountAndTaxDetails]);
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
@@ -134,14 +150,12 @@ const Edit = () => {
 
                 const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10), addToast);
 
-                if (Array.isArray(updatedProductDetails)) {
+                if (Array.isArray(updatedProductDetails) || (updatedProductDetails && 'items' in updatedProductDetails)) {
                     setProductDetails(updatedProductDetails);
                     if (!isDirty) setIsDirty(true);
-                    const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+                    const savedProduct = (Array.isArray(updatedProductDetails) ? updatedProductDetails : updatedProductDetails.items).find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
                     return savedProduct || { ...response.data[0], id: response.data[0].item_id };
                 } else {
-                    // addToast({ type: 'error', message: 'Could not refresh product list.' });
-                    // Fallback to refetching all data if the product list isn't an array
                     fetchData();
                     return { ...response.data[0], id: response.data[0].item_id };
                 }
@@ -158,12 +172,12 @@ const Edit = () => {
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
-        setProductDetails(newProductDetails);
+        setProductDetails(newProductDetails as any);
         setAmountAndTaxDetails(newAmountAndTaxDetails);
         if (!isDirty) setIsDirty(true);
     };
 
-    const handleSaveAsDraft = useCallback(async () => {
+    const proceedWithSaveAsDraft = useCallback(async () => {
         if (!invoiceId || !messageId || !invoiceDetails || !productDetails || !amountAndTaxDetails) {
             addToast({ type: 'error', message: 'Missing data to save.' });
             return;
@@ -180,9 +194,11 @@ const Edit = () => {
         try {
             const invoiceIdNum = parseInt(invoiceId, 10);
 
+            const productsToUpdate = Array.isArray(productDetails) ? productDetails : productDetails.items;
+
             await Promise.all([
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, productDetails, addToast),
+                updateProductDetails(invoiceIdNum, productsToUpdate, addToast),
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
             ]);
 
@@ -199,7 +215,7 @@ const Edit = () => {
         }
     }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate]);
 
-    const handleFinalize = useCallback(async () => {
+    const proceedWithFinalize = useCallback(async () => {
         if (!messageId) {
             addToast({ type: 'error', message: 'Missing message ID.' });
             return;
@@ -221,6 +237,33 @@ const Edit = () => {
         }
     }, [messageId, isDirty, navigate]);
 
+    const handleSaveAsDraft = () => {
+        if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
+            setActionToConfirm('save');
+            setAmountMismatchModalOpen(true);
+        } else {
+            proceedWithSaveAsDraft();
+        }
+    };
+
+    const handleFinalize = () => {
+        if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
+            setActionToConfirm('finalize');
+            setAmountMismatchModalOpen(true);
+        } else {
+            setFinalizeModalOpen(true);
+        }
+    };
+
+    const handleForceProceed = () => {
+        setAmountMismatchModalOpen(false);
+        if (actionToConfirm === 'save') {
+            proceedWithSaveAsDraft();
+        } else if (actionToConfirm === 'finalize') {
+            setFinalizeModalOpen(true);
+        }
+    };
+
     const handleOpenPopup = useCallback((product: ProductDetails) => {
         setSelectedProduct(product);
         setIsPopupOpen(true);
@@ -229,11 +272,11 @@ const Edit = () => {
     const renderActionCell = useCallback((row: DataItem) => {
         const productRow = row as ProductDetails;
         const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
-        const isSaving = savingRowId === productRow.id;
+        const isSavingThisRow = savingRowId === productRow.id;
 
         return (
             <div className="text-center">
-                {isSaving ? (
+                {isSavingThisRow ? (
                     <Loader type="btnLoader" />
                 ) : isSaved ? (
                      <button
@@ -255,7 +298,7 @@ const Edit = () => {
                 )}
             </div>
         );
-    }, [savingRowId, handleOpenPopup, handleSaveProductRow]);
+    }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow]);
 
     if (isLoading) return <Loader type="wifi" />;
     if (error) return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
@@ -265,7 +308,7 @@ const Edit = () => {
             <>
                 <EditableComponent
                     initialInvoiceDetails={invoiceDetails}
-                    initialProductDetails={productDetails}
+                    initialProductDetails={productDetails as any}
                     initialAmountAndTaxDetails={amountAndTaxDetails}
                     isReadOnly={false}
                     messageId={messageId}
@@ -302,15 +345,32 @@ const Edit = () => {
                     product={selectedProduct}
                     onSave={(dirty) => {
                         if (dirty) {
-                            fetchData(); // Refetch data if changes were made in the popup
+                            fetchData();
                         }
                     }}
                     onViewImage={() => {
-                        // Implement your logic to view the image here
                         addToast({ type: 'info', message: 'Viewing image...' });
                     }}
                     itemAttributesConfig={itemAttributesConfig}
                     invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
+                />
+                <WarningConfirmationModal
+                    isOpen={isAmountMismatchModalOpen}
+                    onClose={() => setAmountMismatchModalOpen(false)}
+                    onConfirm={handleForceProceed}
+                    title="Amount Mismatch"
+                    message={`The calculated total (${liveCalculatedAmount.toFixed(2)}) does not match the invoice total (${liveInvoiceAmount.toFixed(2)}). Are you sure you want to proceed?`}
+                    icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
+                />
+                <ConfirmationModal
+                    isOpen={isFinalizeModalOpen}
+                    onClose={() => setFinalizeModalOpen(false)}
+                    onConfirm={() => {
+                        setFinalizeModalOpen(false);
+                        proceedWithFinalize();
+                    }}
+                    title="Finalize Invoice"
+                    message="After finalizing, this invoice cannot be edited later. Are you sure you want to continue?"
                 />
             </>
         );

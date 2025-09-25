@@ -77,6 +77,63 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, 
     );
 };
 
+export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
+    const { theme } = useTheme();
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className={`relative w-full max-w-md rounded-2xl shadow-xl overflow-hidden ring-1 
+                            ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <div className="flex items-start gap-4">
+                                {icon && (
+                                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-yellow-500/10' : 'bg-yellow-100'}`}>
+                                        {icon}
+                                    </div>
+                                )}
+                                <div className="flex-grow">
+                                    <h3 className="text-lg font-semibold">{title}</h3>
+                                    <p className={`mt-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{message}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`px-6 py-4 flex justify-end gap-3 border-t ${theme === 'dark' ? 'bg-black/20 border-white/10' : 'bg-gray-50 border-slate-200'}`}>
+                            <button
+                                onClick={onClose}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                            >
+                                Continue Editing
+                            </button>
+                            <button
+                                onClick={onConfirm}
+                                className="px-4 py-2 text-sm font-medium bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+                            >
+                                Force Proceed
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+
 export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: number) => void; }) => {
     const { theme } = useTheme();
 

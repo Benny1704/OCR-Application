@@ -92,9 +92,12 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
 
-    const productRows = useMemo(() => (
-        Array.isArray(productDetails) ? (productDetails as any[]) : ((productDetails as any)?.items || [])
-    ), [productDetails]);
+    const productRows = useMemo(() => {
+        if (!productDetails) {
+            return [];
+        }
+        return Array.isArray(productDetails) ? productDetails : (productDetails as any).items || [];
+    }, [productDetails]);
 
     const liveCalculatedAmount = useMemo(() => (
         productRows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0)
@@ -104,7 +107,7 @@ const EditableComponent = ({
 
     useEffect(() => {
         if (onFormChange) {
-            onFormChange(invoiceDetails, productDetails, amountDetails);
+            onFormChange(invoiceDetails, productDetails as ProductDetails[], amountDetails);
         }
     }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
 
