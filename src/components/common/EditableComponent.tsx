@@ -12,6 +12,7 @@ import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
+import { retryMessage } from '../../lib/api/Api';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -61,7 +62,7 @@ const EditableComponent = ({
     initialProductDetails,
     initialAmountAndTaxDetails,
     isReadOnly = false,
-    onRetry,
+    messageId,
     formConfig,
     itemSummaryConfig,
     itemAttributesConfig,
@@ -127,8 +128,18 @@ const EditableComponent = ({
 
     const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     const openRetryModal = () => setRetryModalOpen(true);
-    const handleSimpleRetry = () => { setRetryModalOpen(false); if (onRetry) onRetry(); };
-    const handleRetryWithAlterations = () => { setRetryModalOpen(false); navigate('/imageAlteration'); };
+    
+    const handleSimpleRetry = async () => {
+        setRetryModalOpen(false);
+        if (messageId) {
+            addToast({type: 'info', message: 'Sending document for retry...'})
+            await retryMessage(messageId, addToast);
+        }
+    };
+    const handleRetryWithAlterations = () => {
+        setRetryModalOpen(false);
+        navigate("/imageAlteration", { state: { messageId: messageId } });
+    };
 
     const secondaryButtonClasses = `flex items-center gap-1.5 font-semibold py-2 px-4 text-sm rounded-lg transition-colors border shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 ${theme === 'dark' ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 ring-offset-[#1C1C2E]' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 ring-offset-gray-50'}`;
 
