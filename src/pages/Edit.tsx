@@ -150,10 +150,10 @@ const Edit = () => {
 
                 const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10), addToast);
 
-                if (Array.isArray(updatedProductDetails) || (updatedProductDetails && 'items' in updatedProductDetails)) {
+                if (Array.isArray(updatedProductDetails)) {
                     setProductDetails(updatedProductDetails);
                     if (!isDirty) setIsDirty(true);
-                    const savedProduct = (Array.isArray(updatedProductDetails) ? updatedProductDetails : updatedProductDetails.items).find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+                    const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
                     return savedProduct || { ...response.data[0], id: response.data[0].item_id };
                 } else {
                     fetchData();
@@ -194,11 +194,11 @@ const Edit = () => {
         try {
             const invoiceIdNum = parseInt(invoiceId, 10);
 
-            const productsToUpdate = Array.isArray(productDetails) ? productDetails : productDetails.items;
+            // const productsToUpdate = Array.isArray(productDetails) ? productDetails : productDetails.items;
 
             await Promise.all([
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, productsToUpdate, addToast),
+                updateProductDetails(invoiceIdNum, productDetails, addToast),
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
             ]);
 
