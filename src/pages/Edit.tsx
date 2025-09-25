@@ -206,7 +206,7 @@ const Edit = () => {
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
-            navigate('/queue', { state: { defaultTab: "Processed" } });
+            // navigate('/queue', { state: { defaultTab: "Processed" } });
 
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save draft: ${error.message}` });
@@ -225,6 +225,18 @@ const Edit = () => {
         addToast({ type: 'info', message: 'Finalizing invoice...' });
 
         try {
+            if (isDirty) {
+                if (!invoiceId || !invoiceDetails || !productDetails || !amountAndTaxDetails) {
+                    throw new Error('Missing data to save before finalizing.');
+                }
+                const invoiceIdNum = parseInt(invoiceId, 10);
+                await Promise.all([
+                    updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
+                    updateProductDetails(invoiceIdNum, productDetails, addToast),
+                    updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
+                ]);
+            }
+
             await confirmInvoice(messageId, { isEdited: isDirty, state: 'Completed' }, addToast);
             addToast({ type: 'success', message: 'Invoice finalized successfully!' });
             setIsDirty(false);
@@ -235,7 +247,7 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [messageId, isDirty, navigate]);
+    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails]);
 
     const handleSaveAsDraft = () => {
         if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {

@@ -7,6 +7,8 @@ interface DynamicFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   disabled?: boolean;
   theme?: string;
+  type?: string;
+  isRequired?: boolean;
 }
 
 export const DynamicField = ({
@@ -16,6 +18,8 @@ export const DynamicField = ({
   onChange,
   disabled = false,
   theme = 'light',
+  type = 'text',
+  isRequired = false,
 }: DynamicFieldProps) => {
   // The original error was likely caused by trying to access a property on a null value.
   // By checking for null/undefined and defaulting to an empty string, we prevent this.
@@ -42,12 +46,12 @@ export const DynamicField = ({
   return (
     <div className="w-full">
       <label htmlFor={name} className="block text-xs md:text-sm font-medium mb-1">
-        {label}
+        {label} {isRequired && <span className="text-red-500">*</span>}
       </label>
       {isTextArea ? (
         <textarea {...commonProps} rows={3} />
       ) : (
-        <input type="text" {...commonProps} />
+        <input type={type} {...commonProps} />
       )}
     </div>
   );

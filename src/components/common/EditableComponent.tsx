@@ -287,6 +287,8 @@ const EditableComponent = ({
                                                             {section.fields?.map((field: any) => (
                                                                 <DynamicField
                                                                     key={field.key}
+                                                                    type={field.type}
+                                                                    isRequired={field.isRequired}
                                                                     label={field.label}
                                                                     name={field.key}
                                                                     value={getValue(field.key)}

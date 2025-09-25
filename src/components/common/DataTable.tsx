@@ -30,6 +30,8 @@ type ProcessedDataItem = DataItem & {
     originalIndex: number;
 };
 
+type ValidationErrors = Record<number, Record<string, string | null>>;
+
 const DataTable = ({
     tableData,
     tableConfig,
@@ -59,11 +61,10 @@ const DataTable = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
-    // Validation UI removed; parent handles any save-time validation
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
     useEffect(() => {
-        // When the tableData prop changes (from the parent), we need to sync our internal state.
-        // This is crucial for "controlled" components where the parent manages the data state.
         setCurrentView(tableData);
     }, [tableData]);
 
@@ -165,6 +166,26 @@ const DataTable = ({
         }
     }, [searchQuery, pageSize, paginationInfo]);
 
+    const validateCell = useCallback((value: any, colKey: string): string | null => {
+        const config = columnConfig[colKey];
+        if (!config) return null;
+
+        if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
+            return `${config.label} is required.`;
+        }
+
+        if (value !== null && value !== undefined && String(value).trim() !== '') {
+            if (config.type === 'number' && isNaN(Number(value))) {
+                return `${config.label} must be a number.`;
+            }
+            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
+            }
+        }
+        
+        return null;
+    }, [columnConfig]);
+
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
         const newHistory = history.slice(0, historyIndex + 1);
@@ -221,6 +242,16 @@ const DataTable = ({
             }
         });
 
+        const originalIndex = tableData.length;
+        const newValidationErrors: ValidationErrors = { ...validationErrors };
+        newValidationErrors[originalIndex] = {};
+        Object.values(columnConfig).forEach(col => {
+            if (col.key !== 'sno') {
+                newValidationErrors[originalIndex][col.key] = validateCell(newRow[col.key], col.key);
+            }
+        });
+        setValidationErrors(newValidationErrors);
+
         const newData = [...tableData, newRow];
         updateData(newData);
         
@@ -241,13 +272,21 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange]);
+    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
     
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         
         if (originalRowIndex === undefined) return;
+
+        const error = validateCell(value, colKey);
+        setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            if (!newErrors[originalRowIndex]) newErrors[originalRowIndex] = {};
+            newErrors[originalRowIndex][colKey] = error;
+            return newErrors;
+        });
 
         const newData: DataItem[] = structuredClone(tableData);
         if (newData[originalRowIndex]) {
@@ -275,8 +314,6 @@ const DataTable = ({
         return selectedCells.some(c => c.rowIndex === rowIndex && c.colKey === colKey);
     };
 
-    // Removed internal save handler; saving is managed by parent component
-
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
         const newData: DataItem[] = structuredClone(tableData);
@@ -303,6 +340,11 @@ const DataTable = ({
 
             const targetExists = targetRowIndex >= 0 && targetRowIndex < paginatedData.length && movableHeaders.includes(targetColKey);
             if (targetExists) {
+                const sourceType = columnConfig[colKey]?.type || 'string';
+                const targetType = columnConfig[targetColKey]?.type || 'string';
+
+                if (sourceType !== targetType) return;
+
                 const sourceOriginalIndex = paginatedData[rowIndex].originalIndex;
                 const targetOriginalIndex = paginatedData[targetRowIndex].originalIndex;
                 if (newData[sourceOriginalIndex] && newData[targetOriginalIndex]) {
@@ -326,7 +368,7 @@ const DataTable = ({
         });
 
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -341,10 +383,12 @@ const DataTable = ({
         const colIndex = movableHeaders.indexOf(colKey);
         if (direction === 'left' && colIndex > 0) {
             const targetColKey = movableHeaders[colIndex - 1];
+            if (columnConfig[colKey]?.type !== columnConfig[targetColKey]?.type) return;
             newData.forEach((row) => { [row[colKey], row[targetColKey]] = [row[targetColKey], row[colKey]]; });
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'right' && colIndex < movableHeaders.length - 1) {
             const targetColKey = movableHeaders[colIndex + 1];
+            if (columnConfig[colKey]?.type !== columnConfig[targetColKey]?.type) return;
             newData.forEach((row) => { [row[colKey], row[targetColKey]] = [row[targetColKey], row[colKey]]; });
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'up' && originalRowIndex > 0) {
@@ -356,7 +400,7 @@ const DataTable = ({
         }
 
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
@@ -433,9 +477,21 @@ const DataTable = ({
         setDraggedCell({ rowIndex, colKey });
     };
 
+    const handleDragEnd = () => {
+        setDraggedCell(null);
+        setDragOverCol(null);
+    };
+
     const handleDrop = (targetRowIndex: number, targetColKey: string) => {
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
+
+        const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
+        const targetType = columnConfig[targetColKey]?.type || 'string';
+        if (draggedType !== targetType) {
+            handleDragEnd();
+            return;
+        }
         
         const newData: DataItem[] = structuredClone(tableData);
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
@@ -446,7 +502,7 @@ const DataTable = ({
             [newData[targetOriginalIndex][targetColKey], newData[draggedOriginalIndex][draggedCell.colKey]];
         }
         updateData(newData);
-        setDraggedCell(null);
+        handleDragEnd();
     };
 
     const selectionInfo = useMemo(() => {
@@ -521,24 +577,64 @@ const DataTable = ({
     const renderCellContent = (rowIndex: number, colKey: string) => {
         const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.colKey === colKey;
         const cellValue = paginatedData[rowIndex]?.[colKey];
+        const colConfig = columnConfig[colKey];
+        const inputType = colConfig?.type === 'string' ? 'text' : colConfig?.type || 'text';
 
         if (isEditing) {
+            if (inputType === 'boolean') {
+                 return (
+                    <input
+                        type="checkbox"
+                        checked={!!cellValue}
+                        autoFocus
+                        onChange={(e) => handleCellUpdate(rowIndex, colKey, e.target.checked)}
+                        onBlur={() => setEditingCell(null)}
+                        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 z-20 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`}
+                    />
+                );
+            }
             return (
                 <input
-                    type="text"
+                    type={inputType}
                     defaultValue={cellValue}
                     autoFocus
                     onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
                     onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
-                    className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-index ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
+                    className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
                 />
             );
+        }
+        
+        if (inputType === 'boolean') {
+            return <input type="checkbox" checked={!!cellValue} readOnly className={`h-4 w-4 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`} />;
         }
         return String(cellValue ?? '');
     };
 
     const getColumnHeader = (key: string) => {
-        return columnConfig[key]?.label || key.replace(/_/g, ' ');
+        const config = columnConfig[key];
+        const label = config?.label || key.replace(/_/g, ' ');
+        const type = config?.type || 'string';
+    
+        let headerStyle = {};
+        if (draggedCell) {
+            const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
+            if (key !== fixedHeaderKey) {
+                if (type === draggedType) {
+                    headerStyle = { backgroundColor: 'rgba(59, 130, 246, 0.5)' }; // Blue for same type
+                } else {
+                    headerStyle = { backgroundColor: 'rgba(239, 68, 68, 0.5)' }; // Red for different type
+                }
+            }
+        }
+    
+        return (
+            <div style={headerStyle} className="p-2 transition-colors duration-200">
+                <span>{label}</span>
+                {config?.isRequired && <span className="text-red-500 ml-1">*</span>}
+                <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>({type})</span>
+            </div>
+        );
     };
 
     const renderPaginationControls = () => {
@@ -678,7 +774,9 @@ const DataTable = ({
 
         return (
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
-                {paginatedData.map((row, rowIndex) => (
+                {paginatedData.map((row, rowIndex) => {
+                    const originalRowIndex = row.originalIndex;
+                    return(
                     <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
                         {fixedHeaderKey && (
                             <td
@@ -691,27 +789,42 @@ const DataTable = ({
                                 {row[fixedHeaderKey]}
                             </td>
                         )}
-                        {movableHeaders.map(label => (
-                            <td 
-                                key={label} 
-                                onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })} 
-                                onClick={(e) => handleCellClick(rowIndex, label, e)} 
-                                draggable={isEditable} 
-                                onDragStart={() => handleDragStart(rowIndex, label)} 
-                                onDragOver={(e) => e.preventDefault()} 
-                                onDrop={() => handleDrop(rowIndex, label)} 
-                                className={`relative p-2 border-b transition-all duration-150 ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, label) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''}`}
-                            >
-                                {renderCellContent(rowIndex, label)}
-                            </td>
-                        ))}
+                        {movableHeaders.map(label => {
+                            const error = validationErrors[originalRowIndex]?.[label];
+                            const isDragOver = draggedCell && dragOverCol === label;
+                            const draggedType = draggedCell ? columnConfig[draggedCell.colKey]?.type : null;
+                            const currentType = columnConfig[label]?.type;
+                            const isTypeMismatch = isDragOver && draggedType && currentType && draggedType !== currentType;
+
+                            return (
+                                <td 
+                                    key={label} 
+                                    onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })} 
+                                    onClick={(e) => handleCellClick(rowIndex, label, e)} 
+                                    draggable={isEditable} 
+                                    onDragStart={() => handleDragStart(rowIndex, label)}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setDragOverCol(label);
+                                    }}
+                                    onDragLeave={() => setDragOverCol(null)}
+                                    onDrop={() => handleDrop(rowIndex, label)} 
+                                    className={`relative p-2 border-b transition-all duration-150 group ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : isTypeMismatch ? 'cursor-not-allowed' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, label) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''} ${error ? 'ring-1 ring-red-500' : ''}`}
+                                    title={error || ''}
+                                >
+                                    {renderCellContent(rowIndex, label)}
+                                    {error && <div className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></div>}
+                                </td>
+                            );
+                        })}
                         {renderActionCell && (
                             <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                                 {renderActionCell(row, rowIndex)}
                             </td>
                         )}
                     </motion.tr>
-                ))}
+                )})}
                 {isEditable && (
                     <tr>
                         <td 
@@ -769,14 +882,14 @@ const DataTable = ({
                     >
                         <tr>
                             {fixedHeaderKey && (
-                                <th className={`p-2 font-semibold text-left capitalize sticky left-0 border-b-2 shadow-sm ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800/80' : 'text-gray-700 border-gray-300 bg-gray-50'}`}
+                                <th className={`p-0 font-semibold text-left capitalize sticky left-0 border-b-2 shadow-sm ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800/80' : 'text-gray-700 border-gray-300 bg-gray-50'}`}
                                     style={{ zIndex: 60, boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)' }}
                                 >
                                     {getColumnHeader(fixedHeaderKey)}
                                 </th>
                             )}
                             {movableHeaders.map(label => (
-                                <th key={label} className={`p-2 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
+                                <th key={label} className={`p-0 font-semibold text-left capitalize border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
                                     {getColumnHeader(label)}
                                 </th>
                             ))}
@@ -808,8 +921,6 @@ const DataTable = ({
                     </div>
                 </div>
             )}
-
-            {/* Validation modal removed; parent component handles validation */}
         </div>
     );
 };
