@@ -92,6 +92,7 @@ export interface AuthUser {
   username: string;
   role: Role;
   section: number;
+  password?: string;
 }
 
 export interface Document {
@@ -221,27 +222,28 @@ export interface LineItem extends DataItem {
 }
 
 export interface EditableComponentProps {
-    isManual?: boolean;
-    initialInvoiceDetails?: InvoiceDetails | null;
-    initialProductDetails?: ProductDetails[] | null;
-    initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
-    isReadOnly?: boolean;
-    invoiceError?: string | null;
-    productError?: string | null;
-    amountError?: string | null;
-    onRetry?: () => void;
-    messageId: string;
-    formConfig: FormSection[];
-    itemSummaryConfig: { columns: FormField[] };
-    itemAttributesConfig: { columns: FormField[] };
-    onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
-    onFormChange?: (
-        newInvoiceDetails: InvoiceDetails,
-        newProductDetails: ProductDetails[],
-        newAmountAndTaxDetails: AmountAndTaxDetails
-    ) => void;
-    renderActionCell?: (row: DataItem) => JSX.Element;
-    footer?: React.ReactNode;
+  isManual?: boolean;
+  initialInvoiceDetails?: InvoiceDetails | null;
+  initialProductDetails?: ProductDetails[] | null;
+  initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
+  isReadOnly?: boolean;
+  invoiceError?: string | null;
+  productError?: string | null;
+  amountError?: string | null;
+  onRetry?: () => void;
+  messageId: string;
+  formConfig: FormSection[];
+  itemSummaryConfig: { columns: FormField[] };
+  itemAttributesConfig: { columns: FormField[] };
+  onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
+  onFormChange?: (
+      newInvoiceDetails: InvoiceDetails,
+      newProductDetails: ProductDetails[],
+      newAmountAndTaxDetails: AmountAndTaxDetails
+  ) => void;
+  onValidationChange?: (hasErrors: boolean) => void;
+  renderActionCell?: (row: DataItem) => JSX.Element;
+  footer?: React.ReactNode;
 }
 
 // --- Component Prop Interfaces ---

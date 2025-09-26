@@ -28,6 +28,7 @@ export interface AuthContextType {
   login: (credentials: { username: string; password: string; section_id: number }) => Promise<AuthUser | null>;
   logout: () => void;
   hasRole: (role: Role) => boolean;
+  switchSection: (section_id: number) => Promise<AuthUser | null>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +65,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const authenticatedUser: AuthUser = { 
                 username: decoded.usr, 
                 role: decoded.role, 
-                section: decoded.section 
+                section: decoded.section,
+                password: credentials.password 
             };
             setUser(authenticatedUser);
             return authenticatedUser;
@@ -72,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return null;
     } catch (error) {
-      // Error is already handled and toasted by the api function.
       return null;
     }
   };
@@ -87,7 +88,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return user?.role === role;
   };
 
-  const value = { user, isLoading, login, logout, hasRole };
+  const switchSection = async (section_id: number) => {
+    if (!user || !user.password) {
+        addToast({ message: "Unable to switch section. Please log in again.", type: "error" });
+        logout();
+        return null;
+    }
+    try {
+        const data = await apiLogin({ username: user.username, password: user.password, section_id }, addToast);
+        if (data.access_token) {
+            localStorage.setItem('token', data.access_token);
+            const decoded = decodeToken(data.access_token);
+            if (decoded) {
+                const updatedUser: AuthUser = {
+                    ...user,
+                    section: decoded.section,
+                };
+                setUser(updatedUser);
+                addToast({ message: "Successfully switched section!", type: "success" });
+                window.location.reload(); // Reload the page
+                return updatedUser;
+            }
+        }
+        return null;
+    } catch (error) {
+        return null;
+    }
+  };
+
+  const value = { user, isLoading, login, logout, hasRole, switchSection };
 
   return (
     <AuthContext.Provider value={value}>

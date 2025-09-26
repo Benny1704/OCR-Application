@@ -58,6 +58,8 @@ const ManualEntry = () => {
     const [isInvoiceSubmitted, setIsInvoiceSubmitted] = useState(false);
     const [isAmountDetailsSaved, setIsAmountDetailsSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+
 
     // Form Data State
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails>(initialEmptyInvoiceDetails);
@@ -194,6 +196,10 @@ const ManualEntry = () => {
 
 
     const handleSaveAmountDetails = useCallback(async () => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix the errors in the product details before saving.' });
+            return;
+        }
         setIsSubmitting(true);
         try {
             await manualInvoiceEntryInvoiceMeta(amountDetails, addToast);
@@ -204,11 +210,15 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [amountDetails]);
+    }, [amountDetails, hasValidationErrors]);
 
     const handleConfirmInvoice = useCallback(async () => {
         if (!location.state?.messageId) {
             addToast({ type: 'error', message: 'Message ID not found, cannot confirm invoice.' });
+            return;
+        }
+         if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix the errors in the product details before confirming.' });
             return;
         }
         setIsSubmitting(true);
@@ -222,7 +232,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [location.state?.messageId, navigate]);
+    }, [location.state?.messageId, navigate, hasValidationErrors]);
 
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
@@ -314,7 +324,7 @@ const ManualEntry = () => {
 
     const areAllProductsSaved = productDetails.length > 0 && productDetails.every(p => !!p.item_id);
     const showConfirmButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
-
+    
     const accordionVariants: Variants = {
         open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
         collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
@@ -335,8 +345,8 @@ const ManualEntry = () => {
                     {showConfirmButton && (
                         <button
                             onClick={handleConfirmInvoice}
-                            disabled={isSubmitting}
-                            className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400"
+                            disabled={isSubmitting || hasValidationErrors}
+                            className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? <Loader type="btnLoader" /> : <CheckCircle size={16} />}
                             Confirm Invoice
@@ -439,6 +449,7 @@ const ManualEntry = () => {
                                                                         actionColumnHeader="Status"
                                                                         pagination={paginationConfig}
                                                                         onDataChange={onDataChange}
+                                                                        onValidationChange={setHasValidationErrors}
                                                                     />
                                                                 ) : (
                                                                     <div className="space-y-6">
@@ -459,8 +470,8 @@ const ManualEntry = () => {
                                                                             <div className="flex justify-end">
                                                                                 <button
                                                                                     onClick={handleSaveAmountDetails}
-                                                                                    disabled={isSubmitting}
-                                                                                    className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400"
+                                                                                    disabled={isSubmitting || hasValidationErrors}
+                                                                                    className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed"
                                                                                 >
                                                                                     {isSubmitting ? <Loader type="btnLoader" /> : <Save size={16} />}
                                                                                     {isSubmitting ? 'Saving...' : 'Save Amount Details'}
@@ -476,9 +487,9 @@ const ManualEntry = () => {
                                             </div>
                                         )
                                     })
-                                ) : (
+                                 ) : (
                                      <ErrorDisplay message="Could not load product and amount sections." onRetry={fetchConfig} />
-                                )}
+                                 )}
                             </motion.div>
                         )}
                     </AnimatePresence>

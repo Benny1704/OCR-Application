@@ -68,6 +68,7 @@ const EditableComponent = ({
     itemAttributesConfig,
     onSaveNewProduct,
     onFormChange,
+    onValidationChange,
     footer,
     renderActionCell: passedRenderActionCell
 }: EditableComponentProps) => {
@@ -281,6 +282,7 @@ const EditableComponent = ({
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
                                                             onDataChange={(newData) => setProductDetails(newData as unknown as ProductDetails[])}
+                                                            onValidationChange={onValidationChange}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

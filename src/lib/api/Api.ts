@@ -312,6 +312,8 @@ export const getLineItems = async (invoiceId: number, itemId: number, addToast: 
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
     try {
+        
+        console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -335,6 +337,8 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
     try {
+        
+        console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
@@ -345,6 +349,8 @@ export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountA
 
 export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
     try {
+        
+        console.log("updateLineItems: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {

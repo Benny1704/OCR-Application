@@ -18,6 +18,7 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
     maxHeight?: string;
     isLoading?: boolean;
     onDataChange?: (data: DataItem[]) => void;
+    onValidationChange?: (hasErrors: boolean) => void;
     paginationInfo?: PaginationInfo;
     onPageChange?: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
@@ -30,7 +31,6 @@ type ProcessedDataItem = DataItem & {
 };
 
 type ValidationErrors = Record<number, Record<string, string | null>>;
-type ConversionWarnings = Record<number, Record<string, string | null>>;
 
 // Type conversion utility functions
 const canConvertValue = (value: any, targetType: string): boolean => {
@@ -86,6 +86,7 @@ const DataTable = ({
     maxHeight = '100%',
     isLoading = false,
     onDataChange,
+    onValidationChange,
     paginationInfo,
     onPageChange,
     onPageSizeChange,
@@ -104,7 +105,6 @@ const DataTable = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-    const [conversionWarnings, setConversionWarnings] = useState<ConversionWarnings>({});
     const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
     useEffect(() => {
@@ -206,20 +206,22 @@ const DataTable = ({
             setCurrentPage(1);
         }
     }, [searchQuery, pageSize, paginationInfo]);
-
-    const validateCell = useCallback((value: any, colKey: string, isConverted: boolean = false): string | null => {
+    
+    const validateCell = useCallback((value: any, colKey: string): string | null => {
         const config = columnConfig[colKey];
         if (!config) return null;
 
+        // Check for required fields
         if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
             return `${config.label} is required.`;
         }
-
+        
+        // Check for type validity if a value is present
         if (value !== null && value !== undefined && String(value).trim() !== '') {
-            if (config.type === 'number' && isNaN(Number(value))) {
-                return `${config.label} must be a number.`;
+            if (!canConvertValue(value, config.type || 'string')) {
+                return `Invalid value. ${config.label} must be a ${config.type}.`;
             }
-            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
                 return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
             }
         }
@@ -227,26 +229,18 @@ const DataTable = ({
         return null;
     }, [columnConfig]);
 
-    const validateConversion = useCallback((value: any, sourceType: string, targetType: string, targetColKey: string): string | null => {
-        if (sourceType === targetType) return null;
-        if (!canConvertValue(value, targetType)) {
-            return `Cannot convert "${value}" to ${targetType}`;
-        }
-        return null;
-    }, []);
-
-    // Check if there are any blocking errors
     const hasBlockingErrors = useMemo(() => {
-        const validationErrorCount = Object.values(validationErrors).reduce((count, rowErrors) => {
-            return count + Object.values(rowErrors).filter(error => error !== null).length;
-        }, 0);
+        return Object.values(validationErrors).some(rowErrors => 
+            Object.values(rowErrors).some(error => error !== null)
+        );
+    }, [validationErrors]);
 
-        const conversionErrorCount = Object.values(conversionWarnings).reduce((count, rowWarnings) => {
-            return count + Object.values(rowWarnings).filter(warning => warning !== null).length;
-        }, 0);
+    useEffect(() => {
+        if (onValidationChange) {
+            onValidationChange(hasBlockingErrors);
+        }
+    }, [hasBlockingErrors, onValidationChange]);
 
-        return validationErrorCount > 0 || conversionErrorCount > 0;
-    }, [validationErrors, conversionWarnings]);
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
@@ -339,10 +333,18 @@ const DataTable = ({
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
-        
         if (originalRowIndex === undefined) return;
 
-        const error = validateCell(value, colKey);
+        const targetType = columnConfig[colKey]?.type || 'string';
+        let finalValue = value;
+        
+        // Attempt to convert value before validating and updating
+        if (canConvertValue(value, targetType)) {
+            finalValue = convertValue(value, targetType);
+        }
+
+        const error = validateCell(finalValue, colKey);
+
         setValidationErrors(prev => {
             const newErrors = { ...prev };
             if (!newErrors[originalRowIndex]) newErrors[originalRowIndex] = {};
@@ -352,10 +354,11 @@ const DataTable = ({
 
         const newData: DataItem[] = structuredClone(tableData);
         if (newData[originalRowIndex]) {
-            newData[originalRowIndex][colKey] = value;
+            newData[originalRowIndex][colKey] = finalValue;
         }
         updateData(newData, selectedCells);
     };
+
 
     const handleCellClick = (rowIndex: number, colKey: string, e: React.MouseEvent) => {
         if (colKey === fixedHeaderKey || editingCell) return;
@@ -381,7 +384,6 @@ const DataTable = ({
         const newData: DataItem[] = structuredClone(tableData);
         const newSelectedCells: CellIdentifier[] = [];
         const newValidationErrors = { ...validationErrors };
-        const newConversionWarnings = { ...conversionWarnings };
 
         const sortedSelected = [...selectedCells].sort((a, b) => {
             if (direction === 'up') return a.rowIndex - b.rowIndex;
@@ -413,59 +415,28 @@ const DataTable = ({
                     const sourceType = columnConfig[colKey]?.type || 'string';
                     const targetType = columnConfig[targetColKey]?.type || 'string';
 
-                    // Clear previous warnings
-                    if (newConversionWarnings[sourceOriginalIndex]) {
-                        delete newConversionWarnings[sourceOriginalIndex][colKey];
-                    }
-                    if (newConversionWarnings[targetOriginalIndex]) {
-                        delete newConversionWarnings[targetOriginalIndex][targetColKey];
-                    }
-
-                    // Handle source -> target conversion
-                    let convertedSourceValue = sourceValue;
+                    // Perform swap
+                    let valueForTarget = sourceValue;
                     if (sourceType !== targetType) {
-                        const conversionError = validateConversion(sourceValue, sourceType, targetType, targetColKey);
-                        if (conversionError) {
-                            if (!newConversionWarnings[targetOriginalIndex]) newConversionWarnings[targetOriginalIndex] = {};
-                            newConversionWarnings[targetOriginalIndex][targetColKey] = conversionError;
-                        } else {
-                            convertedSourceValue = convertValue(sourceValue, targetType);
-                        }
+                        valueForTarget = convertValue(sourceValue, targetType);
                     }
-
-                    // Handle target -> source conversion
-                    let convertedTargetValue = targetValue;
+                    let valueForSource = targetValue;
                     if (targetType !== sourceType) {
-                        const conversionError = validateConversion(targetValue, targetType, sourceType, colKey);
-                        if (conversionError) {
-                            if (!newConversionWarnings[sourceOriginalIndex]) newConversionWarnings[sourceOriginalIndex] = {};
-                            newConversionWarnings[sourceOriginalIndex][colKey] = conversionError;
-                        } else {
-                            convertedTargetValue = convertValue(targetValue, sourceType);
-                        }
+                        valueForSource = convertValue(targetValue, sourceType);
                     }
 
-                    // Perform the swap
-                    newData[sourceOriginalIndex][colKey] = convertedTargetValue;
-                    newData[targetOriginalIndex][targetColKey] = convertedSourceValue;
+                    newData[sourceOriginalIndex][colKey] = valueForSource;
+                    newData[targetOriginalIndex][targetColKey] = valueForTarget;
+                    
+                    // Validate new values
+                    const sourceError = validateCell(valueForSource, colKey);
+                    const targetError = validateCell(valueForTarget, targetColKey);
 
-                    // Validate the new values
-                    const sourceError = validateCell(convertedTargetValue, colKey, sourceType !== targetType);
-                    const targetError = validateCell(convertedSourceValue, targetColKey, targetType !== sourceType);
-
-                    if (sourceError) {
-                        if (!newValidationErrors[sourceOriginalIndex]) newValidationErrors[sourceOriginalIndex] = {};
-                        newValidationErrors[sourceOriginalIndex][colKey] = sourceError;
-                    } else if (newValidationErrors[sourceOriginalIndex]) {
-                        delete newValidationErrors[sourceOriginalIndex][colKey];
-                    }
-
-                    if (targetError) {
-                        if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
-                        newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
-                    } else if (newValidationErrors[targetOriginalIndex]) {
-                        delete newValidationErrors[targetOriginalIndex][targetColKey];
-                    }
+                    if (!newValidationErrors[sourceOriginalIndex]) newValidationErrors[sourceOriginalIndex] = {};
+                    newValidationErrors[sourceOriginalIndex][colKey] = sourceError;
+                    
+                    if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
+                    newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
                 }
             }
         });
@@ -485,9 +456,8 @@ const DataTable = ({
         });
 
         setValidationErrors(newValidationErrors);
-        setConversionWarnings(newConversionWarnings);
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, conversionWarnings, validateCell, validateConversion]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -541,14 +511,28 @@ const DataTable = ({
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
                     const newData: DataItem[] = structuredClone(tableData);
+                    const newValidationErrors = { ...validationErrors };
+
                     selectedCells.forEach(targetCell => {
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.isEditable === false) return;
                         
                         const originalRowIndex = paginatedData[targetCell.rowIndex]?.originalIndex;
                         if (originalRowIndex !== undefined && newData[originalRowIndex]) {
-                            newData[originalRowIndex][targetCell.colKey] = copiedCell.value;
+                            const targetType = columnConfig[targetCell.colKey]?.type || 'string';
+                            let finalValue = copiedCell.value;
+
+                            if (canConvertValue(copiedCell.value, targetType)) {
+                                finalValue = convertValue(copiedCell.value, targetType);
+                            }
+                            
+                            const error = validateCell(finalValue, targetCell.colKey);
+                            if (!newValidationErrors[originalRowIndex]) newValidationErrors[originalRowIndex] = {};
+                            newValidationErrors[originalRowIndex][targetCell.colKey] = error;
+
+                            newData[originalRowIndex][targetCell.colKey] = finalValue;
                         }
                     });
+                    setValidationErrors(newValidationErrors);
                     updateData(newData, selectedCells);
                 }
             } else if (e.altKey && e.key.startsWith('Arrow')) {
@@ -583,7 +567,7 @@ const DataTable = ({
     }, [
         editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData, 
         updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, 
-        fixedHeaderKey, paginatedData, columnConfig
+        fixedHeaderKey, paginatedData, columnConfig, validationErrors, validateCell
     ]);
 
     useEffect(() => {
@@ -606,6 +590,8 @@ const DataTable = ({
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
 
         const newData: DataItem[] = structuredClone(tableData);
+        const newValidationErrors = { ...validationErrors };
+        
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
         
@@ -615,72 +601,30 @@ const DataTable = ({
             const sourceType = columnConfig[draggedCell.colKey]?.type || 'string';
             const targetType = columnConfig[targetColKey]?.type || 'string';
 
-            const newConversionWarnings = { ...conversionWarnings };
-            const newValidationErrors = { ...validationErrors };
+            // Swap values and convert if possible
+            const valueForTarget = convertValue(sourceValue, targetType);
+            const valueForSource = convertValue(targetValue, sourceType);
 
-            // Clear previous warnings
-            if (newConversionWarnings[draggedOriginalIndex]) {
-                delete newConversionWarnings[draggedOriginalIndex][draggedCell.colKey];
-            }
-            if (newConversionWarnings[targetOriginalIndex]) {
-                delete newConversionWarnings[targetOriginalIndex][targetColKey];
-            }
+            newData[draggedOriginalIndex][draggedCell.colKey] = valueForSource;
+            newData[targetOriginalIndex][targetColKey] = valueForTarget;
+            
+            // Validate new values
+            const sourceError = validateCell(valueForSource, draggedCell.colKey);
+            const targetError = validateCell(valueForTarget, targetColKey);
 
-            // Handle conversions and perform swap
-            let convertedSourceValue = sourceValue;
-            let convertedTargetValue = targetValue;
-
-            // Convert source to target type
-            if (sourceType !== targetType) {
-                const conversionError = validateConversion(sourceValue, sourceType, targetType, targetColKey);
-                if (conversionError) {
-                    if (!newConversionWarnings[targetOriginalIndex]) newConversionWarnings[targetOriginalIndex] = {};
-                    newConversionWarnings[targetOriginalIndex][targetColKey] = conversionError;
-                } else {
-                    convertedSourceValue = convertValue(sourceValue, targetType);
-                }
-            }
-
-            // Convert target to source type
-            if (targetType !== sourceType) {
-                const conversionError = validateConversion(targetValue, targetType, sourceType, draggedCell.colKey);
-                if (conversionError) {
-                    if (!newConversionWarnings[draggedOriginalIndex]) newConversionWarnings[draggedOriginalIndex] = {};
-                    newConversionWarnings[draggedOriginalIndex][draggedCell.colKey] = conversionError;
-                } else {
-                    convertedTargetValue = convertValue(targetValue, sourceType);
-                }
-            }
-
-            // Perform the swap
-            newData[draggedOriginalIndex][draggedCell.colKey] = convertedTargetValue;
-            newData[targetOriginalIndex][targetColKey] = convertedSourceValue;
-
-            // Validate the new values
-            const sourceError = validateCell(convertedTargetValue, draggedCell.colKey, sourceType !== targetType);
-            const targetError = validateCell(convertedSourceValue, targetColKey, targetType !== sourceType);
-
-            if (sourceError) {
-                if (!newValidationErrors[draggedOriginalIndex]) newValidationErrors[draggedOriginalIndex] = {};
-                newValidationErrors[draggedOriginalIndex][draggedCell.colKey] = sourceError;
-            } else if (newValidationErrors[draggedOriginalIndex]) {
-                delete newValidationErrors[draggedOriginalIndex][draggedCell.colKey];
-            }
-
-            if (targetError) {
-                if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
-                newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
-            } else if (newValidationErrors[targetOriginalIndex]) {
-                delete newValidationErrors[targetOriginalIndex][targetColKey];
-            }
+            if (!newValidationErrors[draggedOriginalIndex]) newValidationErrors[draggedOriginalIndex] = {};
+            newValidationErrors[draggedOriginalIndex][draggedCell.colKey] = sourceError;
+            
+            if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
+            newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
 
             setValidationErrors(newValidationErrors);
-            setConversionWarnings(newConversionWarnings);
             updateData(newData);
         }
         
         handleDragEnd();
     };
+
 
     const selectionInfo = useMemo(() => {
         if (selectedCells.length === 0) return null;
@@ -977,7 +921,6 @@ const DataTable = ({
                         )}
                         {movableHeaders.map(label => {
                             const error = validationErrors[originalRowIndex]?.[label];
-                            const warning = conversionWarnings[originalRowIndex]?.[label];
 
                             return (
                                 <td 
@@ -999,20 +942,14 @@ const DataTable = ({
                                         theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
                                     } ${
                                         isSelected(rowIndex, label) 
-                                            ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') 
+                                            ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100') 
                                             : ''
                                     } ${
-                                        error ? 'ring-2 ring-red-500' : warning ? 'ring-2 ring-orange-500' : ''
+                                        error ? 'ring-2 ring-red-500 inset-0' : ''
                                     }`}
-                                    title={error || warning || ''}
+                                    title={error || ''}
                                 >
                                     {renderCellContent(rowIndex, label)}
-                                    {/* Error indicator (red for validation errors) */}
-                                    {error && <div className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" title="Validation Error"></div>}
-                                    {/* Warning indicator (orange for conversion warnings) */}
-                                    {!error && warning && (
-                                        <div className="absolute top-1 right-1 h-2 w-2 bg-orange-500 rounded-full" title="Type Conversion Warning"></div>
-                                    )}
                                 </td>
                             );
                         })}
@@ -1113,7 +1050,7 @@ const DataTable = ({
                         {selectionInfo ? selectionInfo : (<p className="text-sm text-gray-500 font-extralight">Click on a cell to start selecting.</p>)}
                         {hasBlockingErrors && (
                             <InfoPill>
-                                <span className="text-red-500">⚠ {Object.values(validationErrors).flat().length + Object.values(conversionWarnings).flat().length} validation issue(s)</span>
+                                <span className="text-red-500">⚠ Please fix the validation errors before saving.</span>
                             </InfoPill>
                         )}
                     </div>
