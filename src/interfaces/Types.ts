@@ -161,6 +161,7 @@ export interface InvoiceDetails {
   supplier_address: string;
   supplier_gst: string;
   supplier_code: string;
+  merchandiser_name: string;
   [key: string]: any;
 }
 
@@ -174,6 +175,7 @@ export interface ProductDetails extends DataItem {
   total_pieces: number;
   total_amount: number;
   gst_percentage: number;
+  style_code: string;
   line_items?: LineItem[];
   [key: string]: any;
 }

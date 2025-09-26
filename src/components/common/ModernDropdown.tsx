@@ -62,7 +62,7 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
                         variants={listVariants}
                         style={{ originY: 1 }} // Ensures the grow animation starts from the top
                     >
-                        {sections.map(section => (
+                        {Array.isArray(sections) && sections.map(section => (
                             <motion.li
                                 key={section.section_id}
                                 onClick={() => {

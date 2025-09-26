@@ -32,7 +32,7 @@ const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0, invoice_id: 0, invoice_number: '', irn: '', invoice_date: null,
     way_bill: '', acknowledgement_number: '', acknowledgement_date: null, created_at: null,
     order_number: null, order_date: null, supplier_name: '', supplier_address: '',
-    supplier_gst: '', supplier_code: '', section_id: 1 // Default section_id
+    supplier_gst: '', supplier_code: '', section_id: 1, merchandiser_name: '' // Default section_id
 };
 
 const initialEmptyAmountAndTaxDetails: AmountAndTaxDetails = {
@@ -154,6 +154,10 @@ const ManualEntry = () => {
     }, [invoiceDetails, location.state?.messageId]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix the validation errors before saving.' });
+            return;
+        }
         const temporaryRowId = productRow.id;
         setSavingRowId(temporaryRowId);
 
@@ -192,7 +196,7 @@ const ManualEntry = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceDetails.invoice_id]);
+    }, [invoiceDetails.invoice_id, hasValidationErrors, addToast]);
 
 
     const handleSaveAmountDetails = useCallback(async () => {
@@ -295,8 +299,8 @@ const ManualEntry = () => {
                 ) : (
                     <button
                         onClick={() => handleSaveProductRow(productRow)}
-                        disabled={isSaving}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        disabled={isSaving || hasValidationErrors}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300"
                         title="Save Row"
                     >
                         <Save size={16} />
@@ -304,7 +308,7 @@ const ManualEntry = () => {
                 )}
             </div>
         );
-    }, [savingRowId, handleOpenPopup, handleSaveProductRow]);
+    }, [savingRowId, handleOpenPopup, handleSaveProductRow, hasValidationErrors]);
 
 
     // --- Render Logic ---

@@ -113,7 +113,7 @@ const DataTable = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-    const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+    const [dragOverCell, setDragOverCell] = useState<CellIdentifier | null>(null);
 
     useEffect(() => {
         setCurrentView(tableData);
@@ -590,7 +590,7 @@ const DataTable = ({
 
     const handleDragEnd = () => {
         setDraggedCell(null);
-        setDragOverCol(null);
+        setDragOverCell(null);
     };
 
     const handleDrop = (targetRowIndex: number, targetColKey: string) => {
@@ -929,6 +929,7 @@ const DataTable = ({
                         )}
                         {movableHeaders.map(label => {
                             const error = validationErrors[originalRowIndex]?.[label];
+                            const isDragOver = dragOverCell?.rowIndex === rowIndex && dragOverCell?.colKey === label;
 
                             return (
                                 <td 
@@ -940,9 +941,9 @@ const DataTable = ({
                                     onDragEnd={handleDragEnd}
                                     onDragOver={(e) => {
                                         e.preventDefault();
-                                        setDragOverCol(label);
+                                        setDragOverCell({ rowIndex, colKey: label });
                                     }}
-                                    onDragLeave={() => setDragOverCol(null)}
+                                    onDragLeave={() => setDragOverCell(null)}
                                     onDrop={() => handleDrop(rowIndex, label)} 
                                     className={`relative p-2 border-b transition-all duration-150 group ${
                                         !isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
@@ -953,7 +954,9 @@ const DataTable = ({
                                             ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100') 
                                             : ''
                                     } ${
-                                        error ? 'ring-2 ring-red-500 inset-0' : ''
+                                        error ? 'ring-2 ring-red-500 inset-0 bg-red-500/10' : ''
+                                    } ${
+                                        isDragOver && draggedCell && (draggedCell.colKey !== label || draggedCell.rowIndex !== rowIndex) ? (theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200') : ''
                                     }`}
                                     title={error || ''}
                                 >

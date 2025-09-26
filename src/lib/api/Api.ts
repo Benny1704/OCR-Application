@@ -498,16 +498,17 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
             item_id: attr.item_id,
             item_description: attr.item_description || "",
             total_count: Number(attr.total_count) || 0,
+            size: attr.size || "",
+            pieces: Number(attr.pieces) || 0,
+            color_code: attr.color_code || "",
             single_unit_price: Number(attr.single_unit_price) || 0,
             discount_percentage: String(attr.discount_percentage) || "0",
             discount_amount: Number(attr.discount_amount) || 0,
             single_unit_mrp: Number(attr.single_unit_mrp) || 0,
-            // Use property from 'row' if it exists, otherwise use the capitalized version.
             HSN: String((attr as any).hsn || attr.HSN || ""),
             cgst_percentage: String(attr.cgst_percentage) || "0",
             sgst_percentage: String(attr.sgst_percentage) || "0",
             igst_percentage: String(attr.igst_percentage) || "0",
-            // Use property from 'row' if it exists, otherwise use the capitalized version.
             EAN: String((attr as any).ean_code || attr.EAN || "")
         }));
 

@@ -133,7 +133,7 @@ const Login = () => {
                             disabled={isLoading || sections.length === 0}
                         >
                             <option value="" disabled>Select a Section</option>
-                            {sections.map(section => (
+                            {Array.isArray(sections) && sections.map(section => (
                                 <option key={section.section_id} value={section.section_id} className="bg-gray-800">
                                     {section.section_name}
                                 </option>

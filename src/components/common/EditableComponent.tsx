@@ -29,7 +29,8 @@ const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_name: '',
     supplier_address: '',
     supplier_gst: '',
-    supplier_code: ''
+    supplier_code: '',
+    merchandiser_name: ''
 };
 
 const initialEmptyProductDetails: ProductDetails[] = [];
@@ -92,6 +93,8 @@ const EditableComponent = ({
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
+    const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+
 
     const productRows = useMemo(() => {
         if (!productDetails) {
@@ -111,6 +114,13 @@ const EditableComponent = ({
             onFormChange(invoiceDetails, productDetails as ProductDetails[], amountDetails);
         }
     }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
+    
+    const handleValidationChange = useCallback((hasErrors: boolean) => {
+        setHasValidationErrors(hasErrors);
+        if (onValidationChange) {
+            onValidationChange(hasErrors);
+        }
+    }, [onValidationChange]);
 
     const combinedData = useMemo(() => ({
         ...invoiceDetails,
@@ -163,6 +173,10 @@ const EditableComponent = ({
     };
 
     const handleSaveRow = useCallback(async (productRow: ProductDetails) => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix validation errors before saving.' });
+            return;
+        }
         if (onSaveNewProduct) {
             try {
                 await onSaveNewProduct(productRow);
@@ -170,7 +184,7 @@ const EditableComponent = ({
                 console.error("Failed to save product row from EditableComponent", error);
             }
         }
-    }, [onSaveNewProduct]);
+    }, [onSaveNewProduct, hasValidationErrors]);
 
     const renderActionCell = (row: DataItem) => {
         const productRow = row as unknown as ProductDetails;
@@ -191,8 +205,9 @@ const EditableComponent = ({
             return (
                 <button
                     onClick={() => handleSaveRow(productRow)}
-                    className="p-1.5 rounded-md bg-emerald-500 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    className="p-1.5 rounded-md bg-emerald-500 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300"
                     title="Save Row"
+                    disabled={hasValidationErrors}
                 >
                     <Save size={16} />
                 </button>
@@ -282,7 +297,7 @@ const EditableComponent = ({
                                                             pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                                             maxHeight="100%"
                                                             onDataChange={(newData) => setProductDetails(newData as unknown as ProductDetails[])}
-                                                            onValidationChange={onValidationChange}
+                                                            onValidationChange={handleValidationChange}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

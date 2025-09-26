@@ -28,21 +28,23 @@ const Documents = () => {
     setError(null);
     try {
         const { data, pagination: paginationData } = await getCompletedDocuments(addToast, page, size);
-        setDocuments(data.map((item: any, index: number) => ({
-          id: item.message_id,
-          sno: (page - 1) * size + index + 1,
-          name: item.file_name,
-          supplierName: item.supplier_name,
-          supplierNumber: item.supplier_gst_in,
-          invoiceNumber: item.invoice_number,
-          invoiceId: item.invoice_id,
-          irnNumber: item.irn,
-          uploadedBy: item.uploaded_by,
-          uploadDate: formatDateTime(item.uploaded_at),
-          invoiceDate: formatDateTime(item.invoice_date),
-          messageId: item.message_id,
-          status: item.status,
-        })));
+        if (Array.isArray(data)) {
+          setDocuments(data.map((item: any, index: number) => ({
+            id: item.message_id,
+            sno: (page - 1) * size + index + 1,
+            name: item.file_name,
+            supplierName: item.supplier_name,
+            supplierNumber: item.supplier_gst_in,
+            invoiceNumber: item.invoice_number,
+            invoiceId: item.invoice_id,
+            irnNumber: item.irn,
+            uploadedBy: item.uploaded_by,
+            uploadDate: formatDateTime(item.uploaded_at),
+            invoiceDate: formatDateTime(item.invoice_date),
+            messageId: item.message_id,
+            status: item.status,
+          })));
+        }
         setPagination(paginationData);
     } catch (err: any) {
         setError(err.message || "Failed to fetch documents.");

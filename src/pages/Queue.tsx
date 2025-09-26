@@ -225,52 +225,58 @@ const Queue = () => {
 
         if (activeTab === 'Queued') {
             queuedResponse = await getQueuedDocuments(addToast, currentPage, pageSize);
-            setQueuedDocuments(queuedResponse.data.map((item: any) => ({
-                id: item.message_id,
-                name: item.file_name,
-                size: formatBytes(item.file_size),
-                uploadDate: formatDateTime(item.uploaded_on),
-                uploadedBy: item.uploaded_by,
-                messageId: item.message_id,
-                isPriority: item.is_priority,
-                status: item.status || "Queued",
-                queue_position: item.queue_position,
-                supplier_meta: item.supplier_meta,
-                invoice_meta: item.invoice_meta
-            })));
+            if (Array.isArray(queuedResponse.data)) {
+              setQueuedDocuments(queuedResponse.data.map((item: any) => ({
+                  id: item.message_id,
+                  name: item.file_name,
+                  size: formatBytes(item.file_size),
+                  uploadDate: formatDateTime(item.uploaded_on),
+                  uploadedBy: item.uploaded_by,
+                  messageId: item.message_id,
+                  isPriority: item.is_priority,
+                  status: item.status || "Queued",
+                  queue_position: item.queue_position,
+                  supplier_meta: item.supplier_meta,
+                  invoice_meta: item.invoice_meta
+              })));
+            }
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Processed') {
             processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
-            setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
-                id: item.message_id,
-                sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
-                name: item.file_name,
-                supplierName: item.supplier_name,
-                supplierNumber: item.supplier_gst_in,
-                invoiceNumber: item.invoice_number,
-                invoiceId: item.invoice_id,
-                irnNumber: item.irn,
-                uploadedBy: item.uploaded_by,
-                uploadDate: formatDateTime(item.uploaded_at),
-                invoiceDate: formatDateTime(item.invoice_date),
-                messageId: item.message_id,
-                status: item.status,
-            })));
+            if (Array.isArray(processedResponse.data)) {
+              setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
+                  id: item.message_id,
+                  sno: (processedResponse.pagination.page - 1) * processedResponse.pagination.page_size + index + 1,
+                  name: item.file_name,
+                  supplierName: item.supplier_name,
+                  supplierNumber: item.supplier_gst_in,
+                  invoiceNumber: item.invoice_number,
+                  invoiceId: item.invoice_id,
+                  irnNumber: item.irn,
+                  uploadedBy: item.uploaded_by,
+                  uploadDate: formatDateTime(item.uploaded_at),
+                  invoiceDate: formatDateTime(item.invoice_date),
+                  messageId: item.message_id,
+                  status: item.status,
+              })));
+            }
             setPagination(prev => ({...prev, Processed: processedResponse.pagination}));
         } else if (activeTab === 'Failed') {
             failedResponse = await getFailedDocuments(addToast, currentPage, pageSize);
-            setFailedDocuments(failedResponse.data.map((item: any) => ({
-                id: item.message_id,
-                name: item.file_name,
-                size: formatBytes(item.file_size),
-                uploadedBy: item.uploaded_by,
-                uploadDate: formatDateTime(item.uploaded_on),
-                messageId: item.message_id,
-                errorMessage: item.error_message,
-                status: "Failed",
-                supplier_meta: item.supplier_meta,
-                invoice_meta: item.invoice_meta
-            })));
+            if (Array.isArray(failedResponse.data)) {
+              setFailedDocuments(failedResponse.data.map((item: any) => ({
+                  id: item.message_id,
+                  name: item.file_name,
+                  size: formatBytes(item.file_size),
+                  uploadedBy: item.uploaded_by,
+                  uploadDate: formatDateTime(item.uploaded_on),
+                  messageId: item.message_id,
+                  errorMessage: item.error_message,
+                  status: "Failed",
+                  supplier_meta: item.supplier_meta,
+                  invoice_meta: item.invoice_meta
+              })));
+            }
             setPagination(prev => ({...prev, Failed: failedResponse.pagination}));
         }
         // NEW FEATURE: Update the timestamp for the active tab

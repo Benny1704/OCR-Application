@@ -39,6 +39,8 @@ const Edit = () => {
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
+    const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+    const [hasMandatoryFieldsError, setHasMandatoryFieldsError] = useState<boolean>(false);
 
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
@@ -60,6 +62,25 @@ const Edit = () => {
     const liveInvoiceAmount = useMemo(() => {
         return Number(amountAndTaxDetails?.invoice_amount) || 0;
     }, [amountAndTaxDetails]);
+
+    useEffect(() => {
+        if (formConfig && invoiceDetails && amountAndTaxDetails) {
+            for (const section of formConfig) {
+                if (section.fields) {
+                    for (const field of section.fields) {
+                        if (field.isRequired) {
+                            const value = (invoiceDetails as any)[field.key] ?? (amountAndTaxDetails as any)[field.key];
+                            if (value === null || value === undefined || value === '') {
+                                setHasMandatoryFieldsError(true);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            setHasMandatoryFieldsError(false);
+        }
+    }, [formConfig, invoiceDetails, amountAndTaxDetails]);
 
     const fetchData = useCallback(async () => {
         if (!invoiceId) {
@@ -124,6 +145,10 @@ const Edit = () => {
     }, [fetchData]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<ProductDetails> => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix validation errors before saving.' });
+            throw new Error('Validation errors');
+        }
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
 
         const temporaryRowId = productRow.id;
@@ -168,7 +193,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, fetchData]);
+    }, [invoiceId, isDirty, fetchData, hasValidationErrors]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -178,6 +203,10 @@ const Edit = () => {
     };
 
     const proceedWithSaveAsDraft = useCallback(async () => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix validation errors before saving.' });
+            return;
+        }
         if (!invoiceId || !messageId || !invoiceDetails || !productDetails || !amountAndTaxDetails) {
             addToast({ type: 'error', message: 'Missing data to save.' });
             return;
@@ -213,9 +242,13 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate, hasValidationErrors, addToast]);
 
     const proceedWithFinalize = useCallback(async () => {
+        if (hasValidationErrors) {
+            addToast({ type: 'error', message: 'Please fix validation errors before finalizing.' });
+            return;
+        }
         if (!messageId) {
             addToast({ type: 'error', message: 'Missing message ID.' });
             return;
@@ -247,9 +280,13 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails]);
+    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails, hasValidationErrors]);
 
     const handleSaveAsDraft = () => {
+        if (hasValidationErrors || hasMandatoryFieldsError) {
+            addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before saving.' });
+            return;
+        }
         if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
             setActionToConfirm('save');
             setAmountMismatchModalOpen(true);
@@ -259,6 +296,10 @@ const Edit = () => {
     };
 
     const handleFinalize = () => {
+        if (hasValidationErrors || hasMandatoryFieldsError) {
+            addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before finalizing.' });
+            return;
+        }
         if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
             setActionToConfirm('finalize');
             setAmountMismatchModalOpen(true);
@@ -301,8 +342,8 @@ const Edit = () => {
                 ) : (
                     <button
                         onClick={() => handleSaveProductRow(productRow)}
-                        disabled={isSaving}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        disabled={isSaving || hasValidationErrors}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300"
                         title="Save Row"
                     >
                         <Save size={16} />
@@ -310,7 +351,7 @@ const Edit = () => {
                 )}
             </div>
         );
-    }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow]);
+    }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow, hasValidationErrors]);
 
     if (isLoading) return <Loader type="wifi" />;
     if (error) return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
@@ -329,12 +370,13 @@ const Edit = () => {
                     itemAttributesConfig={itemAttributesConfig}
                     onSaveNewProduct={handleSaveProductRow}
                     onFormChange={handleFormChange}
+                    onValidationChange={setHasValidationErrors}
                     renderActionCell={renderActionCell}
                     footer={
                         <div className="flex justify-end gap-4 p-4">
                             <button
                                 onClick={handleSaveAsDraft}
-                                disabled={!isDirty || isSaving}
+                                disabled={!isDirty || isSaving || hasValidationErrors || hasMandatoryFieldsError}
                                 className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out"
                             >
                                 <Save size={16} />
@@ -342,7 +384,7 @@ const Edit = () => {
                             </button>
                             <button
                                 onClick={handleFinalize}
-                                disabled={isSaving}
+                                disabled={isSaving || hasValidationErrors || hasMandatoryFieldsError}
                                 className="flex items-center justify-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 ease-in-out"
                             >
                                <CheckCircle size={16} />
