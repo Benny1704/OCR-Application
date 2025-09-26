@@ -60,6 +60,10 @@ const convertValue = (value: any, targetType: string): any => {
     
     switch (targetType) {
         case 'number':
+            // If it's not a valid number, return the original string to be displayed
+            if (isNaN(Number(stringValue)) || stringValue === '') {
+                return value;
+            }
             return Number(stringValue);
         case 'boolean':
             const lowerValue = stringValue.toLowerCase();
@@ -67,6 +71,10 @@ const convertValue = (value: any, targetType: string): any => {
         case 'date':
             if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
             const date = new Date(stringValue);
+            // If the date is invalid, return the original string
+            if (isNaN(date.getTime())) {
+                return value;
+            }
             return date.toISOString().split('T')[0];
         case 'string':
             return stringValue;
