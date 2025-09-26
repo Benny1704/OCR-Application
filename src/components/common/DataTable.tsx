@@ -5,7 +5,6 @@ import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
 
-
 export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
     tableData: DataItem[];
     tableConfig?: TableConfig;
@@ -31,6 +30,50 @@ type ProcessedDataItem = DataItem & {
 };
 
 type ValidationErrors = Record<number, Record<string, string | null>>;
+type ConversionWarnings = Record<number, Record<string, string | null>>;
+
+// Type conversion utility functions
+const canConvertValue = (value: any, targetType: string): boolean => {
+    if (value === null || value === undefined || value === '') return true;
+    
+    const stringValue = String(value).trim();
+    
+    switch (targetType) {
+        case 'number':
+            return !isNaN(Number(stringValue)) && stringValue !== '';
+        case 'boolean':
+            const lowerValue = stringValue.toLowerCase();
+            return ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off'].includes(lowerValue);
+        case 'date':
+            return !isNaN(Date.parse(stringValue)) || /^\d{4}-\d{2}-\d{2}$/.test(stringValue);
+        case 'string':
+            return true; // Any value can be converted to string
+        default:
+            return true;
+    }
+};
+
+const convertValue = (value: any, targetType: string): any => {
+    if (value === null || value === undefined || value === '') return '';
+    
+    const stringValue = String(value).trim();
+    
+    switch (targetType) {
+        case 'number':
+            return Number(stringValue);
+        case 'boolean':
+            const lowerValue = stringValue.toLowerCase();
+            return ['true', '1', 'yes', 'on'].includes(lowerValue);
+        case 'date':
+            if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
+            const date = new Date(stringValue);
+            return date.toISOString().split('T')[0];
+        case 'string':
+            return stringValue;
+        default:
+            return value;
+    }
+};
 
 const DataTable = ({
     tableData,
@@ -46,7 +89,6 @@ const DataTable = ({
     paginationInfo,
     onPageChange,
     onPageSizeChange,
-    // onSearch
 }: DataTableProps) => {
     const { theme } = useTheme();
     const [history, setHistory] = useState<DataItem[][]>([tableData]);
@@ -62,12 +104,12 @@ const DataTable = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const [conversionWarnings, setConversionWarnings] = useState<ConversionWarnings>({});
     const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
     useEffect(() => {
         setCurrentView(tableData);
     }, [tableData]);
-
 
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
         const snoColumn: TableColumnConfig = {
@@ -148,7 +190,6 @@ const DataTable = ({
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
     
-
     const paginatedData = useMemo(() => {
         if (pagination.enabled && !paginationInfo) {
             const startIndex = (finalCurrentPage - 1) * pageSize;
@@ -166,7 +207,7 @@ const DataTable = ({
         }
     }, [searchQuery, pageSize, paginationInfo]);
 
-    const validateCell = useCallback((value: any, colKey: string): string | null => {
+    const validateCell = useCallback((value: any, colKey: string, isConverted: boolean = false): string | null => {
         const config = columnConfig[colKey];
         if (!config) return null;
 
@@ -185,6 +226,27 @@ const DataTable = ({
         
         return null;
     }, [columnConfig]);
+
+    const validateConversion = useCallback((value: any, sourceType: string, targetType: string, targetColKey: string): string | null => {
+        if (sourceType === targetType) return null;
+        if (!canConvertValue(value, targetType)) {
+            return `Cannot convert "${value}" to ${targetType}`;
+        }
+        return null;
+    }, []);
+
+    // Check if there are any blocking errors
+    const hasBlockingErrors = useMemo(() => {
+        const validationErrorCount = Object.values(validationErrors).reduce((count, rowErrors) => {
+            return count + Object.values(rowErrors).filter(error => error !== null).length;
+        }, 0);
+
+        const conversionErrorCount = Object.values(conversionWarnings).reduce((count, rowWarnings) => {
+            return count + Object.values(rowWarnings).filter(warning => warning !== null).length;
+        }, 0);
+
+        return validationErrorCount > 0 || conversionErrorCount > 0;
+    }, [validationErrors, conversionWarnings]);
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
@@ -318,6 +380,8 @@ const DataTable = ({
         if (!isEditable || selectedCells.length === 0) return;
         const newData: DataItem[] = structuredClone(tableData);
         const newSelectedCells: CellIdentifier[] = [];
+        const newValidationErrors = { ...validationErrors };
+        const newConversionWarnings = { ...conversionWarnings };
 
         const sortedSelected = [...selectedCells].sort((a, b) => {
             if (direction === 'up') return a.rowIndex - b.rowIndex;
@@ -340,20 +404,73 @@ const DataTable = ({
 
             const targetExists = targetRowIndex >= 0 && targetRowIndex < paginatedData.length && movableHeaders.includes(targetColKey);
             if (targetExists) {
-                const sourceType = columnConfig[colKey]?.type || 'string';
-                const targetType = columnConfig[targetColKey]?.type || 'string';
-
-                if (sourceType !== targetType) return;
-
                 const sourceOriginalIndex = paginatedData[rowIndex].originalIndex;
                 const targetOriginalIndex = paginatedData[targetRowIndex].originalIndex;
+                
                 if (newData[sourceOriginalIndex] && newData[targetOriginalIndex]) {
-                    [newData[sourceOriginalIndex][colKey], newData[targetOriginalIndex][targetColKey]] = 
-                    [newData[targetOriginalIndex][targetColKey], newData[sourceOriginalIndex][colKey]];
+                    const sourceValue = newData[sourceOriginalIndex][colKey];
+                    const targetValue = newData[targetOriginalIndex][targetColKey];
+                    const sourceType = columnConfig[colKey]?.type || 'string';
+                    const targetType = columnConfig[targetColKey]?.type || 'string';
+
+                    // Clear previous warnings
+                    if (newConversionWarnings[sourceOriginalIndex]) {
+                        delete newConversionWarnings[sourceOriginalIndex][colKey];
+                    }
+                    if (newConversionWarnings[targetOriginalIndex]) {
+                        delete newConversionWarnings[targetOriginalIndex][targetColKey];
+                    }
+
+                    // Handle source -> target conversion
+                    let convertedSourceValue = sourceValue;
+                    if (sourceType !== targetType) {
+                        const conversionError = validateConversion(sourceValue, sourceType, targetType, targetColKey);
+                        if (conversionError) {
+                            if (!newConversionWarnings[targetOriginalIndex]) newConversionWarnings[targetOriginalIndex] = {};
+                            newConversionWarnings[targetOriginalIndex][targetColKey] = conversionError;
+                        } else {
+                            convertedSourceValue = convertValue(sourceValue, targetType);
+                        }
+                    }
+
+                    // Handle target -> source conversion
+                    let convertedTargetValue = targetValue;
+                    if (targetType !== sourceType) {
+                        const conversionError = validateConversion(targetValue, targetType, sourceType, colKey);
+                        if (conversionError) {
+                            if (!newConversionWarnings[sourceOriginalIndex]) newConversionWarnings[sourceOriginalIndex] = {};
+                            newConversionWarnings[sourceOriginalIndex][colKey] = conversionError;
+                        } else {
+                            convertedTargetValue = convertValue(targetValue, sourceType);
+                        }
+                    }
+
+                    // Perform the swap
+                    newData[sourceOriginalIndex][colKey] = convertedTargetValue;
+                    newData[targetOriginalIndex][targetColKey] = convertedSourceValue;
+
+                    // Validate the new values
+                    const sourceError = validateCell(convertedTargetValue, colKey, sourceType !== targetType);
+                    const targetError = validateCell(convertedSourceValue, targetColKey, targetType !== sourceType);
+
+                    if (sourceError) {
+                        if (!newValidationErrors[sourceOriginalIndex]) newValidationErrors[sourceOriginalIndex] = {};
+                        newValidationErrors[sourceOriginalIndex][colKey] = sourceError;
+                    } else if (newValidationErrors[sourceOriginalIndex]) {
+                        delete newValidationErrors[sourceOriginalIndex][colKey];
+                    }
+
+                    if (targetError) {
+                        if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
+                        newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
+                    } else if (newValidationErrors[targetOriginalIndex]) {
+                        delete newValidationErrors[targetOriginalIndex][targetColKey];
+                    }
                 }
             }
         });
 
+        // Update selected cells positions
         selectedCells.forEach(({ rowIndex, colKey }) => {
             let newRowIndex = rowIndex, newColKey = colKey;
             const colIndex = movableHeaders.indexOf(colKey);
@@ -367,8 +484,10 @@ const DataTable = ({
             else newSelectedCells.push({ rowIndex, colKey });
         });
 
+        setValidationErrors(newValidationErrors);
+        setConversionWarnings(newConversionWarnings);
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, conversionWarnings, validateCell, validateConversion]);
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
@@ -486,22 +605,80 @@ const DataTable = ({
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
 
-        const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
-        const targetType = columnConfig[targetColKey]?.type || 'string';
-        if (draggedType !== targetType) {
-            handleDragEnd();
-            return;
-        }
-        
         const newData: DataItem[] = structuredClone(tableData);
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
         
         if (draggedOriginalIndex !== undefined && targetOriginalIndex !== undefined && newData[draggedOriginalIndex] && newData[targetOriginalIndex]) {
-            [newData[draggedOriginalIndex][draggedCell.colKey], newData[targetOriginalIndex][targetColKey]] =
-            [newData[targetOriginalIndex][targetColKey], newData[draggedOriginalIndex][draggedCell.colKey]];
+            const sourceValue = newData[draggedOriginalIndex][draggedCell.colKey];
+            const targetValue = newData[targetOriginalIndex][targetColKey];
+            const sourceType = columnConfig[draggedCell.colKey]?.type || 'string';
+            const targetType = columnConfig[targetColKey]?.type || 'string';
+
+            const newConversionWarnings = { ...conversionWarnings };
+            const newValidationErrors = { ...validationErrors };
+
+            // Clear previous warnings
+            if (newConversionWarnings[draggedOriginalIndex]) {
+                delete newConversionWarnings[draggedOriginalIndex][draggedCell.colKey];
+            }
+            if (newConversionWarnings[targetOriginalIndex]) {
+                delete newConversionWarnings[targetOriginalIndex][targetColKey];
+            }
+
+            // Handle conversions and perform swap
+            let convertedSourceValue = sourceValue;
+            let convertedTargetValue = targetValue;
+
+            // Convert source to target type
+            if (sourceType !== targetType) {
+                const conversionError = validateConversion(sourceValue, sourceType, targetType, targetColKey);
+                if (conversionError) {
+                    if (!newConversionWarnings[targetOriginalIndex]) newConversionWarnings[targetOriginalIndex] = {};
+                    newConversionWarnings[targetOriginalIndex][targetColKey] = conversionError;
+                } else {
+                    convertedSourceValue = convertValue(sourceValue, targetType);
+                }
+            }
+
+            // Convert target to source type
+            if (targetType !== sourceType) {
+                const conversionError = validateConversion(targetValue, targetType, sourceType, draggedCell.colKey);
+                if (conversionError) {
+                    if (!newConversionWarnings[draggedOriginalIndex]) newConversionWarnings[draggedOriginalIndex] = {};
+                    newConversionWarnings[draggedOriginalIndex][draggedCell.colKey] = conversionError;
+                } else {
+                    convertedTargetValue = convertValue(targetValue, sourceType);
+                }
+            }
+
+            // Perform the swap
+            newData[draggedOriginalIndex][draggedCell.colKey] = convertedTargetValue;
+            newData[targetOriginalIndex][targetColKey] = convertedSourceValue;
+
+            // Validate the new values
+            const sourceError = validateCell(convertedTargetValue, draggedCell.colKey, sourceType !== targetType);
+            const targetError = validateCell(convertedSourceValue, targetColKey, targetType !== sourceType);
+
+            if (sourceError) {
+                if (!newValidationErrors[draggedOriginalIndex]) newValidationErrors[draggedOriginalIndex] = {};
+                newValidationErrors[draggedOriginalIndex][draggedCell.colKey] = sourceError;
+            } else if (newValidationErrors[draggedOriginalIndex]) {
+                delete newValidationErrors[draggedOriginalIndex][draggedCell.colKey];
+            }
+
+            if (targetError) {
+                if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
+                newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
+            } else if (newValidationErrors[targetOriginalIndex]) {
+                delete newValidationErrors[targetOriginalIndex][targetColKey];
+            }
+
+            setValidationErrors(newValidationErrors);
+            setConversionWarnings(newConversionWarnings);
+            updateData(newData);
         }
-        updateData(newData);
+        
         handleDragEnd();
     };
 
@@ -620,10 +797,17 @@ const DataTable = ({
         if (draggedCell) {
             const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
             if (key !== fixedHeaderKey) {
+                const canConvert = canConvertValue(
+                    tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey], 
+                    type
+                );
+                
                 if (type === draggedType) {
-                    headerStyle = { backgroundColor: 'rgba(59, 130, 246, 0.5)' }; // Blue for same type
+                    headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' }; // Green for same type
+                } else if (canConvert) {
+                    headerStyle = { backgroundColor: 'rgba(245, 158, 11, 0.3)' }; // Amber for convertible
                 } else {
-                    headerStyle = { backgroundColor: 'rgba(239, 68, 68, 0.5)' }; // Red for different type
+                    headerStyle = { backgroundColor: 'rgba(239, 68, 68, 0.3)' }; // Red for non-convertible
                 }
             }
         }
@@ -632,7 +816,9 @@ const DataTable = ({
             <div style={headerStyle} className="p-2 transition-colors duration-200">
                 <span>{label}</span>
                 {config?.isRequired && <span className="text-red-500 ml-1">*</span>}
-                <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>({type})</span>
+                <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                    ({type})
+                </span>
             </div>
         );
     };
@@ -791,10 +977,7 @@ const DataTable = ({
                         )}
                         {movableHeaders.map(label => {
                             const error = validationErrors[originalRowIndex]?.[label];
-                            const isDragOver = draggedCell && dragOverCol === label;
-                            const draggedType = draggedCell ? columnConfig[draggedCell.colKey]?.type : null;
-                            const currentType = columnConfig[label]?.type;
-                            const isTypeMismatch = isDragOver && draggedType && currentType && draggedType !== currentType;
+                            const warning = conversionWarnings[originalRowIndex]?.[label];
 
                             return (
                                 <td 
@@ -810,11 +993,26 @@ const DataTable = ({
                                     }}
                                     onDragLeave={() => setDragOverCol(null)}
                                     onDrop={() => handleDrop(rowIndex, label)} 
-                                    className={`relative p-2 border-b transition-all duration-150 group ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : isTypeMismatch ? 'cursor-not-allowed' : 'cursor-pointer'} ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'} ${isSelected(rowIndex, label) ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') : ''} ${error ? 'ring-1 ring-red-500' : ''}`}
-                                    title={error || ''}
+                                    className={`relative p-2 border-b transition-all duration-150 group ${
+                                        !isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
+                                    } ${
+                                        theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
+                                    } ${
+                                        isSelected(rowIndex, label) 
+                                            ? (theme === 'dark' ? 'bg-violet-900/60 ring-1 ring-violet-500' : 'bg-violet-100 ring-1 ring-violet-400') 
+                                            : ''
+                                    } ${
+                                        error ? 'ring-2 ring-red-500' : warning ? 'ring-2 ring-orange-500' : ''
+                                    }`}
+                                    title={error || warning || ''}
                                 >
                                     {renderCellContent(rowIndex, label)}
-                                    {error && <div className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></div>}
+                                    {/* Error indicator (red for validation errors) */}
+                                    {error && <div className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" title="Validation Error"></div>}
+                                    {/* Warning indicator (orange for conversion warnings) */}
+                                    {!error && warning && (
+                                        <div className="absolute top-1 right-1 h-2 w-2 bg-orange-500 rounded-full" title="Type Conversion Warning"></div>
+                                    )}
                                 </td>
                             );
                         })}
@@ -824,7 +1022,8 @@ const DataTable = ({
                             </td>
                         )}
                     </motion.tr>
-                )})}
+                )})
+                }
                 {isEditable && (
                     <tr>
                         <td 
@@ -912,6 +1111,11 @@ const DataTable = ({
                 <div className={`flex-shrink-0 p-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="flex flex-wrap gap-2">
                         {selectionInfo ? selectionInfo : (<p className="text-sm text-gray-500 font-extralight">Click on a cell to start selecting.</p>)}
+                        {hasBlockingErrors && (
+                            <InfoPill>
+                                <span className="text-red-500">⚠ {Object.values(validationErrors).flat().length + Object.values(conversionWarnings).flat().length} validation issue(s)</span>
+                            </InfoPill>
+                        )}
                     </div>
                     <div className="relative">
                         <button onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>

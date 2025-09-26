@@ -300,6 +300,7 @@ export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) =
 export const getLineItems = async (invoiceId: number, itemId: number, addToast: any) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
+        console.log("lineItems: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -432,6 +433,7 @@ export const getItemSummaryConfig = async (addToast: any): Promise<{ fields: For
 export const getItemAttributesConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemAttributes');
+        console.log("getItemAttributesConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error, addToast);
