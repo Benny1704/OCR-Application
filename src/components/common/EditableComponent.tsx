@@ -92,7 +92,7 @@ const EditableComponent = ({
     const [isRetryModalOpen, setRetryModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.length ? [formConfig[0].id] : []));
+    const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.map(s => s.id)));
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
 
 
@@ -100,7 +100,7 @@ const EditableComponent = ({
         if (!productDetails) {
             return [];
         }
-        return Array.isArray(productDetails) ? productDetails : [];
+        return Array.isArray(productDetails) ? productDetails : (productDetails as any).items || [];
     }, [productDetails]);
 
     const liveCalculatedAmount = useMemo(() => (
@@ -111,9 +111,9 @@ const EditableComponent = ({
 
     useEffect(() => {
         if (onFormChange) {
-            onFormChange(invoiceDetails, productRows, amountDetails);
+            onFormChange(invoiceDetails, productDetails as ProductDetails[], amountDetails);
         }
-    }, [invoiceDetails, productRows, amountDetails, onFormChange]);
+    }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
     
     const handleValidationChange = useCallback((hasErrors: boolean) => {
         setHasValidationErrors(hasErrors);
