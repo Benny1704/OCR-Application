@@ -3,25 +3,11 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import brandLogo from '../assets/images/RMKV_logo.png';
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getSections } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import type { Section } from '../interfaces/Types';
-
-const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.15,
-        }
-    }
-};
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-};
+import { containerVariants, itemVariants } from '../components/common/Animation';
 
 const Login = () => {
     const { login } = useAuth();

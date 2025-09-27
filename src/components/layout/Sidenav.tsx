@@ -7,9 +7,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { getSections } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 import type { Section } from '../../interfaces/Types';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User, LogOut, Lock, X, Eye, EyeOff } from 'lucide-react';
 import ModernDropdown from '../common/ModernDropdown';
+import { popupVariants, modalContentVariants } from '../common/Animation';
 
 const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => {
     if (ref.current) {
@@ -109,17 +110,6 @@ const Sidenav = () => {
             if (sidenavRef.current) observer.unobserve(sidenavRef.current);
         };
     }, [location.pathname]);
-
-    const popupVariants: Variants = {
-        hidden: { opacity: 0, y: 10, scale: 0.95 },
-        visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", damping: 20, stiffness: 300 } },
-        exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.15 } }
-    };
-
-    const modalContentVariants = {
-        hidden: { opacity: 0, scale: 0.95 },
-        visible: { opacity: 1, scale: 1, transition: { delay: 0.1, duration: 0.2 } },
-    };
     
     return (
         <div className="sidenav-container">

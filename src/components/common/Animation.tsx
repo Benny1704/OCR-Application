@@ -82,7 +82,7 @@ export const imageTransitionVariants: Variants = {
 };
 
 
-export const listVariants = {
+export const listVariants: Variants= {
   visible: {
       opacity: 1,
       transition: {
@@ -98,12 +98,42 @@ export const listVariants = {
   },
 };
 
-export const optionVariants = {
+export const optionVariants: Variants = {
   hidden: { opacity: 0, y: -10 },
   visible: { opacity: 1, y: 0 },
 };
 
+export const tableBodyVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
+};
 
+export const tableRowVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export const accordionVariants: Variants = {
+    open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
+    collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
+};
+
+export const toastVariants: Variants= {
+    initial: { opacity: 0, y: -20, scale: 0.9 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, x: 50, scale: 0.8 },
+};
+
+export const popupVariants: Variants = {
+  hidden: { opacity: 0, y: 10, scale: 0.95 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", damping: 20, stiffness: 300 } },
+  exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.15 } }
+};
+
+export const modalContentVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { delay: 0.1, duration: 0.2 } },
+};
 
 interface AnimationProps {
     children: React.ReactNode;

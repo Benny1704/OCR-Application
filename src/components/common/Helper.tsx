@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
 import { AnimatePresence, motion } from 'framer-motion';
+import { toastVariants } from './Animation';
 
 // --- Confirmation Modal ---
 interface ConfirmationModalProps {
@@ -149,12 +150,6 @@ export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: nu
         error: <AlertTriangle className="w-5 h-5 text-red-500" />,
         warning: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
         info: <Info className="w-5 h-5 text-blue-500" />,
-    };
-
-    const toastVariants = {
-        initial: { opacity: 0, y: -20, scale: 0.9 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, x: 50, scale: 0.8 },
     };
 
     return (

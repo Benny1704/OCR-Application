@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -13,6 +13,7 @@ import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
 import { retryMessage } from '../../lib/api/Api';
+import { accordionVariants } from './Animation';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -213,11 +214,6 @@ const EditableComponent = ({
                 </button>
             );
         }
-    };
-
-    const accordionVariants: Variants = {
-        open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
-        collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
     };
 
     const getValue = (path: string) => get(combinedData, path, '');

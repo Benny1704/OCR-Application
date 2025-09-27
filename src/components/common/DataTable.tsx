@@ -4,6 +4,7 @@ import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForw
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
+import { tableBodyVariants, tableRowVariants } from './Animation';
 
 export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
     tableData: DataItem[];
@@ -852,16 +853,6 @@ const DataTable = ({
                 </div>
             </div>
         );
-    };
-
-    const tableBodyVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
-    };
-
-    const tableRowVariants = {
-        hidden: { opacity: 0, y: 10 },
-        visible: { opacity: 1, y: 0 },
     };
 
     const renderTableBody = () => {

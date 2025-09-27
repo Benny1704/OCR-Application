@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Eye, ArrowRight, Save, CheckCircle } from 'lucide-react';
 import { cloneDeep, set } from 'lodash';
 
@@ -26,6 +26,7 @@ import {
     confirmInvoice,
 } from '../lib/api/Api';
 import type { FormSection, ProductDetails, InvoiceDetails, AmountAndTaxDetails, DataItem, TableConfig } from '../interfaces/Types';
+import { accordionVariants } from '../components/common/Animation';
 
 // --- Helper: Initial Empty State Definitions ---
 const initialEmptyInvoiceDetails: InvoiceDetails = {
@@ -331,11 +332,6 @@ const ManualEntry = () => {
 
     const areAllProductsSaved = productDetails.length > 0 && productDetails.every(p => !!p.item_id);
     const showConfirmButton = isInvoiceSubmitted && isAmountDetailsSaved && areAllProductsSaved;
-    
-    const accordionVariants: Variants = {
-        open: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
-        collapsed: { opacity: 0, height: 0, transition: { duration: 0.3, ease: 'easeInOut' } }
-    };
 
     return (
         <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
