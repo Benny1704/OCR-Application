@@ -25,7 +25,7 @@ import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
-    const [productDetails, setProductDetails] = useState<ProductDetails[] | { items: ProductDetails[] } | null>(null);
+    const [productDetails, setProductDetails] = useState<ProductDetails[] | null>(null);
     const [amountAndTaxDetails, setAmountAndTaxDetails] = useState<AmountAndTaxDetails | null>(null);
     const [formConfig, setFormConfig] = useState<FormSection[] | null>(null);
     const [itemSummaryConfig, setItemSummaryConfig] = useState<{ columns: FormField[] } | null>(null);
@@ -55,8 +55,7 @@ const Edit = () => {
         if (!productDetails) {
             return 0;
         }
-        const rows = Array.isArray(productDetails) ? productDetails : productDetails.items || [];
-        return rows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0);
+        return productDetails.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0);
     }, [productDetails]);
 
     const liveInvoiceAmount = useMemo(() => {
@@ -120,7 +119,11 @@ const Edit = () => {
             }
 
             setInvoiceDetails(invoiceData);
-            setProductDetails(productData);
+            if (productData && 'items' in productData) {
+                setProductDetails(productData.items || []);
+            } else {
+                setProductDetails(productData || []);
+            }
             setAmountAndTaxDetails(amountData);
 
             const fetchedFormConfig: FormSection[] = [
@@ -200,7 +203,7 @@ const Edit = () => {
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
-        setProductDetails(newProductDetails as any);
+        setProductDetails(newProductDetails);
         setAmountAndTaxDetails(newAmountAndTaxDetails);
         if (!isDirty) setIsDirty(true);
     };
@@ -226,11 +229,9 @@ const Edit = () => {
         try {
             const invoiceIdNum = parseInt(invoiceId, 10);
 
-            // const productsToUpdate = Array.isArray(productDetails) ? productDetails : productDetails.items;
-
             await Promise.all([
                 updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, productDetails, addToast),
+                updateProductDetails(invoiceIdNum, { items: productDetails }, addToast),
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
             ]);
 
@@ -268,7 +269,7 @@ const Edit = () => {
                 const invoiceIdNum = parseInt(invoiceId, 10);
                 await Promise.all([
                     updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                    updateProductDetails(invoiceIdNum, productDetails, addToast),
+                    updateProductDetails(invoiceIdNum, { items: productDetails }, addToast),
                     updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
                 ]);
             }
@@ -364,7 +365,7 @@ const Edit = () => {
             <>
                 <EditableComponent
                     initialInvoiceDetails={invoiceDetails}
-                    initialProductDetails={productDetails as any}
+                    initialProductDetails={productDetails}
                     initialAmountAndTaxDetails={amountAndTaxDetails}
                     isReadOnly={false}
                     messageId={messageId}

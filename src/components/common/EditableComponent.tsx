@@ -100,7 +100,7 @@ const EditableComponent = ({
         if (!productDetails) {
             return [];
         }
-        return Array.isArray(productDetails) ? productDetails : (productDetails as any).items || [];
+        return Array.isArray(productDetails) ? productDetails : [];
     }, [productDetails]);
 
     const liveCalculatedAmount = useMemo(() => (
@@ -111,9 +111,9 @@ const EditableComponent = ({
 
     useEffect(() => {
         if (onFormChange) {
-            onFormChange(invoiceDetails, productDetails as ProductDetails[], amountDetails);
+            onFormChange(invoiceDetails, productRows, amountDetails);
         }
-    }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
+    }, [invoiceDetails, productRows, amountDetails, onFormChange]);
     
     const handleValidationChange = useCallback((hasErrors: boolean) => {
         setHasValidationErrors(hasErrors);
