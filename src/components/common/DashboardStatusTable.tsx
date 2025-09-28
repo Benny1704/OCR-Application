@@ -145,7 +145,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
                 queued: summary.waiting || 0,
                 processed: summary.processed || 0,
                 failed: summary.failed || 0,
-                completed: summary.processed || 0,
+                completed: summary.completed || 0,
             });
             setLastUpdated(new Date());
             if(isRefresh) {

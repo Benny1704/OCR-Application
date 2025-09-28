@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
@@ -36,9 +36,9 @@ type ValidationErrors = Record<number, Record<string, string | null>>;
 // Type conversion utility functions
 const canConvertValue = (value: any, targetType: string): boolean => {
     if (value === null || value === undefined || value === '') return true;
-    
+
     const stringValue = String(value).trim();
-    
+
     switch (targetType) {
         case 'number':
             return !isNaN(Number(stringValue)) && stringValue !== '';
@@ -56,9 +56,9 @@ const canConvertValue = (value: any, targetType: string): boolean => {
 
 const convertValue = (value: any, targetType: string): any => {
     if (value === null || value === undefined || value === '') return '';
-    
+
     const stringValue = String(value).trim();
-    
+
     switch (targetType) {
         case 'number':
             // If it's not a valid number, return the original string to be displayed
@@ -115,10 +115,25 @@ const DataTable = ({
     const [pageSize, setPageSize] = useState(pagination.pageSize || 5);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [dragOverCell, setDragOverCell] = useState<CellIdentifier | null>(null);
+    const helpRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setCurrentView(tableData);
     }, [tableData]);
+    
+    // Close help tooltip when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
+                setShowHelp(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const { fixedHeaderKey, movableHeaders, columnConfig } = useMemo(() => {
         const snoColumn: TableColumnConfig = {
@@ -148,7 +163,7 @@ const DataTable = ({
         } else {
             finalColumns = [snoColumn];
         }
-        
+
         const fixedKey = 'sno';
         const movable = finalColumns.filter(col => col.key !== fixedKey).map(col => col.key);
         const configMap = finalColumns.reduce((acc, col) => {
@@ -156,10 +171,10 @@ const DataTable = ({
             return acc;
         }, {} as Record<string, TableColumnConfig>);
 
-        return { 
-            fixedHeaderKey: fixedKey, 
-            movableHeaders: movable, 
-            columnConfig: configMap 
+        return {
+            fixedHeaderKey: fixedKey,
+            movableHeaders: movable,
+            columnConfig: configMap
         };
     }, [currentView, tableConfig, tableData]);
 
@@ -167,7 +182,7 @@ const DataTable = ({
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
         const dataToProcess = tableData;
-    
+
         let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
             const processedRow: ProcessedDataItem = {
                 ...row,
@@ -183,7 +198,7 @@ const DataTable = ({
             }
             return processedRow;
         });
-    
+
         if (isSearchable && searchQuery) {
             const lowerCaseQuery = searchQuery.toLowerCase();
             processed = processed.filter(row =>
@@ -192,13 +207,13 @@ const DataTable = ({
                 )
             );
         }
-    
+
         return processed;
     }, [tableData, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize, paginationInfo]);
 
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
-    
+
     const paginatedData = useMemo(() => {
         if (pagination.enabled && !paginationInfo) {
             const startIndex = (finalCurrentPage - 1) * pageSize;
@@ -206,7 +221,7 @@ const DataTable = ({
         }
         return processedData;
     }, [processedData, pagination.enabled, paginationInfo, finalCurrentPage, pageSize]);
-    
+
     const startIndex = (finalCurrentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + paginatedData.length, totalItems);
 
@@ -215,7 +230,7 @@ const DataTable = ({
             setCurrentPage(1);
         }
     }, [searchQuery, pageSize, paginationInfo]);
-    
+
     const validateCell = useCallback((value: any, colKey: string): string | null => {
         const config = columnConfig[colKey];
         if (!config) return null;
@@ -224,7 +239,7 @@ const DataTable = ({
         if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
             return `${config.label} is required.`;
         }
-        
+
         // Check for type validity if a value is present
         if (value !== null && value !== undefined && String(value).trim() !== '') {
             if (!canConvertValue(value, config.type || 'string')) {
@@ -234,12 +249,12 @@ const DataTable = ({
                 return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
             }
         }
-        
+
         return null;
     }, [columnConfig]);
 
     const hasBlockingErrors = useMemo(() => {
-        return Object.values(validationErrors).some(rowErrors => 
+        return Object.values(validationErrors).some(rowErrors =>
             Object.values(rowErrors).some(error => error !== null)
         );
     }, [validationErrors]);
@@ -288,7 +303,7 @@ const DataTable = ({
         setSelectedCells([]);
         setEditingCell(null);
     }, [history, historyIndex, isEditable, onDataChange]);
-    
+
     const handleAddRow = useCallback(() => {
         if (!isEditable) return;
 
@@ -319,7 +334,7 @@ const DataTable = ({
 
         const newData = [...tableData, newRow];
         updateData(newData);
-        
+
         if (pagination.enabled) {
             const newTotalPages = Math.ceil(newData.length / pageSize);
             if (paginationInfo && onPageChange) {
@@ -338,7 +353,7 @@ const DataTable = ({
             });
         }
     }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
-    
+
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
@@ -346,7 +361,7 @@ const DataTable = ({
 
         const targetType = columnConfig[colKey]?.type || 'string';
         let finalValue = value;
-        
+
         // Attempt to convert value before validating and updating
         if (canConvertValue(value, targetType)) {
             finalValue = convertValue(value, targetType);
@@ -417,7 +432,7 @@ const DataTable = ({
             if (targetExists) {
                 const sourceOriginalIndex = paginatedData[rowIndex].originalIndex;
                 const targetOriginalIndex = paginatedData[targetRowIndex].originalIndex;
-                
+
                 if (newData[sourceOriginalIndex] && newData[targetOriginalIndex]) {
                     const sourceValue = newData[sourceOriginalIndex][colKey];
                     const targetValue = newData[targetOriginalIndex][targetColKey];
@@ -436,14 +451,14 @@ const DataTable = ({
 
                     newData[sourceOriginalIndex][colKey] = valueForSource;
                     newData[targetOriginalIndex][targetColKey] = valueForTarget;
-                    
+
                     // Validate new values
                     const sourceError = validateCell(valueForSource, colKey);
                     const targetError = validateCell(valueForTarget, targetColKey);
 
                     if (!newValidationErrors[sourceOriginalIndex]) newValidationErrors[sourceOriginalIndex] = {};
                     newValidationErrors[sourceOriginalIndex][colKey] = sourceError;
-                    
+
                     if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
                     newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
                 }
@@ -470,10 +485,10 @@ const DataTable = ({
 
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
-        
+
         const { rowIndex, colKey } = selectedCells[0];
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
-        if(originalRowIndex === undefined) return;
+        if (originalRowIndex === undefined) return;
 
         const newData: DataItem[] = structuredClone(tableData);
         let newSelectedCells = [...selectedCells];
@@ -515,7 +530,7 @@ const DataTable = ({
                         setCopiedCell({ rowIndex, colKey, value });
                     }
                 }
-            } 
+            }
             else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
@@ -524,7 +539,7 @@ const DataTable = ({
 
                     selectedCells.forEach(targetCell => {
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.isEditable === false) return;
-                        
+
                         const originalRowIndex = paginatedData[targetCell.rowIndex]?.originalIndex;
                         if (originalRowIndex !== undefined && newData[originalRowIndex]) {
                             const targetType = columnConfig[targetCell.colKey]?.type || 'string';
@@ -533,7 +548,7 @@ const DataTable = ({
                             if (canConvertValue(copiedCell.value, targetType)) {
                                 finalValue = convertValue(copiedCell.value, targetType);
                             }
-                            
+
                             const error = validateCell(finalValue, targetCell.colKey);
                             if (!newValidationErrors[originalRowIndex]) newValidationErrors[originalRowIndex] = {};
                             newValidationErrors[originalRowIndex][targetCell.colKey] = error;
@@ -574,8 +589,8 @@ const DataTable = ({
             });
         }
     }, [
-        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData, 
-        updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders, 
+        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData,
+        updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders,
         fixedHeaderKey, paginatedData, columnConfig, validationErrors, validateCell
     ]);
 
@@ -600,10 +615,10 @@ const DataTable = ({
 
         const newData: DataItem[] = structuredClone(tableData);
         const newValidationErrors = { ...validationErrors };
-        
+
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
         const targetOriginalIndex = paginatedData[targetRowIndex]?.originalIndex;
-        
+
         if (draggedOriginalIndex !== undefined && targetOriginalIndex !== undefined && newData[draggedOriginalIndex] && newData[targetOriginalIndex]) {
             const sourceValue = newData[draggedOriginalIndex][draggedCell.colKey];
             const targetValue = newData[targetOriginalIndex][targetColKey];
@@ -616,21 +631,21 @@ const DataTable = ({
 
             newData[draggedOriginalIndex][draggedCell.colKey] = valueForSource;
             newData[targetOriginalIndex][targetColKey] = valueForTarget;
-            
+
             // Validate new values
             const sourceError = validateCell(valueForSource, draggedCell.colKey);
             const targetError = validateCell(valueForTarget, targetColKey);
 
             if (!newValidationErrors[draggedOriginalIndex]) newValidationErrors[draggedOriginalIndex] = {};
             newValidationErrors[draggedOriginalIndex][draggedCell.colKey] = sourceError;
-            
+
             if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
             newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
 
             setValidationErrors(newValidationErrors);
             updateData(newData);
         }
-        
+
         handleDragEnd();
     };
 
@@ -712,7 +727,7 @@ const DataTable = ({
 
         if (isEditing) {
             if (inputType === 'boolean') {
-                 return (
+                return (
                     <input
                         type="checkbox"
                         checked={!!cellValue}
@@ -734,7 +749,7 @@ const DataTable = ({
                 />
             );
         }
-        
+
         if (inputType === 'boolean') {
             return <input type="checkbox" checked={!!cellValue} readOnly className={`h-4 w-4 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`} />;
         }
@@ -745,16 +760,16 @@ const DataTable = ({
         const config = columnConfig[key];
         const label = config?.label || key.replace(/_/g, ' ');
         const type = config?.type || 'string';
-    
+
         let headerStyle = {};
-        if (draggedCell) {
+        if (isEditable && draggedCell) {
             const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
             if (key !== fixedHeaderKey) {
                 const canConvert = canConvertValue(
-                    tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey], 
+                    tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey],
                     type
                 );
-                
+
                 if (type === draggedType) {
                     headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' }; // Green for same type
                 } else if (canConvert) {
@@ -764,14 +779,16 @@ const DataTable = ({
                 }
             }
         }
-    
+
         return (
             <div style={headerStyle} className="p-2 transition-colors duration-200">
                 <span>{label}</span>
                 {config?.isRequired && <span className="text-red-500 ml-1">*</span>}
-                <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    ({type})
-                </span>
+                {isEditable && draggedCell && (
+                    <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                        ({type})
+                    </span>
+                )}
             </div>
         );
     };
@@ -799,7 +816,7 @@ const DataTable = ({
             const showPages = 5;
             let start = Math.max(1, finalCurrentPage - Math.floor(showPages / 2));
             let end = Math.min(totalPages, start + showPages - 1);
-            
+
             if (end - start + 1 < showPages) {
                 start = Math.max(1, end - showPages + 1);
             }
@@ -815,7 +832,7 @@ const DataTable = ({
                 <div className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                     Showing {totalItems > 0 ? startIndex + 1 : 0}-{endIndex} of {totalItems}
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     <select
                         value={pageSize}
@@ -826,7 +843,7 @@ const DataTable = ({
                             <option key={size} value={size}>Show {size}</option>
                         ))}
                     </select>
-                    
+
                     {totalPages > 1 && (
                         <div className="flex items-center gap-1">
                             <button onClick={() => handlePageChange(1)} disabled={finalCurrentPage === 1} className={`p-1 rounded ${finalCurrentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
@@ -835,13 +852,13 @@ const DataTable = ({
                             <button onClick={() => handlePageChange(finalCurrentPage - 1)} disabled={finalCurrentPage === 1} className={`p-1 rounded ${finalCurrentPage === 1 ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <ChevronLeft size={14} />
                             </button>
-                            
+
                             {getPageNumbers().map(page => (
                                 <button key={page} onClick={() => handlePageChange(page)} className={`px-2 py-0.5 text-xs rounded ${page === finalCurrentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
                                     {page}
                                 </button>
                             ))}
-                            
+
                             <button onClick={() => handlePageChange(finalCurrentPage + 1)} disabled={finalCurrentPage === totalPages} className={`p-1 rounded ${finalCurrentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                 <ChevronRight size={14} />
                             </button>
@@ -861,7 +878,7 @@ const DataTable = ({
                 <tbody>
                     {Array.from({ length: pageSize }).map((_, rowIndex) => (
                         <tr key={`skeleton-${rowIndex}`}>
-                             {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
+                            {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
                             {movableHeaders.map(label => (
                                 <td key={label} className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
                             ))}
@@ -882,12 +899,12 @@ const DataTable = ({
                                 <h3 className={`font-semibold text-lg ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>No Data Found</h3>
                                 <p className="text-sm">There are no records to display for your current search.</p>
                                 {isEditable && (
-                                     <button 
-                                        onClick={handleAddRow} 
+                                    <button
+                                        onClick={handleAddRow}
                                         className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
-                                        ${theme === 'dark' 
-                                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100' 
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'}`
+                                        ${theme === 'dark'
+                                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'}`
                                         }
                                         title="Insert New Row"
                                     >
@@ -905,76 +922,72 @@ const DataTable = ({
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
-                    return(
-                    <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
-                        {fixedHeaderKey && (
-                            <td
-                                className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
-                                style={{
-                                    zIndex: 40,
-                                    boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
-                                }}
-                            >
-                                {row[fixedHeaderKey]}
-                            </td>
-                        )}
-                        {movableHeaders.map(label => {
-                            const error = validationErrors[originalRowIndex]?.[label];
-                            const isDragOver = dragOverCell?.rowIndex === rowIndex && dragOverCell?.colKey === label;
-
-                            return (
-                                <td 
-                                    key={label} 
-                                    onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })} 
-                                    onClick={(e) => handleCellClick(rowIndex, label, e)} 
-                                    draggable={isEditable} 
-                                    onDragStart={() => handleDragStart(rowIndex, label)}
-                                    onDragEnd={handleDragEnd}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setDragOverCell({ rowIndex, colKey: label });
+                    return (
+                        <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
+                            {fixedHeaderKey && (
+                                <td
+                                    className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
+                                    style={{
+                                        zIndex: 40,
+                                        boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
                                     }}
-                                    onDragLeave={() => setDragOverCell(null)}
-                                    onDrop={() => handleDrop(rowIndex, label)} 
-                                    className={`relative p-2 border-b transition-all duration-150 group ${
-                                        !isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
-                                    } ${
-                                        theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
-                                    } ${
-                                        isSelected(rowIndex, label) 
-                                            ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100') 
-                                            : ''
-                                    } ${
-                                        error ? 'ring-2 ring-red-500 inset-0 bg-red-500/10' : ''
-                                    } ${
-                                        isDragOver && draggedCell && (draggedCell.colKey !== label || draggedCell.rowIndex !== rowIndex) ? (theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200') : ''
-                                    }`}
-                                    title={error || ''}
                                 >
-                                    {renderCellContent(rowIndex, label)}
+                                    {row[fixedHeaderKey]}
                                 </td>
-                            );
-                        })}
-                        {renderActionCell && (
-                            <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                                {renderActionCell(row, rowIndex)}
-                            </td>
-                        )}
-                    </motion.tr>
-                )})
+                            )}
+                            {movableHeaders.map(label => {
+                                const error = validationErrors[originalRowIndex]?.[label];
+                                const isDragOver = dragOverCell?.rowIndex === rowIndex && dragOverCell?.colKey === label;
+
+                                return (
+                                    <td
+                                        key={label}
+                                        onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })}
+                                        onClick={(e) => handleCellClick(rowIndex, label, e)}
+                                        draggable={isEditable}
+                                        onDragStart={() => handleDragStart(rowIndex, label)}
+                                        onDragEnd={handleDragEnd}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setDragOverCell({ rowIndex, colKey: label });
+                                        }}
+                                        onDragLeave={() => setDragOverCell(null)}
+                                        onDrop={() => handleDrop(rowIndex, label)}
+                                        className={`relative p-2 border-b transition-all duration-150 group ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
+                                            } ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
+                                            } ${isSelected(rowIndex, label)
+                                                ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100')
+                                                : ''
+                                            } ${error ? 'ring-2 ring-red-500 inset-0 bg-red-500/10' : ''
+                                            } ${isDragOver && draggedCell && (draggedCell.colKey !== label || draggedCell.rowIndex !== rowIndex) ? (theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200') : ''
+                                            }`}
+                                        title={error || ''}
+                                    >
+                                        {renderCellContent(rowIndex, label)}
+                                    </td>
+                                );
+                            })}
+                            {renderActionCell && (
+                                <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                                    {renderActionCell(row, rowIndex)}
+                                </td>
+                            )}
+                        </motion.tr>
+                    )
+                })
                 }
                 {isEditable && (
                     <tr>
-                        <td 
-                            colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} 
+                        <td
+                            colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)}
                             className={`p-1 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
                         >
-                            <button 
-                                onClick={handleAddRow} 
+                            <button
+                                onClick={handleAddRow}
                                 className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
-                                ${theme === 'dark' 
-                                    ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100' 
-                                    : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'}`
+                                ${theme === 'dark'
+                                        ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
+                                        : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'}`
                                 }
                                 title="Insert New Row"
                             >
@@ -988,8 +1001,8 @@ const DataTable = ({
     };
 
     return (
-        <div 
-            className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-white'}`} 
+        <div
+            className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-white'}`}
             style={{ maxHeight: maxHeight }}
         >
             <div className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -1043,9 +1056,9 @@ const DataTable = ({
             </div>
 
             {renderPaginationControls()}
-            
-            <Popup isOpen={false} onClose={() => {}} data={null} />
-            
+
+            <Popup isOpen={false} onClose={() => { }} data={null} />
+
             {isEditable && (
                 <div className={`flex-shrink-0 p-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="flex flex-wrap gap-2">
@@ -1056,11 +1069,13 @@ const DataTable = ({
                             </InfoPill>
                         )}
                     </div>
-                    <div className="relative">
-                        <button onMouseEnter={() => setShowHelp(true)} onMouseLeave={() => setShowHelp(false)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+                    <div className="relative" ref={helpRef}>
+                        <button onClick={() => setShowHelp(prev => !prev)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
                             <Info size={16} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
                         </button>
-                        {showHelp && <div className="absolute bottom-full right-0 mb-2"><HowToUse /></div>}
+                        <AnimatePresence>
+                            {showHelp && <HowToUse />}
+                        </AnimatePresence>
                     </div>
                 </div>
             )}

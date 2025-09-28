@@ -1,26 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence} from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import type { Section } from '../../interfaces/Types';
 
-interface ModernDropdownProps {
-    sections: Section[];
-    selectedSection: number;
-    onSectionSelect: (sectionId: number) => void;
+interface Option {
+    value: number | string;
+    label: string;
 }
 
-const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDropdownProps) => {
+interface ModernDropdownProps {
+    options: Option[];
+    selectedValue: number | string;
+    onValueSelect: (value: number | string) => void;
+}
+
+const ModernDropdown = ({ options, selectedValue, onValueSelect }: ModernDropdownProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [dropUp, setDropUp] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const selectedSectionName = sections.find(s => s.section_id === selectedSection)?.section_name;
+    const selectedOption = options.find(o => o.value === selectedValue);
 
     useEffect(() => {
         if (isOpen && dropdownRef.current) {
             const dropdownRect = dropdownRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - dropdownRect.bottom;
-            // Assuming the dropdown height to be around 200, can be adjusted
-            setDropUp(spaceBelow < 200);
+            // Adjusted the threshold to make it less likely to drop up
+            setDropUp(spaceBelow < 220); // Previous value was 200
         }
     }, [isOpen]);
 
@@ -52,7 +56,7 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
                 onClick={() => setIsOpen(!isOpen)}
                 whileTap={{ scale: 0.98 }}
             >
-                <span>{selectedSectionName}</span>
+                <span>{selectedOption ? selectedOption.label : 'Select...'}</span>
                 <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
                     <ChevronDown size={18} />
                 </motion.div>
@@ -67,11 +71,11 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
                         variants={listVariants}
                         style={{ originY: dropUp ? 1 : 0 }}
                     >
-                        {Array.isArray(sections) && sections.map(section => (
+                        {Array.isArray(options) && options.map(option => (
                             <motion.li
-                                key={section.section_id}
+                                key={option.value}
                                 onClick={() => {
-                                    onSectionSelect(section.section_id);
+                                    onValueSelect(option.value);
                                     setIsOpen(false);
                                 }}
                                 variants={itemVariants}
@@ -80,7 +84,7 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
                                     color: 'var(--primary)',
                                 }}
                             >
-                                {section.section_name}
+                                {option.label}
                             </motion.li>
                         ))}
                     </motion.ul>

@@ -1,8 +1,8 @@
-import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info, ArrowLeftRight, ArrowUpDown, ChevronsUpDown, ClipboardPaste, Copy, Keyboard, MousePointer2, Redo2, Undo2, MousePointerClick, Expand, PlusSquare } from 'lucide-react';
+import { useState, useEffect, Fragment, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { toastVariants } from './Animation';
 
 // --- Confirmation Modal ---
@@ -12,7 +12,7 @@ interface ConfirmationModalProps {
     onConfirm: () => void;
     title: string;
     message: string;
-    icon?: React.ReactNode;
+    icon?: ReactNode;
 }
 
 // --- Other Helper Components ---
@@ -145,7 +145,7 @@ export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: nu
         return () => clearTimeout(timer);
     }, [toast, onRemove]);
 
-    const iconMap: Record<ToastType['type'], React.ReactNode> = {
+    const iconMap: Record<ToastType['type'], ReactNode> = {
         success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
         error: <AlertTriangle className="w-5 h-5 text-red-500" />,
         warning: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
@@ -238,46 +238,178 @@ export const UploadStatus = ({ files, onClose }: { files: File[]; onClose: () =>
     );
 };
 
+// Assuming Popup and InfoPill are also in this file
 export const Popup = ({ isOpen, onClose, data }: PopupProps) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm">
-        <h2 className="text-lg font-bold mb-3 text-gray-800">Item Details</h2>
-        <div className="space-y-1.5 text-sm">
-          {data && Object.entries(data).map(([key, value]) => (
-            <p key={key} className="text-gray-600">
-              <span className="font-semibold capitalize text-gray-800">{key.replace(/_/g, ' ')}: </span>
-              {value.toString()}
-            </p>
-          ))}
-        </div>
-        <button onClick={onClose} className="mt-5 w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 text-sm">
-          Close
-        </button>
-      </div>
-    </div>
-  );
+    const { theme } = useTheme();
+
+    return (
+        <AnimatePresence>
+            {isOpen && data && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.9, y: 20 }}
+                        className={`p-6 rounded-lg shadow-xl w-full max-w-md relative ${theme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button onClick={onClose} className={`absolute top-3 right-3 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+                            <X size={18} />
+                        </button>
+                        <h3 className="text-lg font-bold mb-4">Item Details</h3>
+                        <div className="space-y-2 text-sm">
+                            {Object.entries(data).map(([key, value]) => (
+                                <div key={key} className="flex justify-between border-b border-dashed pb-1">
+                                    <span className="font-semibold capitalize">{key.replace(/_/g, ' ')}:</span>
+                                    <span>{String(value)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 };
 
-export const InfoPill = ({ children }: any) => (
-    <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold mr-1.5 px-2 py-0.5 rounded-full">
-        {children}
-    </span>
-);
+export const InfoPill = ({ children }: { children: ReactNode }) => {
+    const { theme } = useTheme();
+    return (
+        <div className={`px-3 py-1 text-xs rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+            {children}
+        </div>
+    );
+};
 
-export const HowToUse = () => (
-    <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-20">
-        <h4 className="font-bold mb-1.5 text-sm">How to Use</h4>
-        <ul className="list-disc list-inside space-y-1">
-            <li><b>Edit:</b> Double-click cell</li>
-            <li><b>Select:</b> Click, Ctrl+Click</li>
-            <li><b>Shift Cells:</b> Shift+Arrows</li>
-            <li><b>Shift Group:</b> Alt+Arrows</li>
-        </ul>
-    </div>
-);
 
+// Helper component for keyboard keys
+const Kbd = ({ children }: { children: ReactNode }) => {
+    const { theme } = useTheme();
+    return (
+        <kbd className={`px-2 py-1 text-xs font-semibold font-sans transition-colors ${theme === 'dark' ? 'text-violet-300 bg-gray-900/60' : 'text-violet-700 bg-violet-100'} border ${theme === 'dark' ? 'border-gray-700' : 'border-violet-200'} rounded-md shadow-sm`}>
+            {children}
+        </kbd>
+    );
+};
+
+// Revamped HowToUse component with staggered animations
+export const HowToUse = () => {
+    const { theme } = useTheme();
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.06,
+            },
+        },
+    };
+
+    const itemVariants: Variants = {
+        hidden: { opacity: 0, y: 10, scale: 0.98 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            transition: {
+                duration: 0.2,
+                ease: "easeOut",
+            },
+        },
+    };
+
+    const shortcuts = [
+         {
+            category: 'Selection & Navigation',
+            items: [
+                { action: 'Select Cell', keys: ['Click'], icon: <MousePointerClick size={16} /> },
+                { action: 'Multi-select', keys: [<Kbd>Ctrl</Kbd>, '+', 'Click'], icon: <PlusSquare size={16} /> },
+                { action: 'Expand Selection', keys: [<Kbd>Ctrl</Kbd>, '+', <Kbd>Arrows</Kbd>], icon: <Expand size={16} /> },
+            ]
+        },
+        {
+            category: 'Editing & Data',
+            items: [
+                { action: 'Edit Cell', keys: ['Double Click'], icon: <MousePointer2 size={16} /> },
+                { action: 'Copy Cell', keys: [<Kbd>Ctrl</Kbd>, '+', <Kbd>C</Kbd>], icon: <Copy size={16} /> },
+                { action: 'Paste Value', keys: [<Kbd>Ctrl</Kbd>, '+', <Kbd>V</Kbd>], icon: <ClipboardPaste size={16} /> },
+                { action: 'Move Cell Content', keys: [<Kbd>Shift</Kbd>, '+', <Kbd>Arrows</Kbd>], icon: <ChevronsUpDown size={16} /> },
+                { action: 'Move Row', keys: [<Kbd>Alt</Kbd>, '+', <Kbd>↑</Kbd>, <Kbd>↓</Kbd>], icon: <ArrowUpDown size={16} /> },
+                { action: 'Move Column', keys: [<Kbd>Alt</Kbd>, '+', <Kbd>←</Kbd>, <Kbd>→</Kbd>], icon: <ArrowLeftRight size={16} /> },
+            ]
+        },
+        {
+            category: 'History',
+            items: [
+                { action: 'Undo', keys: [<Kbd>Ctrl</Kbd>, '+', <Kbd>Z</Kbd>], icon: <Undo2 size={16} /> },
+                { action: 'Redo', keys: [<Kbd>Ctrl</Kbd>, '+', <Kbd>Y</Kbd>], icon: <Redo2 size={16} /> },
+            ]
+        }
+    ];
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} // Snappy cubic-bezier transition
+            className={`absolute bottom-full right-0 mb-3 w-96 rounded-xl shadow-2xl z-[100] overflow-hidden border ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/60 backdrop-blur-lg' : 'bg-white/80 border-gray-200/60 backdrop-blur-lg'}`}
+        >
+            <div className={`p-4 border-b flex items-center gap-4 ${theme === 'dark' ? 'border-gray-700/60' : 'border-gray-200/60'}`}>
+                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-violet-900/50 text-violet-300' : 'bg-violet-100 text-violet-600'}`}>
+                    <Keyboard size={24} />
+                </div>
+                <div>
+                    <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Shortcuts Guide</h4>
+                    <p className={`text-sm mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Master the data grid</p>
+                </div>
+            </div>
+            <motion.div 
+                className="p-4 max-h-80 overflow-y-auto"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                {shortcuts.map(section => (
+                    <div key={section.category} className="mb-5 last:mb-0">
+                        <motion.h5 
+                            variants={itemVariants} 
+                            className={`font-semibold text-sm mb-3 px-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
+                        >
+                            {section.category}
+                        </motion.h5>
+                        <ul className="space-y-2">
+                            {section.items.map(shortcut => (
+                                <motion.li 
+                                    key={shortcut.action} 
+                                    variants={itemVariants}
+                                    className="flex justify-between items-center text-sm p-1 rounded-md"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>{shortcut.icon}</span>
+                                        <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{shortcut.action}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        {shortcut.keys.map((key, index) => (
+                                            <Fragment key={index}>{key}</Fragment>
+                                        ))}
+                                    </div>
+                                </motion.li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </motion.div>
+        </motion.div>
+    );
+};
 
 export const RetryModal = ({ isOpen, onClose, onRetry, onRetryWithAlterations }: { isOpen: boolean; onClose: () => void; onRetry: () => void; onRetryWithAlterations: () => void; }) => { if (!isOpen) return null; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex justify-center items-center p-4" onClick={onClose}> <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}> <h3 className="text-xl font-bold text-gray-800 dark:text-white text-center mb-2">Retry Processing</h3> <p className="text-gray-500 dark:text-gray-400 text-center mb-6 text-sm">Choose how you would like to re-process.</p> <div className="space-y-3"> <button onClick={onRetry} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-4 rounded-lg text-sm"> <RefreshCw className="w-4 h-4"/> Just Retry </button> <button onClick={onRetryWithAlterations} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg text-sm"> Retry with Alterations </button> </div> </div> </div> ); };
 export const StatusBadge = ({ status, large = false, theme = 'light' }: { status: Document['status'], large?: boolean, theme?: 'light' | 'dark' }) => {

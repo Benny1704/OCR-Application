@@ -290,3 +290,9 @@ export interface Section {
   section_id: number;
   section_name: string;
 }
+
+export interface Option {
+    section_id: number | undefined;
+    value: number | string;
+    label: string;
+}

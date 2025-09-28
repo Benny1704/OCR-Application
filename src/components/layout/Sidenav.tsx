@@ -81,9 +81,10 @@ const Sidenav = () => {
         navigate('/login');
     }
 
-    const handleSectionSelect = (section_id: number) => {
-        if (section_id !== user?.section) {
-            setSelectedSection(section_id);
+    const handleSectionSelect = (sectionId: string | number) => {
+        const numericSectionId = Number(sectionId);
+        if (numericSectionId !== user?.section) {
+            setSelectedSection(numericSectionId);
             setShowPasswordModal(true);
         }
     };
@@ -193,9 +194,9 @@ const Sidenav = () => {
                                         <div className="section-switcher">
                                             <p className="label">Switch Section</p>
                                             <ModernDropdown
-                                                sections={sections}
-                                                selectedSection={user?.section || 0}
-                                                onSectionSelect={handleSectionSelect}
+                                                options={sections.map(s => ({ value: s.section_id, label: s.section_name }))}
+                                                selectedValue={user?.section || 0}
+                                                onValueSelect={handleSectionSelect}
                                             />
                                         </div>
                                         <motion.button className="logout-btn" onClick={handleLogout} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

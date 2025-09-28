@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Fragment, useCallback } from 'react';
+import { useEffect, useState, Fragment, useCallback, type ElementType, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
@@ -12,9 +12,10 @@ import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bouncyComponentVariants } from '../components/common/Animation';
 import { motion } from 'framer-motion';
-import PillToggle from '../components/common/PillToggle'; // Import the new component
+import PillToggle from '../components/common/PillToggle';
+import ModernDropdown from '../components/common/ModernDropdown';
 
-const iconMap: { [key: string]: React.ElementType } = {
+const iconMap: { [key: string]: ElementType } = {
     Wallet,
     FileDiff,
     Banknote,
@@ -49,7 +50,7 @@ const formatAxisValue = (value: number) => {
 interface MetricCardProps {
     title: string;
     value: string;
-    icon: React.ElementType;
+    icon: ElementType;
     change?: string;
     changeType?: 'increase' | 'decrease';
     index: number;
@@ -57,8 +58,8 @@ interface MetricCardProps {
 
 interface ChartCardProps {
     title: string;
-    icon: React.ElementType;
-    children: React.ReactNode;
+    icon: ElementType;
+    children: ReactNode;
     isLoading: boolean;
     error: string | null;
     onRetry: () => void;
@@ -162,7 +163,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType }: MetricCard
 
 const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, topN, setTopN }: any) => {
     const { theme } = useTheme();
-    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: y.toString() }));
     const months = [
         { value: 0, label: 'All Months' },
         { value: 1, label: 'January' }, { value: 2, label: 'February' }, { value: 3, label: 'March' },
@@ -211,49 +212,31 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Top
                             </label>
-                            <select
-                                value={topN}
-                                onChange={(e) => setTopN(parseInt(e.target.value))}
-                                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                    theme === 'dark'
-                                        ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                        : 'border-gray-300 bg-white text-gray-900'
-                                }`}
-                            >
-                                {topNOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
+                            <ModernDropdown
+                                options={topNOptions}
+                                selectedValue={topN}
+                                onValueSelect={(value) => setTopN(Number(value))}
+                            />
                         </div>
                         <div>
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Year
                             </label>
-                            <select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                    theme === 'dark'
-                                        ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                        : 'border-gray-300 bg-white text-gray-900'
-                                }`}
-                            >
-                                {years.map(year => <option key={year} value={year}>{year}</option>)}
-                            </select>
+                            <ModernDropdown
+                                options={years}
+                                selectedValue={selectedYear}
+                                onValueSelect={(value) => setSelectedYear(Number(value))}
+                            />
                         </div>
                         <div>
                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                 Month
                             </label>
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                    theme === 'dark'
-                                        ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                        : 'border-gray-300 bg-white text-gray-900'
-                                }`}
-                            >
-                                {months.map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
-                            </select>
+                            <ModernDropdown
+                                options={months}
+                                selectedValue={selectedMonth}
+                                onValueSelect={(value) => setSelectedMonth(Number(value))}
+                            />
                         </div>
                     </div>
                 </Menu.Items>
@@ -264,7 +247,7 @@ const VendorChartFilterMenu = ({ selectedYear, setSelectedYear, selectedMonth, s
 
 const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedYear, fromYear, setFromYear, toYear, setToYear }: any) => {
     const { theme } = useTheme();
-    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: y.toString() }));
 
     return (
         <Menu as="div" className="relative inline-block text-left z-50">
@@ -298,7 +281,7 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                     </div>
                     {filterType && setFilterType && (
                         <>
-                            <div className="px-4 py-3">
+                            <div className="px-4 py-3 flex justify-center">
                                 <PillToggle
                                     options={[
                                         { label: 'Monthly', value: 'monthly' },
@@ -313,17 +296,11 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                             <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                 Year
                                             </label>
-                                            <select
-                                                value={selectedYear}
-                                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                                className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                                    theme === 'dark'
-                                                        ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                                        : 'border-gray-300 bg-white text-gray-900'
-                                                }`}
-                                            >
-                                                {years.map(year => <option key={year} value={year}>{year}</option>)}
-                                            </select>
+                                            <ModernDropdown
+                                                options={years}
+                                                selectedValue={selectedYear}
+                                                onValueSelect={(value) => setSelectedYear(Number(value))}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="px-4 py-3 space-y-3">
@@ -331,33 +308,21 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                                                 <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                     From Year
                                                 </label>
-                                                <select
-                                                    value={fromYear}
-                                                    onChange={(e) => setFromYear(parseInt(e.target.value))}
-                                                    className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                                        theme === 'dark'
-                                                            ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                                            : 'border-gray-300 bg-white text-gray-900'
-                                                    }`}
-                                                >
-                                                    {years.map(year => <option key={year} value={year}>{year}</option>)}
-                                                </select>
+                                                <ModernDropdown
+                                                    options={years}
+                                                    selectedValue={fromYear}
+                                                    onValueSelect={(value) => setFromYear(Number(value))}
+                                                />
                                             </div>
                                             <div>
                                                 <label className={`block text-xs font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'} mb-1`}>
                                                     To Year
                                                 </label>
-                                                <select
-                                                    value={toYear}
-                                                    onChange={(e) => setToYear(parseInt(e.target.value))}
-                                                    className={`block w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors ${
-                                                        theme === 'dark'
-                                                            ? 'border-gray-600 bg-gray-700/80 text-gray-200'
-                                                            : 'border-gray-300 bg-white text-gray-900'
-                                                    }`}
-                                                >
-                                                    {years.map(year => <option key={year} value={year}>{year}</option>)}
-                                                </select>
+                                                <ModernDropdown
+                                                    options={years}
+                                                    selectedValue={toYear}
+                                                    onValueSelect={(value) => setToYear(Number(value))}
+                                                />
                                             </div>
                                         </div>
                                     )}
@@ -684,10 +649,13 @@ const Dashboard = () => {
     }
 
     const renderSpendChart = () => {
-        const processedData = spendByVendorData.map(item => ({
-            ...item,
-            value: item.value === 0 ? 0.00001 : item.value,
-        }));
+        const processedData = [...spendByVendorData]
+            .sort((a, b) => b.value - a.value)
+            .map(item => ({
+                ...item,
+                value: item.value === 0 ? 0.00001 : item.value,
+            }));
+
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -713,10 +681,12 @@ const Dashboard = () => {
     };
 
     const renderDiscountChart = () => {
-        const processedData = discountByVendorData.map(item => ({
-            ...item,
-            value: item.value === 0 ? 0.00001 : item.value,
-        }));
+        const processedData = [...discountByVendorData]
+            .sort((a, b) => b.value - a.value)
+            .map(item => ({
+                ...item,
+                value: item.value === 0 ? 0.00001 : item.value,
+            }));
         return (
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
