@@ -35,7 +35,7 @@ const Login = () => {
             }
         };
         fetchSections();
-    }, [addToast]);
+    }, []);
     
     const listVariants = {
         hidden: { opacity: 0, scaleY: 0 },

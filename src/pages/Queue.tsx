@@ -179,13 +179,13 @@ const Queue = () => {
   const location = useLocation();
   const { addToast } = useToast();
 
-  const tabs: ("Queued" | "Processed" | "Failed")[] = [
+  const tabs: ("Queued" | "Yet to Review" | "Failed")[] = [
     "Queued",
-    "Processed",
+    "Yet to Review",
     "Failed",
   ];
   const tabRef = useRef<HTMLUListElement>(null);
-  const [activeTab, setActiveTab] = useState<"Queued" | "Processed" | "Failed">(() => {
+  const [activeTab, setActiveTab] = useState<"Queued" | "Yet to Review" | "Failed">(() => {
     return location.state?.defaultTab || "Queued";
   });
 
@@ -196,7 +196,7 @@ const Queue = () => {
   // NEW FEATURE: State for last updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Record<string, Date | null>>({
     Queued: null,
-    Processed: null,
+    "Yet to Review": null,
     Failed: null,
   });
 
@@ -241,7 +241,7 @@ const Queue = () => {
               })));
             }
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
-        } else if (activeTab === 'Processed') {
+        } else if (activeTab === 'Yet to Review') {
             processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
             if (Array.isArray(processedResponse.data)) {
               setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
@@ -260,7 +260,7 @@ const Queue = () => {
                   status: item.status,
               })));
             }
-            setPagination(prev => ({...prev, Processed: processedResponse.pagination}));
+            setPagination(prev => ({...prev, "Yet to Review": processedResponse.pagination}));
         } else if (activeTab === 'Failed') {
             failedResponse = await getFailedDocuments(addToast, currentPage, pageSize);
             if (Array.isArray(failedResponse.data)) {
@@ -312,7 +312,7 @@ const Queue = () => {
           new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
         );
       });
-    } else if (activeTab === "Processed") {
+    } else if (activeTab === "Yet to Review") {
       return processedDocuments;
     } else {
       return failedDocuments;
@@ -468,7 +468,7 @@ const Queue = () => {
 
   const tabIcons = {
     Queued: <ClipboardClock size={16} />,
-    Processed: <ClipboardCheck size={16} />,
+    "Yet to Review": <ClipboardCheck size={16} />,
     Failed: <ClipboardX size={16} />,
   };
 
@@ -481,7 +481,7 @@ const Queue = () => {
       return <ErrorDisplay message={error} onRetry={() => fetchDocuments()} />;
     }
 
-    if (activeTab === "Processed") {
+    if (activeTab === "Yet to Review") {
       return (
         <>
             {/* NEW FEATURE: Last updated and refresh button */}
@@ -508,7 +508,7 @@ const Queue = () => {
               }}
               maxHeight="calc(100vh - 280px)"
               isLoading={isLoading}
-              paginationInfo={pagination.Processed}
+              paginationInfo={pagination["Yet to Review"]}
               onPageChange={setCurrentPage}
               onPageSizeChange={setPageSize}
             />
@@ -727,13 +727,13 @@ const Queue = () => {
                 </div>
                 <hr className={`flex-shrink-0 ${borderPrimary}`} />
 
-                {user?.role === 'admin' && (
+                {((activeTab === 'Queued' && user?.role === 'admin') || activeTab === 'Failed') && (
                   <div className="pt-3 flex-shrink-0">
                     <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                       Actions
                     </h4>
                     <div className="flex flex-wrap items-center gap-2">
-                      {activeTab === "Queued" && (
+                      {activeTab === "Queued" && user?.role === 'admin' && (
                         <>
                           <button
                             onClick={() =>
@@ -787,19 +787,21 @@ const Queue = () => {
                           >
                             <i className="fi fi-rr-add-document text-xs"></i> Manual Entry
                           </button>
-                          <button
-                            onClick={openRetryModal}
-                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
-                                ? "bg-yellow-900/40 border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
-                                : "bg-yellow-50 border border-yellow-200 text-yellow-800 hover:bg-yellow-100"
-                              }`}
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" /> Retry
-                          </button>
+                          {user?.role === 'admin' && (
+                            <button
+                              onClick={openRetryModal}
+                              className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
+                                  ? "bg-yellow-900/40 border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
+                                  : "bg-yellow-50 border border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                                }`}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" /> Retry
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
-                    {selectedDocument.status === "Processing" && (
+                    {selectedDocument.status === "Processing" && user?.role === 'admin' && (
                       <p
                         className={`text-xs mt-2 ${theme === "dark"
                             ? "text-yellow-400"
@@ -886,7 +888,7 @@ const Queue = () => {
             </ul>
           </div>
           <div className="right-shape">
-            <div className={`active-tab ${activeTab.toLowerCase()}`}>
+            <div className={`active-tab ${activeTab.toLowerCase().replace(/\s+/g, '-')}`}>
               {tabIcons[activeTab]}
               {activeTab}
               <div className="badge">{pagination[activeTab]?.total_items || 0}</div>

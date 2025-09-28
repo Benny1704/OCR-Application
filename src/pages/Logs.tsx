@@ -10,8 +10,9 @@ import {
   Calendar,
   TrendingUp,
   Sparkles,
-  ArrowUpRight,
-  ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight,
 } from "lucide-react";
 import {
   BarChart,
@@ -27,16 +28,11 @@ import {
   getInvoiceCountStats,
   getLlmConsumedStats,
   getProcessingFailuresStats,
-  getMonthlyProcessingStats
+  getMonthlyProcessingStats,
 } from "../lib/api/Api";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import Loader from "../components/common/Loader";
-import Animation, {
-  headerVariants,
-  sectionVariants,
-  bouncyButtonVariants,
-  bouncyModalVariants
-} from "../components/common/Animation";
+import Animation from "../components/common/Animation";
 
 // --- CHILD COMPONENTS ---
 
@@ -61,37 +57,43 @@ const StatCard = ({
   index,
   isLoading,
   total_input_token,
-  total_output_token
+  total_output_token,
 }: StatCardProps) => {
   const { theme } = useTheme();
   const changeColor =
     changeType === "increase"
-      ? "text-emerald-400"
+      ? "text-green-400"
       : changeType === "decrease"
-      ? "text-rose-400"
+      ? "text-red-400"
       : "text-gray-400";
 
-  // Smaller, dashboard-style variants
   const cardVariants: Variants = {
-    hidden: { opacity: 0, y: 24, scale: 0.95 },
+    hidden: { opacity: 0, scale: 0.95 },
     visible: {
       opacity: 1,
-      y: 0,
       scale: 1,
       transition: {
-        delay: index * 0.08,
-        duration: 0.45,
-        ease: [0.25, 1, 0.5, 1]
-      }
-    }
+        delay: index * 0.1,
+        duration: 0.4,
+        ease: [0.25, 1, 0.5, 1],
+      },
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut",
+      },
+    },
   };
 
   if (isLoading) {
     return (
       <div
-        className={`h-32 rounded-2xl animate-pulse ${theme === "dark"
-          ? "bg-gray-800/40"
-          : "bg-gray-200/40"}`}
+        className={`h-36 rounded-2xl animate-pulse ${
+          theme === "dark" ? "bg-gray-800/40" : "bg-gray-200/40"
+        }`}
       />
     );
   }
@@ -99,18 +101,24 @@ const StatCard = ({
   return (
     <motion.div
       variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       className={`group relative overflow-hidden rounded-2xl border cursor-pointer backdrop-blur-lg
-        ${theme === "dark"
-          ? "bg-gradient-to-br from-gray-900/80 via-gray-800/40 to-gray-900/80 border-gray-700/40"
-          : "bg-gradient-to-br from-white/80 via-gray-50/40 to-white/80 border-gray-200/60"
+        ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-gray-900/80 via-gray-800/40 to-gray-900/80 border-gray-700/40"
+            : "bg-gradient-to-br from-white/80 via-gray-50/40 to-white/80 border-gray-200/60"
         }`}
     >
       <div className="relative p-5 h-full flex flex-col justify-between">
         <div className="flex items-start justify-between mb-3">
           <div
-            className={`relative p-2 rounded-lg shadow-md ${theme === "dark"
-              ? "bg-gradient-to-br from-gray-700/70 to-gray-800/50"
-              : "bg-gradient-to-br from-gray-100 to-white"}`}
+            className={`relative p-2 rounded-lg shadow-md ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-700/70 to-gray-800/50"
+                : "bg-gradient-to-br from-gray-100 to-white"
+            }`}
           >
             <Icon className="w-6 h-6 text-violet-400" />
           </div>
@@ -118,16 +126,18 @@ const StatCard = ({
           <div className="text-right">
             <div className="flex items-center gap-2 text-base font-bold">
               {changeType === "increase" ? (
-                <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                <ArrowUp className="w-4 h-4 text-green-400" />
               ) : changeType === "decrease" ? (
-                <ArrowDownRight className="w-4 h-4 text-rose-400" />
-              ) : null}
+                <ArrowDown className="w-4 h-4 text-red-400" />
+              ) : (
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+              )}
               <span className={changeColor}>{change}</span>
             </div>
             <span
-              className={`text-xs font-medium ${theme === "dark"
-                ? "text-gray-400"
-                : "text-gray-500"}`}
+              className={`text-xs font-medium ${
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              }`}
             >
               vs last period
             </span>
@@ -136,29 +146,41 @@ const StatCard = ({
 
         <div>
           <h4
-            className={`font-semibold text-base leading-tight mb-1 ${theme === "dark"
-              ? "text-gray-200"
-              : "text-gray-800"}`}
+            className={`font-semibold text-base leading-tight mb-1 ${
+              theme === "dark" ? "text-gray-200" : "text-gray-800"
+            }`}
           >
             {title}
           </h4>
-          <p
-            className={`text-3xl font-bold tracking-tight leading-none bg-clip-text text-transparent ${theme === "dark"
-              ? "bg-gradient-to-br from-white via-gray-100 to-gray-300"
-              : "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600"}`}
-          >
-            {value}
-          </p>
-          {title === "LLM Tokens Consumed" && (
-            <div className="flex flex-col gap-1 mt-2">
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                Input: {total_input_token ?? "—"}
-              </span>
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                Output: {total_output_token ?? "—"}
-              </span>
-            </div>
-          )}
+          <div className="flex items-end justify-between">
+            <p
+              className={`text-3xl font-bold tracking-tight leading-none bg-clip-text text-transparent ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-white via-gray-100 to-gray-300"
+                  : "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600"
+              }`}
+            >
+              {value}
+            </p>
+            {title === "LLM Tokens Consumed" && (
+              <div className="text-right">
+                <span
+                  className={`block text-xs font-mono ${
+                    theme === "dark" ? "text-sky-400" : "text-sky-600"
+                  }`}
+                >
+                  Input: {total_input_token ?? "—"}
+                </span>
+                <span
+                  className={`block text-xs font-mono ${
+                    theme === "dark" ? "text-amber-400" : "text-amber-600"
+                  }`}
+                >
+                  Output: {total_output_token ?? "—"}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -168,7 +190,7 @@ const StatCard = ({
 const FilterDropdown = ({
   value,
   options,
-  onChange
+  onChange,
 }: {
   value: any;
   options: { name: string; value: any }[];
@@ -181,37 +203,48 @@ const FilterDropdown = ({
     <div className="relative">
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border backdrop-blur-lg shadow-sm hover:shadow-md transition-all duration-300 ${theme === "dark"
-          ? "border-gray-700/40 bg-gray-800/60 hover:border-violet-500/60 text-white"
-          : "border-gray-200/50 bg-white/60 hover:border-violet-400/60 text-gray-800"}`}
-        variants={bouncyButtonVariants}
-        whileHover="hover"
-        whileTap="tap"
+        className={`flex items-center gap-3 px-3 py-1.5 rounded-lg border backdrop-blur-lg shadow-sm hover:shadow-md transition-all duration-300 ${
+          theme === "dark"
+            ? "border-gray-700/40 bg-gray-800/60 hover:border-violet-500/60 text-white"
+            : "border-gray-200/50 bg-white/60 hover:border-violet-400/60 text-gray-800"
+        }`}
       >
         <Calendar className="w-4 h-4 text-violet-400" />
         <span className="text-sm font-medium">
-          {options.find(opt => opt.value === value)?.name || value}
+          {options.find((opt) => opt.value === value)?.name || value}
         </span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
-          <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ChevronDown
+            className={`w-4 h-4 ${
+              theme === "dark" ? "text-gray-400" : "text-gray-500"
+            }`}
+          />
         </motion.div>
       </motion.button>
 
       <AnimatePresence>
         {isOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
             <motion.div
-              variants={bouncyModalVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className={`absolute right-0 top-full mt-2 w-48 rounded-lg border shadow-2xl z-50 backdrop-blur-xl overflow-hidden ${theme === "dark"
-                ? "border-gray-700/40 bg-gray-800/90"
-                : "border-gray-200/50 bg-white/90"}`}
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className={`absolute right-0 top-full mt-2 w-48 rounded-lg border shadow-2xl z-50 backdrop-blur-xl overflow-hidden ${
+                theme === "dark"
+                  ? "border-gray-700/40 bg-gray-800/90"
+                  : "border-gray-200/50 bg-white/90"
+              }`}
             >
               <div className="p-1 max-h-60 overflow-y-auto">
-                {options.map(option => (
+                {options.map((option) => (
                   <button
                     key={option.name}
                     onClick={() => {
@@ -220,12 +253,22 @@ const FilterDropdown = ({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors duration-200 ${
                       value === option.value
-                        ? `bg-violet-500/20 font-medium ${theme === "dark" ? "text-violet-300" : "text-violet-600"}`
-                        : `${theme === "dark" ? "hover:bg-gray-700/50 text-gray-300" : "hover:bg-gray-100 text-gray-700"}`
+                        ? `bg-violet-500/20 font-medium ${
+                            theme === "dark"
+                              ? "text-violet-300"
+                              : "text-violet-600"
+                          }`
+                        : `${
+                            theme === "dark"
+                              ? "hover:bg-gray-700/50 text-gray-300"
+                              : "hover:bg-gray-100 text-gray-700"
+                          }`
                     }`}
                   >
                     <span>{option.name}</span>
-                    {value === option.value && <CheckCircle className="w-4 h-4" />}
+                    {value === option.value && (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -244,21 +287,41 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`p-4 rounded-xl shadow-2xl border backdrop-blur-xl ${theme === "dark"
-          ? "border-gray-700/40 bg-gray-800/90"
-          : "border-gray-200/50 bg-white/90"}`}
+        className={`p-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
+          theme === "dark"
+            ? "border-gray-700/40 bg-gray-800/90"
+            : "border-gray-200/50 bg-white/90"
+        }`}
       >
         <p className="font-bold text-base mb-2 bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
           {label}
         </p>
         <div className="space-y-2">
           {payload.map((pld: any) => (
-            <div key={pld.dataKey} className="flex items-center justify-between text-sm">
+            <div
+              key={pld.dataKey}
+              className="flex items-center justify-between text-sm"
+            >
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: pld.fill }} />
-                <span className={`font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>{pld.name}</span>
+                <div
+                  className="w-2.5 h-2.5 rounded-full shadow-sm"
+                  style={{ background: pld.fill }}
+                />
+                <span
+                  className={`font-medium ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-700"
+                  }`}
+                >
+                  {pld.name}
+                </span>
               </div>
-              <span className={`font-bold text-base ${theme === "dark" ? "text-violet-300" : "text-violet-600"}`}>{pld.value.toLocaleString()}</span>
+              <span
+                className={`font-bold text-base ${
+                  theme === "dark" ? "text-violet-300" : "text-violet-600"
+                }`}
+              >
+                {pld.value.toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
@@ -274,7 +337,9 @@ const Logs = () => {
   const { theme } = useTheme();
 
   const [statsYear, setStatsYear] = useState<number>(new Date().getFullYear());
-  const [statsMonth, setStatsMonth] = useState<number | undefined>(new Date().getMonth() + 1);
+  const [statsMonth, setStatsMonth] = useState<number | undefined>(
+    new Date().getMonth() + 1
+  );
   const [graphYear, setGraphYear] = useState<number>(new Date().getFullYear());
 
   const [statsData, setStatsData] = useState<StatCardProps[]>([]);
@@ -289,13 +354,20 @@ const Logs = () => {
     setIsStatsLoading(true);
     setStatsError(null);
     try {
-      const [invoiceCount, llmConsumed, processingFailures] = await Promise.all([
-        getInvoiceCountStats(statsYear, statsMonth),
-        getLlmConsumedStats(statsYear, statsMonth),
-        getProcessingFailuresStats(statsYear, statsMonth),
-      ]);
+      const [invoiceCount, llmConsumed, processingFailures] =
+        await Promise.all([
+          getInvoiceCountStats(statsYear, statsMonth),
+          getLlmConsumedStats(statsYear, statsMonth),
+          getProcessingFailuresStats(statsYear, statsMonth),
+        ]);
       setStatsData([
-        { ...invoiceCount, Icon: FileCheck2, title: "Total Invoices Processed", index: 0, isLoading: false },
+        {
+          ...invoiceCount,
+          Icon: FileCheck2,
+          title: "Total Invoices Processed",
+          index: 0,
+          isLoading: false,
+        },
         {
           ...llmConsumed,
           Icon: BrainCircuit,
@@ -303,9 +375,15 @@ const Logs = () => {
           total_input_token: llmConsumed.total_input_token,
           total_output_token: llmConsumed.total_output_token,
           index: 1,
-          isLoading: false
+          isLoading: false,
         },
-        { ...processingFailures, Icon: FileX2, title: "Processing Failures", index: 2, isLoading: false },
+        {
+          ...processingFailures,
+          Icon: FileX2,
+          title: "Processing Failures",
+          index: 2,
+          isLoading: false,
+        },
       ]);
     } catch (err: any) {
       setStatsError(err.message || "Failed to fetch stats data.");
@@ -352,14 +430,14 @@ const Logs = () => {
             text: "#9ca3af",
             automated: "#8b5cf6",
             edited: "#f59e0b",
-            failed: "#ef4444"
+            failed: "#ef4444",
           }
         : {
             grid: "rgba(139, 92, 246, 0.1)",
             text: "#6b7280",
             automated: "#7c3aed",
             edited: "#d97706",
-            failed: "#dc2626"
+            failed: "#dc2626",
           },
     [theme]
   );
@@ -378,10 +456,10 @@ const Logs = () => {
     { name: "September", value: 9 },
     { name: "October", value: 10 },
     { name: "November", value: 11 },
-    { name: "December", value: 12 }
+    { name: "December", value: 12 },
   ];
 
-  if (isInitialLoad && isStatsLoading && isGraphLoading) {
+  if (isInitialLoad) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader type="wifi" />
@@ -393,26 +471,45 @@ const Logs = () => {
     <div className={`h-full w-full overflow-y-auto`}>
       <Animation>
         <div className="flex flex-col gap-4 md:gap-6 mx-auto">
-          <motion.div variants={headerVariants}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
             <h1
-              className={`text-3xl md:text-4xl font-black tracking-tight ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+              className={`text-3xl md:text-4xl font-black tracking-tight ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}
             >
               Analytics
             </h1>
             <p
-              className={`mt-1 text-sm md:text-base ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+              className={`mt-1 text-sm md:text-base ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}
             >
               Real-time insights into your invoice processing performance.
             </p>
           </motion.div>
 
           {/* Stats Section */}
-          <motion.section variants={sectionVariants} className="space-y-3">
+          <motion.section
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="space-y-3"
+          >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <h2
-                className={`text-lg md:text-xl font-bold flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                className={`text-lg md:text-xl font-bold flex items-center gap-2 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
               >
-                <div className={`p-2 rounded-md ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
+                <div
+                  className={`p-2 rounded-md ${
+                    theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                  }`}
+                >
                   <TrendingUp className="w-5 h-5 text-violet-500" />
                 </div>
                 Performance Overview
@@ -420,41 +517,71 @@ const Logs = () => {
               <div className="flex items-center gap-2">
                 <FilterDropdown
                   value={statsYear}
-                  options={years.map(y => ({ name: y.toString(), value: y }))}
+                  options={years.map((y) => ({
+                    name: y.toString(),
+                    value: y,
+                  }))}
                   onChange={setStatsYear}
                 />
-                <FilterDropdown value={statsMonth} options={months} onChange={setStatsMonth} />
+                <FilterDropdown
+                  value={statsMonth}
+                  options={months}
+                  onChange={setStatsMonth}
+                />
               </div>
             </div>
             {statsError ? (
               <ErrorDisplay message={statsError} onRetry={fetchStatsData} />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                {statsData.map((stat, index) => (
-                  <StatCard key={stat.title} {...stat} index={index} isLoading={isStatsLoading} />
-                ))}
+                <AnimatePresence>
+                  {statsData.map((stat, index) => (
+                    <StatCard
+                      key={stat.title}
+                      {...stat}
+                      index={index}
+                      isLoading={isStatsLoading}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </motion.section>
 
           {/* Chart Section */}
-          <motion.section variants={sectionVariants} className="space-y-3">
+          <motion.section
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="space-y-3"
+          >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <h2
-                className={`text-lg md:text-xl font-bold flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                className={`text-lg md:text-xl font-bold flex items-center gap-2 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
               >
-                <div className={`p-2 rounded-md ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
+                <div
+                  className={`p-2 rounded-md ${
+                    theme === "dark" ? "bg-gray-800" : "bg-gray-100"
+                  }`}
+                >
                   <Sparkles className="w-5 h-5 text-violet-500" />
                 </div>
                 Processing Analytics
               </h2>
-              <FilterDropdown value={graphYear} options={years.map(y => ({ name: `Year: ${y}`, value: y }))} onChange={setGraphYear} />
+              <FilterDropdown
+                value={graphYear}
+                options={years.map((y) => ({ name: `Year: ${y}`, value: y }))}
+                onChange={setGraphYear}
+              />
             </div>
 
             <div
-              className={`relative p-5 md:p-6 rounded-2xl shadow-2xl border backdrop-blur-sm ${theme === "dark"
-                ? "bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30"
-                : "bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40"
+              className={`relative p-5 md:p-6 rounded-2xl shadow-2xl border backdrop-blur-sm ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30"
+                  : "bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40"
               }`}
             >
               <div style={{ width: "100%", height: 320 }}>
@@ -464,28 +591,91 @@ const Logs = () => {
                   </div>
                 ) : graphError ? (
                   <div className="flex items-center justify-center h-full">
-                    <ErrorDisplay message={graphError} onRetry={fetchGraphData} />
+                    <ErrorDisplay
+                      message={graphError}
+                      onRetry={fetchGraphData}
+                    />
                   </div>
                 ) : (
                   <ResponsiveContainer>
-                    <BarChart data={graphData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <BarChart
+                      data={graphData}
+                      margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                    >
                       <defs>
-                        <linearGradient id="colorAutomated" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={chartColors.automated} stopOpacity={0.8} />
-                          <stop offset="95%" stopColor={chartColors.automated} stopOpacity={0.6} />
+                        <linearGradient
+                          id="colorAutomated"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={chartColors.automated}
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={chartColors.automated}
+                            stopOpacity={0.6}
+                          />
                         </linearGradient>
-                        <linearGradient id="colorEdited" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={chartColors.edited} stopOpacity={0.8} />
-                          <stop offset="95%" stopColor={chartColors.edited} stopOpacity={0.6} />
+                        <linearGradient
+                          id="colorEdited"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={chartColors.edited}
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={chartColors.edited}
+                            stopOpacity={0.6}
+                          />
                         </linearGradient>
-                        <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={chartColors.failed} stopOpacity={0.8} />
-                          <stop offset="95%" stopColor={chartColors.failed} stopOpacity={0.6} />
+                        <linearGradient
+                          id="colorFailed"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={chartColors.failed}
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={chartColors.failed}
+                            stopOpacity={0.6}
+                          />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
-                      <XAxis dataKey="Month" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
-                      <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={chartColors.grid}
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="Month"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: chartColors.text }}
+                      />
+                      <YAxis
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: chartColors.text }}
+                      />
                       <Tooltip
                         content={<CustomTooltip />}
                         cursor={{ fill: "rgba(139, 92, 246, 0.05)" }}
@@ -494,9 +684,25 @@ const Logs = () => {
                         wrapperStyle={{ fontSize: "13px", paddingTop: "16px" }}
                         iconType="circle"
                       />
-                      <Bar dataKey="automated" name="Automated" stackId="a" fill="url(#colorAutomated)" />
-                      <Bar dataKey="edited" name="With Edits" stackId="a" fill="url(#colorEdited)" />
-                      <Bar dataKey="failed" name="Failed" stackId="a" fill="url(#colorFailed)" radius={[6, 6, 0, 0]} />
+                      <Bar
+                        dataKey="automated"
+                        name="Automated"
+                        stackId="a"
+                        fill="url(#colorAutomated)"
+                      />
+                      <Bar
+                        dataKey="edited"
+                        name="With Edits"
+                        stackId="a"
+                        fill="url(#colorEdited)"
+                      />
+                      <Bar
+                        dataKey="failed"
+                        name="Failed"
+                        stackId="a"
+                        fill="url(#colorFailed)"
+                        radius={[6, 6, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}

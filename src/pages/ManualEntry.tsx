@@ -200,7 +200,7 @@ const ManualEntry = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceDetails.invoice_id, hasValidationErrors, addToast]);
+    }, [invoiceDetails.invoice_id, hasValidationErrors]);
 
 
     const handleSaveAmountDetails = useCallback(async () => {
@@ -233,7 +233,7 @@ const ManualEntry = () => {
         try {
             await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'Reviewed' }, addToast);
             addToast({ type: 'success', message: 'Invoice confirmed successfully!' });
-            navigate('/queue', { state: { defaultTab: "Processed" } });
+            navigate('/queue', { state: { defaultTab: "Yet to Review" } });
         } catch (apiError) {
             console.error("Failed to confirm invoice:", apiError);
             addToast({ type: 'error', message: 'An error occurred while confirming the invoice.' });

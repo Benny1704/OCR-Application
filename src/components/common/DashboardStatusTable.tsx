@@ -163,13 +163,13 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [section_id, timeFilter, addToast]);
+    }, [section_id, timeFilter]);
 
     useEffect(() => {
         fetchSummary();
     }, [fetchSummary]);
 
-    const handleNavigation = (tab: 'Queued' | 'Processed' | 'Failed' | 'Completed') => {
+    const handleNavigation = (tab: 'Queued' | 'Yet to Review' | 'Failed' | 'Completed') => {
         if (tab === 'Completed') {
             navigate('/document');
         } else {
@@ -194,7 +194,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             color: "text-amber-400",
             description: "Needs verification",
             gradient: "bg-gradient-to-br from-amber-500/20 to-amber-600/5",
-            onClick: () => handleNavigation('Processed')
+            onClick: () => handleNavigation('Yet to Review')
         },
         {
             title: "Reviewed",

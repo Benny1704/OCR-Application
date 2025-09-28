@@ -239,14 +239,14 @@ const Edit = () => {
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
-            // navigate('/queue', { state: { defaultTab: "Processed" } });
+            // navigate('/queue', { state: { defaultTab: "Yet to Review" } });
 
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save draft: ${error.message}` });
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate, hasValidationErrors, addToast]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate, hasValidationErrors]);
 
     const proceedWithFinalize = useCallback(async () => {
         if (hasValidationErrors) {
