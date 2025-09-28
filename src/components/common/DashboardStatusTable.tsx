@@ -4,6 +4,8 @@ import {  FileClock, XCircle, Loader2, AlertCircle, ArrowRight, FileCheck, Activ
 import { useNavigate } from 'react-router-dom';
 import { getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
+import { motion } from 'framer-motion';
+import { bouncyComponentVariants } from './Animation';
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -35,7 +37,8 @@ const StatusCard = ({
     const { theme } = useTheme();
 
     return (
-        <div
+        <motion.div
+            variants={bouncyComponentVariants}
             className={`group relative overflow-hidden rounded-3xl cursor-pointer transition-all duration-500 ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border border-gray-700/30 hover:border-violet-500/40'
@@ -121,7 +124,7 @@ const StatusCard = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -218,7 +221,8 @@ const DashboardStatusTable = () => {
     ];
 
     return (
-        <div
+        <motion.div
+            variants={bouncyComponentVariants}
             className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
                 theme === 'dark'
                     ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
@@ -298,7 +302,7 @@ const DashboardStatusTable = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 

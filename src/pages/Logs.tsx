@@ -26,6 +26,12 @@ import {
 import { getInvoiceCountStats, getLlmConsumedStats, getProcessingFailuresStats, getMonthlyProcessingStats } from "../lib/api/Api";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import Loader from "../components/common/Loader";
+import Animation, {
+  headerVariants,
+  sectionVariants,
+  bouncyButtonVariants,
+  bouncyModalVariants
+} from "../components/common/Animation";
 
 // --- CHILD COMPONENTS ---
 
@@ -60,7 +66,6 @@ const StatCard = ({ title, value, change, changeType, Icon, index, isLoading }: 
     if (isLoading) {
         return <div className={`h-48 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-200/50'}`} />;
     }
-
 
     return (
       <motion.div
@@ -121,8 +126,9 @@ const FilterDropdown = ({
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
           className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border backdrop-blur-lg shadow-md hover:shadow-lg transition-all duration-300 ${theme === 'dark' ? 'border-gray-700/40 bg-gray-800/60 hover:border-violet-500/60 text-white' : 'border-gray-200/50 bg-white/60 hover:border-violet-400/60 text-gray-800'}`}
-          whileHover={{ scale: 1.03, y: -1 }}
-          whileTap={{ scale: 0.98 }}
+          variants={bouncyButtonVariants}
+          whileHover="hover"
+          whileTap="tap"
         >
           <Calendar className="w-4 h-4 text-violet-400" />
           <span className="text-sm font-medium">
@@ -138,10 +144,10 @@ const FilterDropdown = ({
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                variants={bouncyModalVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
                 className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-2xl z-50 backdrop-blur-xl overflow-hidden ${theme === 'dark' ? 'border-gray-700/40 bg-gray-800/90' : 'border-gray-200/50 bg-white/90'}`}
               >
                 <div className="p-1.5 max-h-60 overflow-y-auto">
@@ -265,7 +271,6 @@ const Logs = () => {
     if (!isInitialLoad) fetchGraphData();
   }, [graphYear, isInitialLoad, fetchGraphData]);
 
-
   const chartColors = useMemo(() => (
     theme === 'dark' ? {
       grid: 'rgba(139, 92, 246, 0.1)',
@@ -291,21 +296,6 @@ const Logs = () => {
     { name: 'October', value: 10 }, { name: 'November', value: 11 }, { name: 'December', value: 12 },
   ];
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const headerVariants: Variants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-  };
-
-  const sectionVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-  };
-
   if (isInitialLoad && isStatsLoading && isGraphLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -316,92 +306,91 @@ const Logs = () => {
 
   return (
     <div className={`h-full w-full overflow-y-auto `}>
-      <motion.div
-        className="flex flex-col gap-6 md:gap-8 mx-auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div variants={headerVariants}>
-          <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            Analytics
-          </h1>
-          <p className={`mt-2 text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-            Real-time insights into your invoice processing performance.
-          </p>
-        </motion.div>
+      <Animation>
+        <div
+          className="flex flex-col gap-6 md:gap-8 mx-auto"
+        >
+          <motion.div variants={headerVariants}>
+            <h1 className={`text-4xl md:text-5xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Analytics
+            </h1>
+            <p className={`mt-2 text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Real-time insights into your invoice processing performance.
+            </p>
+          </motion.div>
 
-        {/* Stats Section */}
-        <motion.section variants={sectionVariants} className="space-y-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                <TrendingUp className="w-6 h-6 text-violet-500" />
+          {/* Stats Section */}
+          <motion.section variants={sectionVariants} className="space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                  <TrendingUp className="w-6 h-6 text-violet-500" />
+                </div>
+                Performance Overview
+              </h2>
+              <div className="flex items-center gap-2">
+                <FilterDropdown value={statsYear} options={years.map(y => ({ name: y.toString(), value: y }))} onChange={setStatsYear} />
+                <FilterDropdown value={statsMonth} options={months} onChange={setStatsMonth} />
               </div>
-              Performance Overview
-            </h2>
-            <div className="flex items-center gap-2">
-              <FilterDropdown value={statsYear} options={years.map(y => ({ name: y.toString(), value: y }))} onChange={setStatsYear} />
-              <FilterDropdown value={statsMonth} options={months} onChange={setStatsMonth} />
             </div>
-          </div>
 
-          {statsError ? (
-             <ErrorDisplay message={statsError} onRetry={fetchStatsData} />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
-                {statsData.map((stat, index) => (
-                    <StatCard key={stat.title} {...stat} index={index} isLoading={isStatsLoading} />
-                ))}
-            </div>
-          )}
-        </motion.section>
-
-        {/* Chart Section */}
-        <motion.section variants={sectionVariants} className="space-y-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                <Sparkles className="w-6 h-6 text-violet-500" />
+            {statsError ? (
+               <ErrorDisplay message={statsError} onRetry={fetchStatsData} />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+                  {statsData.map((stat, index) => (
+                      <StatCard key={stat.title} {...stat} index={index} isLoading={isStatsLoading} />
+                  ))}
               </div>
-              Processing Analytics
-            </h2>
-            <FilterDropdown value={graphYear} options={years.map(y => ({ name: `Year: ${y}`, value: y }))} onChange={setGraphYear} />
-          </div>
+            )}
+          </motion.section>
 
-          <div className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
-                theme === 'dark'
-                    ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
-                    : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
-            }`}>
-            <div style={{ width: '100%', height: 320 }}>
-                {isGraphLoading ? (
-                    <div className="flex items-center justify-center h-full"><Loader type="dots" /></div>
-                ) : graphError ? (
-                    <div className="flex items-center justify-center h-full"><ErrorDisplay message={graphError} onRetry={fetchGraphData} /></div>
-                ) : (
-                    <ResponsiveContainer>
-                        <BarChart data={graphData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorAutomated" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.automated} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.automated} stopOpacity={0.6}/></linearGradient>
-                                <linearGradient id="colorEdited" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.edited} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.edited} stopOpacity={0.6}/></linearGradient>
-                                <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.failed} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.failed} stopOpacity={0.6}/></linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
-                            <XAxis dataKey="Month" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
-                            <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }} />
-                            <Legend wrapperStyle={{ fontSize: "14px", paddingTop: "20px" }} iconType="circle" />
-                            <Bar dataKey="automated" name="Automated" stackId="a" fill="url(#colorAutomated)" />
-                            <Bar dataKey="edited" name="With Edits" stackId="a" fill="url(#colorEdited)" />
-                            <Bar dataKey="failed" name="Failed" stackId="a" fill="url(#colorFailed)" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                )}
+          {/* Chart Section */}
+          <motion.section variants={sectionVariants} className="space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <h2 className={`text-xl md:text-2xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                  <Sparkles className="w-6 h-6 text-violet-500" />
+                </div>
+                Processing Analytics
+              </h2>
+              <FilterDropdown value={graphYear} options={years.map(y => ({ name: `Year: ${y}`, value: y }))} onChange={setGraphYear} />
             </div>
-          </div>
-        </motion.section>
-      </motion.div>
+
+            <div className={`relative p-6 md:p-8 rounded-3xl shadow-2xl border backdrop-blur-sm ${
+                  theme === 'dark'
+                      ? 'bg-gradient-to-br from-gray-800/40 to-gray-900/20 border-gray-700/30'
+                      : 'bg-gradient-to-br from-white/80 to-gray-50/40 border-gray-200/40'
+              }`}>
+              <div style={{ width: '100%', height: 320 }}>
+                  {isGraphLoading ? (
+                      <div className="flex items-center justify-center h-full"><Loader type="dots" /></div>
+                  ) : graphError ? (
+                      <div className="flex items-center justify-center h-full"><ErrorDisplay message={graphError} onRetry={fetchGraphData} /></div>
+                  ) : (
+                      <ResponsiveContainer>
+                          <BarChart data={graphData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                              <defs>
+                                  <linearGradient id="colorAutomated" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.automated} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.automated} stopOpacity={0.6}/></linearGradient>
+                                  <linearGradient id="colorEdited" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.edited} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.edited} stopOpacity={0.6}/></linearGradient>
+                                  <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartColors.failed} stopOpacity={0.8}/><stop offset="95%" stopColor={chartColors.failed} stopOpacity={0.6}/></linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                              <XAxis dataKey="Month" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
+                              <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: chartColors.text }} />
+                              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }} />
+                              <Legend wrapperStyle={{ fontSize: "14px", paddingTop: "20px" }} iconType="circle" />
+                              <Bar dataKey="automated" name="Automated" stackId="a" fill="url(#colorAutomated)" />
+                              <Bar dataKey="edited" name="With Edits" stackId="a" fill="url(#colorEdited)" />
+                              <Bar dataKey="failed" name="Failed" stackId="a" fill="url(#colorFailed)" radius={[6, 6, 0, 0]} />
+                          </BarChart>
+                      </ResponsiveContainer>
+                  )}
+              </div>
+            </div>
+          </motion.section>
+        </div>
+      </Animation>
     </div>
   );
 };

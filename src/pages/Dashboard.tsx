@@ -10,6 +10,8 @@ import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligati
 import { useToast } from '../hooks/useToast';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
+import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bouncyComponentVariants } from '../components/common/Animation';
+import { motion } from 'framer-motion';
 
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
@@ -88,12 +90,13 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType }: MetricCard
     const currentMonth = new Date().toLocaleString('default', { month: 'long' });
 
     return (
-        <div
+        <motion.div
+            variants={bouncyComponentVariants}
             className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
                 theme === 'dark'
-                    ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/40 border border-gray-700/40 hover:border-violet-500/50'
-                    : 'bg-gradient-to-br from-white to-gray-50/70 border border-gray-200/60 hover:border-violet-400/50'
-            } hover:shadow-xl hover:shadow-violet-500/15`}
+                    ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/40 border border-gray-700/40'
+                    : 'bg-gradient-to-br from-white to-gray-50/70 border border-gray-200/60'
+            }`}
         >
             <div className="relative p-5 h-full flex flex-col justify-between">
                 {/* Header */}
@@ -152,7 +155,7 @@ const MetricCard = ({ title, value, icon: Icon, change, changeType }: MetricCard
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -397,11 +400,12 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
     const hasData = data && data.length > 0;
 
     return (
-        <div
-            className={`relative p-6 rounded-2xl shadow-xl border backdrop-blur-sm transition-all duration-300 hover:shadow-2xl ${
+        <motion.div
+            variants={bouncyComponentVariants}
+            className={`relative p-6 rounded-2xl shadow-xl border backdrop-blur-sm transition-all duration-300 ${
                 theme === 'dark'
-                    ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border-gray-700/40 hover:border-gray-600/60'
-                    : 'bg-gradient-to-br from-white/90 to-gray-50/50 border-gray-200/50 hover:border-gray-300/70'
+                    ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/30 border-gray-700/40'
+                    : 'bg-gradient-to-br from-white/90 to-gray-50/50 border-gray-200/50'
             } ${fullWidth ? 'lg:col-span-2' : ''}`}
         >
             <div className="relative z-20 flex items-center justify-between mb-6">
@@ -445,7 +449,7 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
                     </div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -739,226 +743,232 @@ const Dashboard = () => {
     };
 
     return (
-        <div
-            className="flex flex-col gap-6"
-        >
-            {/* Header Section */}
+        <Animation>
             <div
-                className="flex flex-col md:flex-row justify-between md:items-center gap-4"
+                className="flex flex-col gap-6"
             >
-                <div>
-                    <h1 className={`text-3xl md:text-4xl font-bold tracking-tight ${textHeader} mb-2`}>
-                        Insights
-                    </h1>
-                    <p className={`text-sm ${textSecondary}`}>
-                        Welcome back, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>!
-                        Here's your business insights.
-                    </p>
-                </div>
-                <button
-                    onClick={() => navigate('/upload')}
-                    className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/25 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm group"
+                {/* Header Section */}
+                <motion.div
+                    variants={headerVariants}
+                    className="flex flex-col md:flex-row justify-between md:items-center gap-4"
                 >
-                    <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300"/>
-                    <span>Upload Invoice</span>
-                </button>
-            </div>
-
-            {/* KPI Cards Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                { kpiError ? (
-                    <div className={`md:col-span-2 p-6 rounded-2xl shadow-lg border ${
-                        theme === 'dark'
-                        ? 'bg-gray-800/50 border-gray-700/50'
-                        : 'bg-white border-gray-200/80'
-                    }`}>
-                        <ErrorDisplay message={kpiError} onRetry={fetchInitialData} />
+                    <div>
+                        <h1 className={`text-3xl md:text-4xl font-bold tracking-tight ${textHeader} mb-2`}>
+                            Insights
+                        </h1>
+                        <p className={`text-sm ${textSecondary}`}>
+                            Welcome back, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>!
+                            Here's your business insights.
+                        </p>
                     </div>
-                ) : (
-                    kpiMetrics.map((metric: any, i: number) => (
-                        <MetricCard
-                            key={metric.title}
-                            title={metric.title}
-                            value={metric.value}
-                            icon={iconMap[metric.icon] || FilePieChart}
-                            change={metric.change}
-                            changeType={metric.changeType}
-                            index={i}
-                        />
-                    ))
-                )}
+                    <motion.button
+                        variants={bouncyButtonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                        onClick={() => navigate('/upload')}
+                        className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm group"
+                    >
+                        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300"/>
+                        <span>Upload Invoice</span>
+                    </motion.button>
+                </motion.div>
+
+                {/* KPI Cards Section */}
+                <motion.div variants={sectionVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    { kpiError ? (
+                        <div className={`md:col-span-2 p-6 rounded-2xl shadow-lg border ${
+                            theme === 'dark'
+                            ? 'bg-gray-800/50 border-gray-700/50'
+                            : 'bg-white border-gray-200/80'
+                        }`}>
+                            <ErrorDisplay message={kpiError} onRetry={fetchInitialData} />
+                        </div>
+                    ) : (
+                        kpiMetrics.map((metric: any, i: number) => (
+                            <MetricCard
+                                key={metric.title}
+                                title={metric.title}
+                                value={metric.value}
+                                icon={iconMap[metric.icon] || FilePieChart}
+                                change={metric.change}
+                                changeType={metric.changeType}
+                                index={i}
+                            />
+                        ))
+                    )}
+                </motion.div>
+
+                {/* Status Table Section */}
+                <motion.div variants={bouncyComponentVariants}>
+                    <DashboardStatusTable />
+                </motion.div>
+
+                {/* Financial Charts Section */}
+                <motion.div variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ChartCard
+                        title="Invoice Amount"
+                        icon={Banknote}
+                        isLoading={isFinancialsLoading}
+                        error={financialsError}
+                        onRetry={fetchFinancials}
+                        data={financialObligationsData}
+                        filterType={financialFilterType}
+                        setFilterType={setFinancialFilterType}
+                        selectedYear={financialSelectedYear}
+                        setSelectedYear={setFinancialSelectedYear}
+                        fromYear={financialFromYear}
+                        setFromYear={setFinancialFromYear}
+                        toYear={financialToYear}
+                        setToYear={setFinancialToYear}
+                    >
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={financialObligationsData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                                <defs>
+                                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                                <XAxis
+                                    dataKey={financialFilterType === 'monthly' ? 'month' : 'year'}
+                                    stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={formatAxisValue}
+                                />
+                                <Tooltip
+                                    cursor={{fill: 'rgba(139, 92, 246, 0.1)'}}
+                                    contentStyle={{
+                                        backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                                        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                                        borderRadius: '0.75rem',
+                                        fontSize: '12px'
+                                    }}
+                                    formatter={(value: number) => formatTooltipIndianCurrency(value)}
+                                />
+                                <Bar
+                                    dataKey="expense"
+                                    fill="url(#expenseGradient)"
+                                    name="Expense"
+                                    radius={[4, 4, 0, 0]}
+                                    barSize={16}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
+
+                    <ChartCard
+                        title="Invoice Count"
+                        icon={FilePieChart}
+                        isLoading={isInvoiceCountLoading}
+                        error={invoiceCountError}
+                        onRetry={fetchInvoiceCount}
+                        data={invoiceCountData}
+                        filterType={invoiceFilterType}
+                        setFilterType={setInvoiceFilterType}
+                        selectedYear={invoiceSelectedYear}
+                        setSelectedYear={setInvoiceSelectedYear}
+                        fromYear={invoiceFromYear}
+                        setFromYear={setInvoiceFromYear}
+                        toYear={invoiceToYear}
+                        setToYear={setInvoiceToYear}
+                    >
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={invoiceCountData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                                 <defs>
+                                    <linearGradient id="countGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                                <XAxis
+                                    dataKey={invoiceFilterType === 'monthly' ? 'month' : 'year'}
+                                    stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <Tooltip
+                                    cursor={{stroke: 'rgba(139, 92, 246, 0.2)', strokeWidth: 2}}
+                                    contentStyle={{
+                                        backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                                        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                                        borderRadius: '0.75rem',
+                                        fontSize: '12px'
+                                    }}
+                                    formatter={(value: number) => `${value} invoices`}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="#a78bfa"
+                                    strokeWidth={2.5}
+                                    dot={{ r: 4, strokeWidth: 2, fill: theme === 'dark' ? '#1C1C2E' : '#fff' }}
+                                    activeDot={{ r: 6 }}
+                                    name="Invoices"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </ChartCard>
+                </motion.div>
+
+                {/* Vendor Charts Section - Same Row */}
+                <motion.div variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ChartCard
+                        title="Spending by Vendor"
+                        icon={TrendingUp}
+                        isLoading={isSpendByVendorLoading}
+                        error={spendByVendorError}
+                        onRetry={fetchSpendByVendor}
+                        data={spendByVendorData}
+                        selectedYear={spendByVendorSelectedYear}
+                        setSelectedYear={setSpendByVendorSelectedYear}
+                        selectedMonth={spendByVendorSelectedMonth}
+                        setSelectedMonth={setSpendByVendorSelectedMonth}
+                        topN={spendByVendorTopN}
+                        setTopN={setSpendByVendorTopN}
+                        isVendorChart={true}
+                        fullWidth={true}
+                    >
+                        {renderSpendChart()}
+                    </ChartCard>
+
+                    <ChartCard
+                        title="Discounts by Vendor"
+                        icon={Wallet}
+                        isLoading={isDiscountByVendorLoading}
+                        error={discountByVendorError}
+                        onRetry={fetchDiscountByVendor}
+                        data={discountByVendorData}
+                        selectedYear={discountByVendorSelectedYear}
+                        setSelectedYear={setDiscountByVendorSelectedYear}
+                        selectedMonth={discountByVendorSelectedMonth}
+                        setSelectedMonth={setDiscountByVendorSelectedMonth}
+                        topN={discountByVendorTopN}
+                        setTopN={setDiscountByVendorTopN}
+                        isVendorChart={true}
+                        fullWidth={true}
+                    >
+                       {renderDiscountChart()}
+                    </ChartCard>
+                </motion.div>
             </div>
-
-            {/* Status Table Section */}
-            <div>
-                <DashboardStatusTable />
-            </div>
-
-            {/* Financial Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard
-                    title="Invoice Amount"
-                    icon={Banknote}
-                    isLoading={isFinancialsLoading}
-                    error={financialsError}
-                    onRetry={fetchFinancials}
-                    data={financialObligationsData}
-                    filterType={financialFilterType}
-                    setFilterType={setFinancialFilterType}
-                    selectedYear={financialSelectedYear}
-                    setSelectedYear={setFinancialSelectedYear}
-                    fromYear={financialFromYear}
-                    setFromYear={setFinancialFromYear}
-                    toYear={financialToYear}
-                    setToYear={setFinancialToYear}
-                >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={financialObligationsData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                            <defs>
-                                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis
-                                dataKey={financialFilterType === 'monthly' ? 'month' : 'year'}
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                                tickFormatter={formatAxisValue}
-                            />
-                            <Tooltip
-                                cursor={{fill: 'rgba(139, 92, 246, 0.1)'}}
-                                contentStyle={{
-                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                                    borderRadius: '0.75rem',
-                                    fontSize: '12px'
-                                }}
-                                formatter={(value: number) => formatTooltipIndianCurrency(value)}
-                            />
-                            <Bar
-                                dataKey="expense"
-                                fill="url(#expenseGradient)"
-                                name="Expense"
-                                radius={[4, 4, 0, 0]}
-                                barSize={16}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartCard>
-
-                <ChartCard
-                    title="Invoice Count"
-                    icon={FilePieChart}
-                    isLoading={isInvoiceCountLoading}
-                    error={invoiceCountError}
-                    onRetry={fetchInvoiceCount}
-                    data={invoiceCountData}
-                    filterType={invoiceFilterType}
-                    setFilterType={setInvoiceFilterType}
-                    selectedYear={invoiceSelectedYear}
-                    setSelectedYear={setInvoiceSelectedYear}
-                    fromYear={invoiceFromYear}
-                    setFromYear={setInvoiceFromYear}
-                    toYear={invoiceToYear}
-                    setToYear={setInvoiceToYear}
-                >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={invoiceCountData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                             <defs>
-                                <linearGradient id="countGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
-                            <XAxis
-                                dataKey={invoiceFilterType === 'monthly' ? 'month' : 'year'}
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <Tooltip
-                                cursor={{stroke: 'rgba(139, 92, 246, 0.2)', strokeWidth: 2}}
-                                contentStyle={{
-                                    backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-                                    border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                                    borderRadius: '0.75rem',
-                                    fontSize: '12px'
-                                }}
-                                formatter={(value: number) => `${value} invoices`}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="count"
-                                stroke="#a78bfa"
-                                strokeWidth={2.5}
-                                dot={{ r: 4, strokeWidth: 2, fill: theme === 'dark' ? '#1C1C2E' : '#fff' }}
-                                activeDot={{ r: 6 }}
-                                name="Invoices"
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </ChartCard>
-            </div>
-
-            {/* Vendor Charts Section - Same Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard
-                    title="Spending by Vendor"
-                    icon={TrendingUp}
-                    isLoading={isSpendByVendorLoading}
-                    error={spendByVendorError}
-                    onRetry={fetchSpendByVendor}
-                    data={spendByVendorData}
-                    selectedYear={spendByVendorSelectedYear}
-                    setSelectedYear={setSpendByVendorSelectedYear}
-                    selectedMonth={spendByVendorSelectedMonth}
-                    setSelectedMonth={setSpendByVendorSelectedMonth}
-                    topN={spendByVendorTopN}
-                    setTopN={setSpendByVendorTopN}
-                    isVendorChart={true}
-                    fullWidth={true}
-                >
-                    {renderSpendChart()}
-                </ChartCard>
-
-                <ChartCard
-                    title="Discounts by Vendor"
-                    icon={Wallet}
-                    isLoading={isDiscountByVendorLoading}
-                    error={discountByVendorError}
-                    onRetry={fetchDiscountByVendor}
-                    data={discountByVendorData}
-                    selectedYear={discountByVendorSelectedYear}
-                    setSelectedYear={setDiscountByVendorSelectedYear}
-                    selectedMonth={discountByVendorSelectedMonth}
-                    setSelectedMonth={setDiscountByVendorSelectedMonth}
-                    topN={discountByVendorTopN}
-                    setTopN={setDiscountByVendorTopN}
-                    isVendorChart={true}
-                    fullWidth={true}
-                >
-                   {renderDiscountChart()}
-                </ChartCard>
-            </div>
-        </div>
+        </Animation>
     );
 }
 
