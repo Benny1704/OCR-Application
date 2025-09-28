@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence} from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import type { Section } from '../../interfaces/Types';
 
@@ -11,38 +11,43 @@ interface ModernDropdownProps {
 
 const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDropdownProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [dropUp, setDropUp] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const selectedSectionName = sections.find(s => s.section_id === selectedSection)?.section_name;
 
-    // Enhanced variants for grow and stagger effects
+    useEffect(() => {
+        if (isOpen && dropdownRef.current) {
+            const dropdownRect = dropdownRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - dropdownRect.bottom;
+            // Assuming the dropdown height to be around 200, can be adjusted
+            setDropUp(spaceBelow < 200);
+        }
+    }, [isOpen]);
+
+
     const listVariants = {
-        hidden: { 
+        hidden: {
             opacity: 0,
             scaleY: 0,
-            transition: { 
-                when: "afterChildren",
-                staggerChildren: 0.05,
-                staggerDirection: -1,
-            }
         },
-        visible: { 
-            opacity: 1, 
+        visible: {
+            opacity: 1,
             scaleY: 1,
-            transition: { 
-                when: "beforeChildren",
-                staggerChildren: 0.08,
+            transition: {
                 duration: 0.2
-            } 
+            }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: -10, scale: 0.95 },
-        visible: { opacity: 1, y: 0, scale: 1 }
+        hidden: { opacity: 0 },
+        visible: { opacity: 1 }
     };
 
     return (
-        <div className="modern-dropdown" onMouseLeave={() => setIsOpen(false)}>
+        <div className="modern-dropdown" ref={dropdownRef}>
             <motion.button
+                type='button'
                 className="dropdown-button"
                 onClick={() => setIsOpen(!isOpen)}
                 whileTap={{ scale: 0.98 }}
@@ -55,12 +60,12 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
             <AnimatePresence>
                 {isOpen && (
                     <motion.ul
-                        className="dropdown-list"
+                        className={`dropdown-list ${dropUp ? 'drop-up' : ''}`}
                         initial="hidden"
                         animate="visible"
                         exit="hidden"
                         variants={listVariants}
-                        style={{ originY: 1 }} // Ensures the grow animation starts from the top
+                        style={{ originY: dropUp ? 1 : 0 }}
                     >
                         {Array.isArray(sections) && sections.map(section => (
                             <motion.li
@@ -70,9 +75,8 @@ const ModernDropdown = ({ sections, selectedSection, onSectionSelect }: ModernDr
                                     setIsOpen(false);
                                 }}
                                 variants={itemVariants}
-                                // Replaced the weird "x" movement with a clean background change
                                 whileHover={{
-                                    backgroundColor: 'var(--secondary)', 
+                                    backgroundColor: 'var(--secondary)',
                                     color: 'var(--primary)',
                                 }}
                             >

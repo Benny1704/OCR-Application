@@ -7,10 +7,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { getSections } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 import type { Section } from '../../interfaces/Types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { User, LogOut, Lock, X, Eye, EyeOff } from 'lucide-react';
 import ModernDropdown from '../common/ModernDropdown';
-import { popupVariants, modalContentVariants } from '../common/Animation';
 
 const updateActivePosition = (ref: React.RefObject<HTMLUListElement | null>) => {
     if (ref.current) {
@@ -36,9 +35,27 @@ const Sidenav = () => {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [selectedSection, setSelectedSection] = useState<number | null>(null);
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false); // State for password visibility
+    const [showPassword, setShowPassword] = useState(false);
     const [isSwitching, setIsSwitching] = useState(false);
     const { addToast } = useToast();
+
+    // --- Animation Variants ---
+    const popupVariants: Variants = {
+        hidden: { opacity: 0, scale: 0.7 },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            transition: { type: "spring", stiffness: 500, damping: 30 }
+        },
+        exit: { opacity: 0, scale: 0.7, transition: { duration: 0.15 } }
+    };
+
+    const contentVariants: Variants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { delay: 0.1, duration: 0.2 } },
+        exit: { opacity: 0, transition: { duration: 0.1 } }
+    };
+    // --- End of Animation Variants ---
 
     useEffect(() => {
         const fetchSections = async () => {
@@ -150,8 +167,7 @@ const Sidenav = () => {
                     <motion.button
                         className="profile action"
                         onClick={() => setProfileOpen(!isProfileOpen)}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileTap={{ scale: 0.8 }}
                     >
                         <User size={20} />
                     </motion.button>
@@ -164,10 +180,11 @@ const Sidenav = () => {
                                 animate="visible"
                                 exit="exit"
                                 variants={popupVariants}
+                                style={{ transformOrigin: 'bottom left' }}
                             >
                                 <AnimatePresence mode="wait">
                                 {!showPasswordModal ? (
-                                    <motion.div key="profile-view" variants={modalContentVariants} initial="hidden" animate="visible" exit="hidden">
+                                    <motion.div key="profile-view" variants={contentVariants} initial="hidden" animate="visible" exit="hidden">
                                         <div className="user-info">
                                             <div className="avatar">{user?.username.charAt(0)}</div>
                                             <p className="username">{user?.username}</p>
@@ -187,7 +204,7 @@ const Sidenav = () => {
                                         </motion.button>
                                     </motion.div>
                                 ) : (
-                                    <motion.div key="password-view" className="password-modal" variants={modalContentVariants} initial="hidden" animate="visible" exit="hidden">
+                                    <motion.div key="password-view" className="password-modal" variants={contentVariants} initial="hidden" animate="visible" exit="hidden">
                                         <div className="modal-header">
                                             <h4>Confirm Switch</h4>
                                             <button className="close-modal" onClick={() => setShowPasswordModal(false)}><X size={18} /></button>

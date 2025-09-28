@@ -1,5 +1,5 @@
-import { User, Lock, AlertTriangle, Eye, EyeOff, Building } from 'lucide-react';
-import { useState, type FormEvent, useEffect } from 'react';
+import { User, Lock, AlertTriangle, Eye, EyeOff, Building, ChevronDown } from 'lucide-react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import brandLogo from '../assets/images/RMKV_logo.png';
@@ -21,6 +21,11 @@ const Login = () => {
     const [selectedSection, setSelectedSection] = useState<number | ''>('');
     const { addToast } = useToast();
 
+    // --- Dropdown Specific State and Logic ---
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const selectedSectionName = sections.find(s => s.section_id === selectedSection)?.section_name;
+
     useEffect(() => {
         const fetchSections = async () => {
             const sectionsData = await getSections(addToast);
@@ -30,7 +35,18 @@ const Login = () => {
             }
         };
         fetchSections();
-    }, []);
+    }, [addToast]);
+    
+    const listVariants = {
+        hidden: { opacity: 0, scaleY: 0 },
+        visible: { opacity: 1, scaleY: 1, transition: { duration: 0.2 } },
+    };
+
+    const dropdownItemVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1 },
+    };
+    // --- End of Dropdown Logic ---
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -49,11 +65,9 @@ const Login = () => {
             if (user) {
                 navigate(user.role === 'admin' ? '/dashboard' : '/queue');
             } else {
-                // The API layer shows a toast on error, but we can set a local error for the form UI
                 setError('Invalid credentials. Please try again.');
             }
         } catch (error) {
-            // This catch is a fallback, as errors are handled within the login flow.
             setError('An unexpected error occurred. Please try again later.');
         } finally {
             setIsLoading(false);
@@ -75,6 +89,7 @@ const Login = () => {
                 </motion.div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Username and Password fields remain the same */}
                     <motion.div variants={itemVariants} className="relative">
                         <User className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2" />
                         <input
@@ -108,25 +123,52 @@ const Login = () => {
                         </button>
                     </motion.div>
 
-                    <motion.div variants={itemVariants} className="relative">
-                        <Building className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2" />
-                        <select
-                            className="w-full py-3 pl-12 pr-4 text-white bg-white/10 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all placeholder:text-gray-400 appearance-none"
-                            id="section"
-                            value={selectedSection}
-                            onChange={e => setSelectedSection(Number(e.target.value))}
-                            required
-                            disabled={isLoading || sections.length === 0}
+                    {/* --- Custom Dropdown Implementation --- */}
+                    <motion.div 
+                        variants={itemVariants} 
+                        className="relative" 
+                        ref={dropdownRef}
+                    >
+                        <Building className="w-5 h-5 text-gray-400 absolute top-1/2 left-4 -translate-y-1/2 z-10" />
+                        <motion.button
+                            type="button"
+                            className="login-dropdown-button"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            whileTap={{ scale: 0.98 }}
                         >
-                            <option value="" disabled>Select a Section</option>
-                            {Array.isArray(sections) && sections.map(section => (
-                                <option key={section.section_id} value={section.section_id} className="bg-gray-800">
-                                    {section.section_name}
-                                </option>
-                            ))}
-                        </select>
+                            <span>{selectedSectionName || "Select a Section"}</span>
+                            <motion.div animate={{ rotate: isDropdownOpen ? 180 : 0 }}>
+                                <ChevronDown size={18} />
+                            </motion.div>
+                        </motion.button>
+                        <AnimatePresence>
+                            {isDropdownOpen && (
+                                <motion.ul
+                                    className="login-dropdown-list drop-up"
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit="hidden"
+                                    variants={listVariants}
+                                    style={{ originY: 1 }} // Set originY to 1 for bottom-to-top animation
+                                >
+                                    {Array.isArray(sections) && sections.map(section => (
+                                        <motion.li
+                                            key={section.section_id}
+                                            onClick={() => {
+                                                setSelectedSection(section.section_id);
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            variants={dropdownItemVariants}
+                                            whileHover={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
+                                        >
+                                            {section.section_name}
+                                        </motion.li>
+                                    ))}
+                                </motion.ul>
+                            )}
+                        </AnimatePresence>
                     </motion.div>
-
+                    {/* --- End of Custom Dropdown --- */}
 
                     <AnimatePresence>
                         {error && (
