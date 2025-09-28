@@ -6,6 +6,7 @@ import { getDocumentSummary } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 import { motion } from 'framer-motion';
 import { bouncyComponentVariants } from './Animation';
+import PillToggle from './PillToggle'; // Import the new component
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -128,29 +129,27 @@ const StatusCard = ({
     );
 };
 
-const DashboardStatusTable = () => {
+const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
     const { theme } = useTheme();
     const { addToast } = useToast();
     const navigate = useNavigate();
     const [counts, setCounts] = useState({ queued: 0, processed: 0, failed: 0, completed: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    // NEW FEATURE: State for last updated timestamp.
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
+    const [timeFilter, setTimeFilter] = useState<'today' | 'all'>('all');
 
     const fetchSummary = useCallback(async (isRefresh = false) => {
         setIsLoading(true);
         if(!isRefresh) setError(null);
         try {
-            const summary = await getDocumentSummary(addToast);
+            const summary = await getDocumentSummary(addToast, section_id, timeFilter === 'today');
             setCounts({
                 queued: summary.waiting || 0,
                 processed: summary.processed || 0,
                 failed: summary.failed || 0,
                 completed: summary.processed || 0,
             });
-            // NEW FEATURE: Update timestamp on successful fetch.
             setLastUpdated(new Date());
             if(isRefresh) {
                 addToast({
@@ -167,7 +166,7 @@ const DashboardStatusTable = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [section_id, timeFilter, addToast]);
 
     useEffect(() => {
         fetchSummary();
@@ -243,6 +242,14 @@ const DashboardStatusTable = () => {
                             Real-time processing overview
                         </p>
                     </div>
+                    <PillToggle
+                        options={[
+                            { label: 'All Time', value: 'all' },
+                            { label: 'Today', value: 'today' },
+                        ]}
+                        selected={timeFilter}
+                        onSelect={setTimeFilter}
+                    />
                 </div>
             </div>
 
@@ -272,7 +279,6 @@ const DashboardStatusTable = () => {
                 ))}
             </div>
 
-            {/* MODIFICATION: Updated bottom stats bar with accurate "Last Updated" time and a refresh button. */}
             {!isLoading && (
                 <div
                     className="relative z-10 mt-8 pt-6 border-t border-gray-200/20"
@@ -281,7 +287,6 @@ const DashboardStatusTable = () => {
                         <div className={`flex items-center space-x-4 ${
                             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                            <span>•</span>
                             <span>Last Updated: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
                              <button
                                 onClick={() => fetchSummary(true)}

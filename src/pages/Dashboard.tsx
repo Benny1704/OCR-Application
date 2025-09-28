@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LineChart, Line, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, ArrowUpRight, MoreVertical, FileDiff } from 'lucide-react';
-import { Menu, Transition, Switch } from "@headlessui/react";
+import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor, getDocumentSummary } from '../lib/api/Api';
+import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import { useToast } from '../hooks/useToast';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bouncyComponentVariants } from '../components/common/Animation';
 import { motion } from 'framer-motion';
+import PillToggle from '../components/common/PillToggle'; // Import the new component
 
 const iconMap: { [key: string]: React.ElementType } = {
     Wallet,
@@ -298,21 +299,14 @@ const ChartFilterMenu = ({ filterType, setFilterType, selectedYear, setSelectedY
                     {filterType && setFilterType && (
                         <>
                             <div className="px-4 py-3">
-                                <div className="flex items-center justify-between">
-                                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>
-                                        View Mode
-                                    </span>
-                                    <Switch
-                                        checked={filterType === 'yearly'}
-                                        onChange={() => setFilterType(filterType === 'monthly' ? 'yearly' : 'monthly')}
-                                        className={`${filterType === 'yearly' ? 'bg-violet-600' : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-                                    >
-                                        <span className={`${filterType === 'yearly' ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
-                                    </Switch>
-                                </div>
-                                <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-                                    {filterType === 'yearly' ? 'Yearly Range' : 'Monthly View'}
-                                </p>
+                                <PillToggle
+                                    options={[
+                                        { label: 'Monthly', value: 'monthly' },
+                                        { label: 'Yearly', value: 'yearly' },
+                                    ]}
+                                    selected={filterType}
+                                    onSelect={setFilterType}
+                                />
                             </div>
                                     {filterType === 'monthly' ? (
                                         <div className="px-4 py-3">
@@ -530,13 +524,14 @@ const Dashboard = () => {
     const [discountByVendorSelectedYear, setDiscountByVendorSelectedYear] = useState<number>(new Date().getFullYear());
     const [discountByVendorSelectedMonth, setDiscountByVendorSelectedMonth] = useState<number>(0);
     const [discountByVendorTopN, setDiscountByVendorTopN] = useState<number>(10);
+    const [sectionFilter, setSectionFilter] = useState<'overall' | 'current'>('overall');
 
     const fetchInitialData = useCallback(async () => {
         try {
+            const sectionId = sectionFilter === 'current' ? user?.section : undefined;
             const [spendResponse, discountResponse] = await Promise.all([
-                getTotalSpendThisMonth(addToast),
-                getTotalDiscountThisMonth(addToast),
-                getDocumentSummary(addToast)
+                getTotalSpendThisMonth(addToast, sectionId),
+                getTotalDiscountThisMonth(addToast, sectionId),
             ]);
 
             const spendData = spendResponse.total_spend_this_month;
@@ -563,39 +558,42 @@ const Dashboard = () => {
         } catch (err: any) {
             setKpiError(err.message || "Could not load key performance indicators.");
         }
-    }, []);
+    }, [sectionFilter, user, addToast]);
 
     const fetchFinancials = useCallback(async () => {
         setIsFinancialsLoading(true);
         setFinancialsError(null);
         try {
-            const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear);
+            const sectionId = sectionFilter === 'current' ? user?.section : undefined;
+            const financialData = await getFinancialObligations(financialFilterType, financialFilterType === 'monthly' ? financialSelectedYear : financialFromYear, financialToYear, sectionId);
             setFinancialObligationsData(financialData || []);
         } catch (err: any) {
             setFinancialsError(err.message || "Could not load financial obligations data.");
         } finally {
              setIsFinancialsLoading(false);
         }
-    }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear]);
+    }, [financialFilterType, financialSelectedYear, financialFromYear, financialToYear, sectionFilter, user]);
 
     const fetchInvoiceCount = useCallback(async () => {
         setIsInvoiceCountLoading(true);
         setInvoiceCountError(null);
         try {
-            const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear);
+            const sectionId = sectionFilter === 'current' ? user?.section : undefined;
+            const invoiceData = await getInvoiceCount(invoiceFilterType, invoiceFilterType === 'monthly' ? invoiceSelectedYear : invoiceFromYear, invoiceToYear, sectionId);
             setInvoiceCountData(invoiceData || []);
         } catch (err: any) {
             setInvoiceCountError(err.message || "Could not load invoice count data.");
         } finally {
             setIsInvoiceCountLoading(false);
         }
-    }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear]);
+    }, [invoiceFilterType, invoiceSelectedYear, invoiceFromYear, invoiceToYear, sectionFilter, user]);
 
     const fetchSpendByVendor = useCallback(async () => {
         setIsSpendByVendorLoading(true);
         setSpendByVendorError(null);
         try {
-            const spendData = await getSpendByVendor(spendByVendorSelectedYear, spendByVendorSelectedMonth || undefined);
+            const sectionId = sectionFilter === 'current' ? user?.section : undefined;
+            const spendData = await getSpendByVendor(spendByVendorSelectedYear, spendByVendorSelectedMonth || undefined, sectionId);
             const transformedData = spendData.map((item: any) => ({ name: item.vendor_name, value: item.spend }));
 
             if (spendByVendorTopN > 0 && transformedData.length > spendByVendorTopN) {
@@ -616,13 +614,14 @@ const Dashboard = () => {
         } finally {
             setIsSpendByVendorLoading(false);
         }
-    }, [spendByVendorSelectedYear, spendByVendorSelectedMonth, spendByVendorTopN]);
+    }, [spendByVendorSelectedYear, spendByVendorSelectedMonth, spendByVendorTopN, sectionFilter, user]);
 
     const fetchDiscountByVendor = useCallback(async () => {
         setIsDiscountByVendorLoading(true);
         setDiscountByVendorError(null);
         try {
-            const discountData = await getDiscountByVendor(discountByVendorSelectedYear, discountByVendorSelectedMonth || undefined);
+            const sectionId = sectionFilter === 'current' ? user?.section : undefined;
+            const discountData = await getDiscountByVendor(discountByVendorSelectedYear, discountByVendorSelectedMonth || undefined, sectionId);
             const transformedData = discountData.map((item: any) => ({ name: item.vendor_name, value: item.discount_pct }));
 
             if (discountByVendorTopN > 0 && transformedData.length > discountByVendorTopN) {
@@ -645,7 +644,7 @@ const Dashboard = () => {
         } finally {
             setIsDiscountByVendorLoading(false);
         }
-    }, [discountByVendorSelectedYear, discountByVendorSelectedMonth, discountByVendorTopN]);
+    }, [discountByVendorSelectedYear, discountByVendorSelectedMonth, discountByVendorTopN, sectionFilter, user]);
 
     useEffect(() => {
         const loadPageData = async () => {
@@ -761,16 +760,26 @@ const Dashboard = () => {
                             Here's your business insights.
                         </p>
                     </div>
-                    <motion.button
-                        variants={bouncyButtonVariants}
-                        whileHover="hover"
-                        whileTap="tap"
-                        onClick={() => navigate('/upload')}
-                        className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm group"
-                    >
-                        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300"/>
-                        <span>Upload Invoice</span>
-                    </motion.button>
+                    <div className="flex items-center space-x-4">
+                        <PillToggle
+                            options={[
+                                { label: 'Overall', value: 'overall' },
+                                { label: 'Current Section', value: 'current' },
+                            ]}
+                            selected={sectionFilter}
+                            onSelect={setSectionFilter}
+                        />
+                        <motion.button
+                            variants={bouncyButtonVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                            onClick={() => navigate('/upload')}
+                            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-violet-500/50 text-sm group"
+                        >
+                            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300"/>
+                            <span>Upload Invoice</span>
+                        </motion.button>
+                    </div>
                 </motion.div>
 
                 {/* KPI Cards Section */}
@@ -800,7 +809,7 @@ const Dashboard = () => {
 
                 {/* Status Table Section */}
                 <motion.div variants={bouncyComponentVariants}>
-                    <DashboardStatusTable />
+                    <DashboardStatusTable section_id={sectionFilter === 'current' ? user?.section : undefined} />
                 </motion.div>
 
                 {/* Financial Charts Section */}

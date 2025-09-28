@@ -160,15 +160,23 @@ export const getCompletedDocuments = async (addToast: any, page: number = 1, pag
 };
 
 
-export const getDocumentSummary = async (addToast: any) => {
+export const getDocumentSummary = async (addToast: any, section_id?: number, is_today?: boolean) => {
     try {
-        const response = await api.get('/document/summary');
+        const params: any = {};
+        if (section_id) {
+            params.section_id = section_id;
+        }
+        if (is_today !== undefined) {
+            params.is_today = is_today;
+        }
+        const response = await api.get('/document/summary', { params });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
         return { waiting: 0, processed: 0, failed: 0, completed: 0 };
     }
 };
+
 
 export const deleteMessage = async (id: string, addToast: any) => {
     try {
@@ -198,9 +206,10 @@ export const retryMessage = async (id: string, addToast: any, images?: string[])
     }
 };
 
-export const getTotalDiscountThisMonth = async (addToast: any): Promise<any> => {
+export const getTotalDiscountThisMonth = async (addToast: any, section_id?: number): Promise<any> => {
     try {
-        const response = await api.get('/metrics/total_discount_this_month');
+        const params = section_id ? { section_id } : {};
+        const response = await api.get('/metrics/total_discount_this_month', { params });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -208,9 +217,10 @@ export const getTotalDiscountThisMonth = async (addToast: any): Promise<any> => 
     }
 };
 
-export const getTotalSpendThisMonth = async (addToast: any): Promise<any> => {
+export const getTotalSpendThisMonth = async (addToast: any, section_id?: number): Promise<any> => {
     try {
-        const response = await api.get('/metrics/total_spend_this_month');
+        const params = section_id ? { section_id } : {};
+        const response = await api.get('/metrics/total_spend_this_month', { params });
         return response.data;
     } catch (error) {
         handleError(error, addToast);
@@ -220,10 +230,14 @@ export const getTotalSpendThisMonth = async (addToast: any): Promise<any> => {
 
 
 // --- Chart Data Functions ---
-const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    const params = filterType === 'monthly'
+const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'monthly' | 'yearly', year: number, toYear?: number, section_id?: number) => {
+    const params: any = filterType === 'monthly'
         ? { year }
         : { from_year: year, to_year: toYear };
+
+    if (section_id) {
+        params.section_id = section_id;
+    }
 
     const response = await instance.get(endpoint, { params });
     const data = response.data;
@@ -238,33 +252,38 @@ const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'm
     return data[key];
 };
 
-export const getFinancialObligations = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(api, '/metrics/financial_obligations', filterType, year, toYear);
+export const getFinancialObligations = (filterType: 'monthly' | 'yearly', year: number, toYear?: number, section_id?: number) => {
+    return fetchDataForChart(api, '/metrics/financial_obligations', filterType, year, toYear, section_id);
 };
 
-export const getInvoiceCount = (filterType: 'monthly' | 'yearly', year: number, toYear?: number) => {
-    return fetchDataForChart(api, '/metrics/invoice_count', filterType, year, toYear);
+export const getInvoiceCount = (filterType: 'monthly' | 'yearly', year: number, toYear?: number, section_id?: number) => {
+    return fetchDataForChart(api, '/metrics/invoice_count', filterType, year, toYear, section_id);
 };
 
-export const getSpendByVendor = async (year: number, month?: number) => {
+export const getSpendByVendor = async (year: number, month?: number, section_id?: number) => {
     const params: any = { year };
     if (month) {
         params.month = month;
+    }
+    if (section_id) {
+        params.section_id = section_id;
     }
     const response = await api.get('/metrics/spend_by_vendor', { params });
     return response.data.spend_by_vendor.vendors;
 };
 
-export const getDiscountByVendor = async (year: number, month?: number) => {
+export const getDiscountByVendor = async (year: number, month?: number, section_id?: number) => {
     const params: any = { year };
     if (month) {
         params.month = month;
+    }
+    if (section_id) {
+        params.section_id = section_id;
     }
     const response = await api.get('/metrics/discount_percent_per_vendor', { params });
 
     return response.data.discount_percent_per_vendor.vendors;
 };
-
 // --- Invoice Details API Functions ---
 
 export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
