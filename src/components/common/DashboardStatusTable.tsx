@@ -84,9 +84,6 @@ const StatusCard = ({
                         {isLoading ? (
                             <div className="flex items-center space-x-2 mt-4">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                                <div className={`h-8 w-16 rounded-lg ${
-                                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
-                                }`} />
                             </div>
                         ) : (
                              <div className="space-y-1">

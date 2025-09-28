@@ -45,8 +45,7 @@
     padding-block: 15px;
     --w-h-item: 50px;
     --position-y-active: 5px;
-    background-color: light-dark(var(--white), var(--primary-dark));
-    // background-color: light-dark(var(--primary-dark),var(--primary-dark));
+    background: var(--primary);
     border-radius: 30px;
     box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
     .nav {
@@ -170,6 +169,9 @@
     }
   }
 }
+:root.dark .sidenav-container .nav-container {
+    background: var(--primary-dark);
+}
 
 .profile-popup {
   position: absolute;
@@ -177,14 +179,14 @@
   left: calc(110% + 15px);
   width: 250px;
   // Refined theme-adaptive background colors
-  background: light-dark(rgba(249, 249, 250, 0.9), rgba(28, 28, 46, 0.85)); // #1C1C2E with 85% opacity
+  background: light-dark(rgba(249, 249, 250, 0.9), linear-gradient(to bottom right, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.6)));
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
   border-radius: 16px;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
   padding: 18px;
   z-index: 200;
-  border: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
+  border: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(55, 65, 81, 0.5));
   color: light-dark(var(--primary-dark), var(--white));
 
   .user-info {
