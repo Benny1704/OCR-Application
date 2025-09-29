@@ -21,8 +21,9 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-
 // --- Centralized Error Handler ---
+let isToastVisible = false;
+
 const handleError = (error: any, addToast: (toast: { message: string, type: "error" }) => void) => {
     let errorMessage = "An unknown error occurred.";
 
@@ -42,8 +43,12 @@ const handleError = (error: any, addToast: (toast: { message: string, type: "err
 
     console.error("API Error:", error);
 
-    if (addToast) {
+    if (addToast && !isToastVisible) {
+        isToastVisible = true;
         addToast({ message: errorMessage, type: "error" });
+        setTimeout(() => {
+            isToastVisible = false;
+        }, 3000); // Reset after 3 seconds
     }
 
     throw new Error(errorMessage);
