@@ -121,7 +121,7 @@ const Upload = () => {
         }, {} as { [key: string]: any });
 
         try {
-            const response = await api.uploadFiles(file!, formattedData, (p) => setUploadProgress(p), addToast);
+            const response = await api.uploadFiles(file!, formattedData, (p) => setUploadProgress(p));
             if (response.success) {
                 addToast({ type: 'success', message: 'Upload complete!' });
                 setFile(null);

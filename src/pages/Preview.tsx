@@ -161,20 +161,20 @@ const Preview = () => {
             const promises = [];
 
             // 1. Update main invoice details
-            promises.push(updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast));
+            promises.push(updateInvoiceDetails(invoiceIdNum, invoiceDetails));
 
             // 2. Update product summary details
-            promises.push(updateProductDetails(invoiceIdNum, productDetails, addToast));
+            promises.push(updateProductDetails(invoiceIdNum, productDetails));
             
             // 3. Update amount and tax details
-            promises.push(updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast));
+            promises.push(updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails));
 
             // 4. Update line items for each product that has them
             productDetails.forEach(p => {
                 if (p.line_items && p.line_items.length > 0) {
                     const productId = typeof p.id === 'string' ? parseInt(p.id, 10) : p.id;
                     if (!isNaN(productId)) {
-                        promises.push(updateLineItems(productId, p.line_items, addToast));
+                        promises.push(updateLineItems(productId, p.line_items));
                     }
                 }
             });

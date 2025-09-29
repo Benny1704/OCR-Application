@@ -44,13 +44,13 @@ const Review = () => {
                 itemSummaryConfigData,
                 itemAttributesConfigData,
             ] = await Promise.all([
-                getInvoiceDetails(invoiceIdNum, addToast),
-                getProductDetails(invoiceIdNum, addToast),
-                getAmountAndTaxDetails(invoiceIdNum, addToast),
-                getInvoiceConfig(addToast),
-                getInvoiceMetaConfig(addToast),
-                getItemSummaryConfig(addToast),
-                getItemAttributesConfig(addToast),
+                getInvoiceDetails(invoiceIdNum),
+                getProductDetails(invoiceIdNum),
+                getAmountAndTaxDetails(invoiceIdNum),
+                getInvoiceConfig(),
+                getInvoiceMetaConfig(),
+                getItemSummaryConfig(),
+                getItemAttributesConfig(),
             ]);
 
             if (!invoiceData || !productData || !amountData) {

@@ -148,7 +148,7 @@ const EditableComponent = ({
     const handleSimpleRetry = async () => {
         setRetryModalOpen(false);
         if (messageId) {
-            await retryMessage(messageId, addToast);
+            await retryMessage(messageId);
         }
     };
     const handleRetryWithAlterations = () => {

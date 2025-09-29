@@ -5,7 +5,6 @@ import { useAuth } from '../hooks/useAuth';
 import brandLogo from '../assets/images/RMKV_logo.png';
 import { motion, AnimatePresence } from "framer-motion";
 import { getSections } from '../lib/api/Api';
-import { useToast } from '../hooks/useToast';
 import type { Section } from '../interfaces/Types';
 import { containerVariants, itemVariants } from '../components/common/Animation';
 
@@ -19,7 +18,6 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [sections, setSections] = useState<Section[]>([]);
     const [selectedSection, setSelectedSection] = useState<number | ''>('');
-    const { addToast } = useToast();
 
     // --- Dropdown Specific State and Logic ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -28,7 +26,7 @@ const Login = () => {
 
     useEffect(() => {
         const fetchSections = async () => {
-            const sectionsData = await getSections(addToast);
+            const sectionsData = await getSections();
             setSections(sectionsData);
             if (sectionsData.length > 0) {
                 setSelectedSection(sectionsData[0].section_id);

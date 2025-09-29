@@ -59,7 +59,7 @@ const Sidenav = () => {
 
     useEffect(() => {
         const fetchSections = async () => {
-            const sectionsData = await getSections(addToast);
+            const sectionsData = await getSections();
             setSections(sectionsData);
         };
         fetchSections();

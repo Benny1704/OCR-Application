@@ -140,7 +140,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
         setIsLoading(true);
         if(!isRefresh) setError(null);
         try {
-            const summary = await getDocumentSummary(addToast, section_id, timeFilter === 'today');
+            const summary = await getDocumentSummary(section_id, timeFilter === 'today');
             setCounts({
                 queued: summary.waiting || 0,
                 processed: summary.processed || 0,

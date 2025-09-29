@@ -105,13 +105,13 @@ const Edit = () => {
                 itemSummaryConfigData,
                 itemAttributesConfigData,
             ] = await Promise.all([
-                getInvoiceDetails(invoiceIdNum, addToast),
-                getProductDetails(invoiceIdNum, addToast),
-                getAmountAndTaxDetails(invoiceIdNum, addToast),
-                getInvoiceConfig(addToast),
-                getInvoiceMetaConfig(addToast),
-                getItemSummaryConfig(addToast),
-                getItemAttributesConfig(addToast),
+                getInvoiceDetails(invoiceIdNum),
+                getProductDetails(invoiceIdNum),
+                getAmountAndTaxDetails(invoiceIdNum),
+                getInvoiceConfig(),
+                getInvoiceMetaConfig(),
+                getItemSummaryConfig(),
+                getItemAttributesConfig(),
             ]);
 
             if (!invoiceData || !productData || !amountData) {
@@ -175,11 +175,11 @@ const Edit = () => {
         };
 
         try {
-            const response = await manualInvoiceEntryItemSummary(payload, addToast);
+            const response = await manualInvoiceEntryItemSummary(payload);
             if (response && response.status === 'success' && response.data?.length > 0) {
                 addToast({ type: 'success', message: 'Product row saved successfully!' });
 
-                const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10), addToast);
+                const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10));
 
                 if (Array.isArray(updatedProductDetails)) {
                     setProductDetails(updatedProductDetails);
@@ -230,12 +230,12 @@ const Edit = () => {
             const invoiceIdNum = parseInt(invoiceId, 10);
 
             await Promise.all([
-                updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                updateProductDetails(invoiceIdNum, { items: productDetails }, addToast),
-                updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
+                updateInvoiceDetails(invoiceIdNum, invoiceDetails),
+                updateProductDetails(invoiceIdNum, { items: productDetails }),
+                updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails),
             ]);
 
-            await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' }, addToast);
+            await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' });
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
@@ -268,13 +268,13 @@ const Edit = () => {
                 }
                 const invoiceIdNum = parseInt(invoiceId, 10);
                 await Promise.all([
-                    updateInvoiceDetails(invoiceIdNum, invoiceDetails, addToast),
-                    updateProductDetails(invoiceIdNum, { items: productDetails }, addToast),
-                    updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails, addToast),
+                    updateInvoiceDetails(invoiceIdNum, invoiceDetails),
+                    updateProductDetails(invoiceIdNum, { items: productDetails }),
+                    updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails),
                 ]);
             }
 
-            await confirmInvoice(messageId, { isEdited: isDirty, state: 'Completed' }, addToast);
+            await confirmInvoice(messageId, { isEdited: isDirty, state: 'Completed' });
             addToast({ type: 'success', message: 'Invoice finalized successfully!' });
             setIsDirty(false);
             navigate('/document');

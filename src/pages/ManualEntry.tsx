@@ -60,6 +60,7 @@ const ManualEntry = () => {
     const [isAmountDetailsSaved, setIsAmountDetailsSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+    const [hasMandatoryFieldsError, setHasMandatoryFieldsError] = useState<boolean>(false);
 
 
     // Form Data State
@@ -70,7 +71,7 @@ const ManualEntry = () => {
     // UI State
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['product_details']));
+    const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['supplier_invoice']));
     // This state tracks the row currently being saved using its temporary client-side ID.
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
 
@@ -79,6 +80,30 @@ const ManualEntry = () => {
     const { theme } = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (configs.form) {
+            for (const section of configs.form) {
+                if (section.fields) {
+                    for (const field of section.fields) {
+                        if (field.isRequired) {
+                            let value;
+                            if (section.id === 'supplier_invoice') {
+                                value = (invoiceDetails as any)[field.key];
+                            } else if (section.id === 'amount_details') {
+                                value = (amountDetails as any)[field.key];
+                            }
+                            if (value === null || value === undefined || value === '') {
+                                setHasMandatoryFieldsError(true);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            setHasMandatoryFieldsError(false);
+        }
+    }, [configs.form, invoiceDetails, amountDetails]);
 
     // --- Data Fetching ---
     const fetchConfig = useCallback(async () => {
@@ -91,10 +116,10 @@ const ManualEntry = () => {
                 itemSummaryConfigData,
                 itemAttributesConfigData,
             ] = await Promise.all([
-                getInvoiceConfig(addToast),
-                getInvoiceMetaConfig(addToast),
-                getItemSummaryConfig(addToast),
-                getItemAttributesConfig(addToast),
+                getInvoiceConfig(),
+                getInvoiceMetaConfig(),
+                getItemSummaryConfig(),
+                getItemAttributesConfig(),
             ]);
 
             const fetchedFormConfig: FormSection[] = [
@@ -123,7 +148,7 @@ const ManualEntry = () => {
     const fetchProductDetails = useCallback(async (invoiceId: number) => {
         if (!invoiceId) return;
         try {
-            const productsData = await getProductDetails(invoiceId, addToast);
+            const productsData = await getProductDetails(invoiceId);
             setProductDetails(productsData || []);
         } catch (err) {
             console.error("Failed to fetch product details", err);
@@ -136,9 +161,13 @@ const ManualEntry = () => {
 
     const handleSupplierSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+        if (hasMandatoryFieldsError) {
+            addToast({ type: 'error', message: 'Please fill all mandatory fields.' });
+            return;
+        }
         setIsSubmitting(true);
         try {
-            const response = await manualInvoiceEntryInvoice(location.state?.messageId, invoiceDetails, addToast);
+            const response = await manualInvoiceEntryInvoice(location.state?.messageId, invoiceDetails);
             if (response && response.invoice_id) {
                 const newInvoiceId = response.invoice_id;
                 setInvoiceDetails(prev => ({ ...prev, invoice_id: newInvoiceId }));
@@ -146,13 +175,14 @@ const ManualEntry = () => {
                 setStep('details');
                 setIsInvoiceSubmitted(true);
                 addToast({ type: 'success', message: 'Supplier details saved successfully.' });
+                setOpenAccordions(new Set(['supplier_invoice', 'product_details', 'amount_details']));
             }
         } catch (apiError) {
             console.error(apiError);
         } finally {
             setIsSubmitting(false);
         }
-    }, [invoiceDetails, location.state?.messageId]);
+    }, [invoiceDetails, location.state?.messageId, hasMandatoryFieldsError]);
 
     const handleSaveProductRow = useCallback(async (productRow: ProductDetails): Promise<void> => {
         if (hasValidationErrors) {
@@ -180,7 +210,7 @@ const ManualEntry = () => {
         };
 
         try {
-            const response = await manualInvoiceEntryItemSummary(payload, addToast);
+            const response = await manualInvoiceEntryItemSummary(payload);
 
             if (response && response.status === 'success' && response.data?.length > 0) {
                 const savedProduct = response.data[0];
@@ -204,13 +234,13 @@ const ManualEntry = () => {
 
 
     const handleSaveAmountDetails = useCallback(async () => {
-        if (hasValidationErrors) {
-            addToast({ type: 'error', message: 'Please fix the errors in the product details before saving.' });
+        if (hasValidationErrors || hasMandatoryFieldsError) {
+            addToast({ type: 'error', message: 'Please fix the errors and fill all mandatory fields before saving.' });
             return;
         }
         setIsSubmitting(true);
         try {
-            await manualInvoiceEntryInvoiceMeta(amountDetails, addToast);
+            await manualInvoiceEntryInvoiceMeta(amountDetails);
             setIsAmountDetailsSaved(true);
             addToast({ type: 'success', message: 'Amount & Tax details saved successfully!' });
         } catch (apiError) {
@@ -218,20 +248,20 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [amountDetails, hasValidationErrors]);
+    }, [amountDetails, hasValidationErrors, hasMandatoryFieldsError]);
 
     const handleConfirmInvoice = useCallback(async () => {
         if (!location.state?.messageId) {
             addToast({ type: 'error', message: 'Message ID not found, cannot confirm invoice.' });
             return;
         }
-         if (hasValidationErrors) {
-            addToast({ type: 'error', message: 'Please fix the errors in the product details before confirming.' });
+         if (hasValidationErrors || hasMandatoryFieldsError) {
+            addToast({ type: 'error', message: 'Please fix the errors and fill all mandatory fields before confirming.' });
             return;
         }
         setIsSubmitting(true);
         try {
-            await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'Reviewed' }, addToast);
+            await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'Reviewed' });
             addToast({ type: 'success', message: 'Invoice confirmed successfully!' });
             navigate('/queue', { state: { defaultTab: "Yet to Review" } });
         } catch (apiError) {
@@ -240,7 +270,7 @@ const ManualEntry = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [location.state?.messageId, navigate, hasValidationErrors]);
+    }, [location.state?.messageId, navigate, hasValidationErrors, hasMandatoryFieldsError]);
 
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, section: 'invoice' | 'amount') => {
@@ -259,6 +289,9 @@ const ManualEntry = () => {
     }, []);
 
     const toggleAccordion = useCallback((id: string) => {
+        if (isInvoiceSubmitted && id === 'supplier_invoice') {
+            return; // Do not close the supplier accordion after submission
+        }
         setOpenAccordions(prev => {
             const next = new Set(prev);
             if (next.has(id)) {
@@ -271,7 +304,7 @@ const ManualEntry = () => {
             }
             return next;
         });
-    }, [invoiceDetails.invoice_id, fetchProductDetails]);
+    }, [isInvoiceSubmitted, invoiceDetails.invoice_id, fetchProductDetails]);
     
     const onDataChange = useCallback((newData: DataItem[]) => {
         setProductDetails(newData as ProductDetails[]);
@@ -348,7 +381,7 @@ const ManualEntry = () => {
                     {showConfirmButton && (
                         <button
                             onClick={handleConfirmInvoice}
-                            disabled={isSubmitting || hasValidationErrors}
+                            disabled={isSubmitting || hasValidationErrors || hasMandatoryFieldsError}
                             className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? <Loader type="btnLoader" /> : <CheckCircle size={16} />}
@@ -390,6 +423,8 @@ const ManualEntry = () => {
                                                     onChange={(e) => handleInputChange(e, 'invoice')}
                                                     theme={theme}
                                                     disabled={isInvoiceSubmitted}
+                                                    isRequired={field.isRequired}
+                                                    // type={field.type}
                                                 />
                                             ))}
                                         </div>
@@ -397,7 +432,7 @@ const ManualEntry = () => {
                                             <div className="mt-6 flex justify-end">
                                                 <button
                                                     type="submit"
-                                                    disabled={isSubmitting}
+                                                    disabled={isSubmitting || hasMandatoryFieldsError}
                                                     className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-violet-600 text-white hover:bg-violet-700 disabled:bg-violet-400"
                                                 >
                                                     {isSubmitting ? <Loader type="btnLoader" /> : <ArrowRight size={16} />}
@@ -466,6 +501,8 @@ const ManualEntry = () => {
                                                                                     onChange={(e) => handleInputChange(e, 'amount')}
                                                                                     theme={theme}
                                                                                     disabled={isAmountDetailsSaved}
+                                                                                    isRequired={field.isRequired}
+                                                                                    type={field.type}
                                                                                 />
                                                                             ))}
                                                                         </div>
@@ -473,7 +510,7 @@ const ManualEntry = () => {
                                                                             <div className="flex justify-end">
                                                                                 <button
                                                                                     onClick={handleSaveAmountDetails}
-                                                                                    disabled={isSubmitting || hasValidationErrors}
+                                                                                    disabled={isSubmitting || hasValidationErrors || hasMandatoryFieldsError}
                                                                                     className="inline-flex items-center gap-2 font-semibold py-2 px-5 text-sm rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed"
                                                                                 >
                                                                                     {isSubmitting ? <Loader type="btnLoader" /> : <Save size={16} />}

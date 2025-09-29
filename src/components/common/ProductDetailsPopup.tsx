@@ -33,7 +33,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         if (product?.item_id && invoiceId) {
             setIsLoading(true);
             try {
-                const fetchedLineItems = await getLineItems(invoiceId, product.item_id, addToast);
+                const fetchedLineItems = await getLineItems(invoiceId, product.item_id);
                 const newInitialLineItems = fetchedLineItems.map((item: any) => ({ ...item }));
                 setLineItems(newInitialLineItems);
                 setInitialLineItems(newInitialLineItems);
@@ -68,7 +68,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             addToast({ type: 'error', message: 'Cannot save: Missing product item ID.' });
             return;
         }
-        const savedLineItems = await updateLineItems(product.item_id, lineItems, addToast);
+        const savedLineItems = await updateLineItems(product.item_id, lineItems);
         if (savedLineItems) {
             onSave(isDirty);
             onClose();
@@ -114,7 +114,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 EAN: String(row.ean_code || row.EAN || "")
             };
 
-            const response = await manualInvoiceEntryItemAttributes([attributePayload], addToast);
+            const response = await manualInvoiceEntryItemAttributes([attributePayload]);
 
             if (response && response.status === 'success') {
                 addToast({ type: 'success', message: 'Row saved successfully!' });

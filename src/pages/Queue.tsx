@@ -224,7 +224,7 @@ const Queue = () => {
         let failedResponse: ApiResponse<FailedDocument>;
 
         if (activeTab === 'Queued') {
-            queuedResponse = await getQueuedDocuments(addToast, currentPage, pageSize);
+            queuedResponse = await getQueuedDocuments(currentPage, pageSize);
             if (Array.isArray(queuedResponse.data)) {
               setQueuedDocuments(queuedResponse.data.map((item: any) => ({
                   id: item.message_id,
@@ -242,7 +242,7 @@ const Queue = () => {
             }
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Yet to Review') {
-            processedResponse = await getProcessedDocuments(addToast, currentPage, pageSize);
+            processedResponse = await getProcessedDocuments(currentPage, pageSize);
             if (Array.isArray(processedResponse.data)) {
               setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
                   id: item.message_id,
@@ -262,7 +262,7 @@ const Queue = () => {
             }
             setPagination(prev => ({...prev, "Yet to Review": processedResponse.pagination}));
         } else if (activeTab === 'Failed') {
-            failedResponse = await getFailedDocuments(addToast, currentPage, pageSize);
+            failedResponse = await getFailedDocuments(currentPage, pageSize);
             if (Array.isArray(failedResponse.data)) {
               setFailedDocuments(failedResponse.data.map((item: any) => ({
                   id: item.message_id,
@@ -353,7 +353,7 @@ const Queue = () => {
       message: 'Are you sure you want to set this document as a priority? This action cannot be undone.',
       onConfirm: async () => {
         try {
-          await togglePriority(id, addToast);
+          await togglePriority(id);
           await fetchDocuments();
           addToast({ type: 'success', message: 'Priority updated successfully.' });
         } finally {
@@ -371,7 +371,7 @@ const Queue = () => {
       message: 'Are you sure you want to delete this document? This action cannot be undone.',
       onConfirm: async () => {
         try {
-          await deleteMessage(id, addToast);
+          await deleteMessage(id);
           await fetchDocuments();
           addToast({ type: 'success', message: 'Document deleted successfully.' });
         } finally {
@@ -386,7 +386,7 @@ const Queue = () => {
     setRetryModalOpen(false);
     if (selectedDocumentId) {
         addToast({type: 'info', message: 'Sending document for retry...'})
-        await retryMessage(selectedDocumentId, addToast);
+        await retryMessage(selectedDocumentId);
         await fetchDocuments(true);
     }
   };

@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { type DataItem, type ProcessedDocument, type Pagination } from "../interfaces/Types";
 import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
-import { useToast } from "../hooks/useToast";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { TableSkeleton } from "../components/common/SkeletonLoaders";
 import { formatDateTime } from "./Queue";
@@ -21,13 +20,12 @@ const Documents = () => {
   const [pageSize, setPageSize] = useState(25);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { addToast } = useToast();
 
   const fetchDocuments = useCallback(async (page: number, size: number) => {
     setIsLoading(true);
     setError(null);
     try {
-        const { data, pagination: paginationData } = await getCompletedDocuments(addToast, page, size);
+        const { data, pagination: paginationData } = await getCompletedDocuments(page, size);
         if (Array.isArray(data)) {
           setDocuments(data.map((item: any, index: number) => ({
             id: item.message_id,

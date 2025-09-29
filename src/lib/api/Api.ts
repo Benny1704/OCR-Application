@@ -7,6 +7,14 @@ const API_URL = import.meta.env.VITE_API_URL;
 // --- Axios Instances ---
 const api = axios.create({ baseURL: API_URL });
 
+// --- Global Toast Function ---
+let globalAddToast: ((toast: { message: string, type: "error" | "success" }) => void) | null = null;
+
+export const setGlobalToast = (addToast: (toast: { message: string, type: "error" | "success" }) => void) => {
+    globalAddToast = addToast;
+};
+
+
 // --- Axios Interceptor for Authentication ---
 api.interceptors.request.use(
     (config) => {
@@ -21,10 +29,9 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// --- Centralized Error Handler ---
-let isToastVisible = false;
 
-const handleError = (error: any, addToast: (toast: { message: string, type: "error" }) => void) => {
+// --- Centralized Error Handler ---
+const handleError = (error: any) => {
     let errorMessage = "An unknown error occurred.";
 
     if (axios.isAxiosError(error)) {
@@ -43,12 +50,8 @@ const handleError = (error: any, addToast: (toast: { message: string, type: "err
 
     console.error("API Error:", error);
 
-    if (addToast && !isToastVisible) {
-        isToastVisible = true;
-        addToast({ message: errorMessage, type: "error" });
-        setTimeout(() => {
-            isToastVisible = false;
-        }, 3000); // Reset after 3 seconds
+    if (globalAddToast) {
+        globalAddToast({ message: errorMessage, type: "error" });
     }
 
     throw new Error(errorMessage);
@@ -56,22 +59,22 @@ const handleError = (error: any, addToast: (toast: { message: string, type: "err
 
 // --- API Functions ---
 
-export const getSections = async (addToast: any): Promise<Section[]> => {
+export const getSections = async (): Promise<Section[]> => {
     try {
         const response = await api.get('/sections/');
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return [];
     }
 };
 
-export const login = async (credentials: { username: string; password: string; section_id: number }, addToast: any): Promise<{ access_token: string }> => {
+export const login = async (credentials: { username: string; password: string; section_id: number }): Promise<{ access_token: string }> => {
     try {
         const response = await api.post('/users/token', credentials);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
@@ -80,9 +83,8 @@ export const uploadFiles = async (
     file: File,
     invoiceDetails: any,
     onProgress: (percentCompleted: number) => void,
-    addToast: any
 ): Promise<{ success: boolean; message?: string }> => {
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('invoice_register_details', JSON.stringify(invoiceDetails));
@@ -99,15 +101,18 @@ export const uploadFiles = async (
                 }
             },
         });
+        if (globalAddToast) {
+            globalAddToast({ message: response.data.response, type: "success" });
+        }
         return { success: true, message: response.data.response };
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { success: false };
     }
 };
 
 
-export const alterImage = async (params: { imageData: string; rotation: number; noise: number }, showToast: any) => {
+export const alterImage = async (params: { imageData: string; rotation: number; noise: number }) => {
     try {
         const payload: any = {
             image_base64: params.imageData,
@@ -119,53 +124,53 @@ export const alterImage = async (params: { imageData: string; rotation: number; 
         const response = await api.post('/ocr_preprocessing/process', payload);
         return response.data;
     } catch (error) {
-        handleError(error, showToast);
+        handleError(error);
         return null;
     }
 };
 
-export const getQueuedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<QueuedDocument>> => {
+export const getQueuedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<QueuedDocument>> => {
     try {
         const response = await api.get('/document/queued', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getProcessedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
+export const getProcessedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
         const response = await api.get('/document/processed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getFailedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<FailedDocument>> => {
+export const getFailedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<FailedDocument>> => {
     try {
         const response = await api.get('/document/failed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
-export const getCompletedDocuments = async (addToast: any, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
+export const getCompletedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
         const response = await api.get('/document/completed', { params: { page, page_size: pageSize } });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
 
 
-export const getDocumentSummary = async (addToast: any, section_id?: number, is_today?: boolean) => {
+export const getDocumentSummary = async (section_id?: number, is_today?: boolean) => {
     try {
         const params: any = {};
         if (section_id) {
@@ -177,58 +182,58 @@ export const getDocumentSummary = async (addToast: any, section_id?: number, is_
         const response = await api.get('/document/summary', { params });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { waiting: 0, processed: 0, failed: 0, completed: 0 };
     }
 };
 
 
-export const deleteMessage = async (id: string, addToast: any) => {
+export const deleteMessage = async (id: string) => {
     try {
         const response = await api.patch(`/messages/${id}/delete`);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
     }
 };
 
-export const togglePriority = async (id: string, addToast: any) => {
+export const togglePriority = async (id: string) => {
     try {
         const response = await api.patch(`/messages/${id}/prioritize`);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
     }
 };
 
-export const retryMessage = async (id: string, addToast: any, images?: string[]) => {
+export const retryMessage = async (id: string, images?: string[]) => {
     try {
         const payload = images ? { images } : {};
         const response = await api.patch(`/messages/${id}/retry`, payload);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
     }
 };
 
-export const getTotalDiscountThisMonth = async (addToast: any, section_id?: number): Promise<any> => {
+export const getTotalDiscountThisMonth = async (section_id?: number): Promise<any> => {
     try {
         const params = section_id ? { section_id } : {};
         const response = await api.get('/metrics/total_discount_this_month', { params });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
 
-export const getTotalSpendThisMonth = async (addToast: any, section_id?: number): Promise<any> => {
+export const getTotalSpendThisMonth = async (section_id?: number): Promise<any> => {
     try {
         const params = section_id ? { section_id } : {};
         const response = await api.get('/metrics/total_spend_this_month', { params });
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
@@ -246,7 +251,7 @@ const fetchDataForChart = async (instance: any, endpoint: string, filterType: 'm
 
     const response = await instance.get(endpoint, { params });
     const data = response.data;
-    const key = Object.keys(data)[0]; 
+    const key = Object.keys(data)[0];
 
     if (filterType === 'monthly' && data[key]) {
         return data[key].monthly_counts || data[key].monthly_expenses;
@@ -291,62 +296,62 @@ export const getDiscountByVendor = async (year: number, month?: number, section_
 };
 // --- Invoice Details API Functions ---
 
-export const getInvoiceDetails = async (invoiceId: number, addToast: any) => {
+export const getInvoiceDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}`);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return null;
     }
 };
 
-export const getProductDetails = async (invoiceId: number, addToast: any) => {
+export const getProductDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items`);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return [];
     }
 };
 
-export const getAmountAndTaxDetails = async (invoiceId: number, addToast: any) => {
+export const getAmountAndTaxDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/meta-discount`);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return null;
     }
 };
 
-export const getLineItems = async (invoiceId: number, itemId: number, addToast: any) => {
+export const getLineItems = async (invoiceId: number, itemId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
         console.log("lineItems: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return [];
     }
 };
 
 // --- Update API Functions ---
 
-export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails, addToast: any) => {
+export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails) => {
     try {
-        
+
         // console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return null;
     }
 };
 
-export const updateProductDetails = async (invoiceId: number, data: any, addToast: any) => {
+export const updateProductDetails = async (invoiceId: number, data: any) => {
     try {
         const { items } = data;
         console.log("updateProductDetails: "+JSON.stringify(data));
@@ -354,31 +359,31 @@ export const updateProductDetails = async (invoiceId: number, data: any, addToas
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return null;
     }
 };
 
-export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails, addToast: any) => {
+export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails) => {
     try {
-        
+
         // console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return null;
     }
 };
 
-export const updateLineItems = async (itemId: number, data: LineItem[], addToast: any) => {
+export const updateLineItems = async (itemId: number, data: LineItem[]) => {
     try {
-        
+
         // console.log("updateLineItems: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return [];
     }
 };
@@ -410,7 +415,7 @@ export const getMonthlyProcessingStats = async (year: number) => {
     return response.data;
 };
 
-export const confirmInvoice = async (messageId: string, data: { isEdited: boolean; state: string }, addToast: any): Promise<boolean> => {
+export const confirmInvoice = async (messageId: string, data: { isEdited: boolean; state: string }): Promise<boolean> => {
     try {
         const params = new URLSearchParams({
             state: data.state,
@@ -420,56 +425,56 @@ export const confirmInvoice = async (messageId: string, data: { isEdited: boolea
         await api.post(`/confirm/${messageId}?${params}`);
         return true;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return false;
     }
 };
 
 // --- UI Config API Functions ---
-export const getInvoiceConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+export const getInvoiceConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/invoice');
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { fields: [] };
     }
 }
 
-export const getInvoiceMetaConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/invoiceMeta');
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { fields: [] };
     }
 }
 
-export const getItemSummaryConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemSummary');
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { fields: [] };
     }
 }
 
-export const getItemAttributesConfig = async (addToast: any): Promise<{ fields: FormField[] }> => {
+export const getItemAttributesConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemAttributes');
         console.log("getItemAttributesConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         return { fields: [] };
     }
 }
 
 // --- NEW MANUAL ENTRY APIS ---
 
-export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: Partial<InvoiceDetails>, addToast: any): Promise<{ invoice_id: number }> => {
+export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: Partial<InvoiceDetails>): Promise<{ invoice_id: number }> => {
     try {
         const payload = {
             ...invoiceData,
@@ -480,23 +485,23 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
         console.log("manualInvoiceEntryInvoice response: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
 
-export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>, addToast: any) => {
+export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>) => {
     try {
         console.log("manualInvoiceEntryInvoiceMeta: "+JSON.stringify(metaData));
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
 
-export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<ProductDetails>[] }, addToast: any): Promise<{
+export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<ProductDetails>[] }): Promise<{
     status: string; data: ProductDetails[], message: string
 }> => {
     try {
@@ -504,12 +509,12 @@ export const manualInvoiceEntryItemSummary = async (payload: { items: Partial<Pr
         const response = await api.post('/manual_invoice_entry/item_summary', payload);
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };
 
-export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineItem>[], addToast: any): Promise<{
+export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineItem>[]): Promise<{
     status: string; data: LineItem[], message: string
 }> => {
     try {
@@ -537,7 +542,7 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
 
         return response.data;
     } catch (error) {
-        handleError(error, addToast);
+        handleError(error);
         throw error;
     }
 };

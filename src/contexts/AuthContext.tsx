@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (credentials: { username: string; password: string; section_id: number }) => {
     try {
-      const data = await apiLogin(credentials, addToast);
+      const data = await apiLogin(credentials);
       
       if (data.access_token) {
         localStorage.setItem('token', data.access_token);
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
     }
     try {
-        const data = await apiLogin({ username: user.username, password: user.password, section_id }, addToast);
+        const data = await apiLogin({ username: user.username, password: user.password, section_id });
         if (data.access_token) {
             localStorage.setItem('token', data.access_token);
             const decoded = decodeToken(data.access_token);

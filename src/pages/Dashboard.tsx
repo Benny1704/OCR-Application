@@ -7,7 +7,6 @@ import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
 import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
-import { useToast } from '../hooks/useToast';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bouncyComponentVariants } from '../components/common/Animation';
@@ -419,7 +418,6 @@ const Dashboard = () => {
     const [kpiMetrics, setKpiMetrics] = useState<any[]>([]);
     const [kpiError, setKpiError] = useState<string | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
-    const { addToast } = useToast();
 
     const [financialObligationsData, setFinancialObligationsData] = useState<any[]>([]);
     const [invoiceCountData, setInvoiceCountData] = useState<any[]>([]);
@@ -460,8 +458,8 @@ const Dashboard = () => {
         try {
             const sectionId = sectionFilter === 'current' ? user?.section : undefined;
             const [spendResponse, discountResponse] = await Promise.all([
-                getTotalSpendThisMonth(addToast, sectionId),
-                getTotalDiscountThisMonth(addToast, sectionId),
+                getTotalSpendThisMonth(sectionId),
+                getTotalDiscountThisMonth(sectionId),
             ]);
 
             const spendData = spendResponse.total_spend_this_month;

@@ -80,7 +80,7 @@ const ImageAlterations = () => {
             imageData: imageStates[currentIndex].initialImageData,
             rotation: imageStates[currentIndex].rotation,
             noise: noiseOptions[imageStates[currentIndex].noiseReduction],
-        }, addToast);
+        });
 
         if (response?.processed_image_base64) {
             updateCurrentState({
@@ -109,7 +109,7 @@ const ImageAlterations = () => {
     
     setIsSubmitting(true);
     try {
-        await api.retryMessage(location.state.messageId, addToast, finalImages);
+        await api.retryMessage(location.state.messageId, finalImages);
         addToast({type: 'success', message: 'Document submitted for reprocessing!'});
         navigate('/queue', { state: { defaultTab: 'Failed' } });
     } finally {
