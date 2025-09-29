@@ -586,7 +586,7 @@ const Queue = () => {
           </aside>
 
           <section
-            className={`lg:col-span-2 rounded-xl border flex flex-col ${theme === "dark" ? "bg-gray-800/20" : "bg-white"
+            className={`lg:col-span-2 rounded-xl border flex flex-col min-h-0 ${theme === "dark" ? "bg-gray-800/20" : "bg-white"
               } ${borderPrimary}`}
           >
             {selectedDocument ? (

@@ -141,13 +141,13 @@ const EditableComponent = ({
         }
     };
 
-    const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
+    // const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
+    const handleViewImage = () => 0;
     const openRetryModal = () => setRetryModalOpen(true);
     
     const handleSimpleRetry = async () => {
         setRetryModalOpen(false);
         if (messageId) {
-            addToast({type: 'info', message: 'Sending document for retry...'})
             await retryMessage(messageId, addToast);
         }
     };

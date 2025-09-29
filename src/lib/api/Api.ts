@@ -412,11 +412,7 @@ export const confirmInvoice = async (messageId: string, data: { isEdited: boolea
             is_edited: String(data.isEdited)
         }).toString();
 
-        const response = await api.post(`/confirm/${messageId}?${params}`);
-        
-        if (response.data.message) {
-            addToast({ type: 'success', message: response.data.message });
-        }
+        await api.post(`/confirm/${messageId}?${params}`);
         return true;
     } catch (error) {
         handleError(error, addToast);
@@ -533,10 +529,6 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
 
         // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
         const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
-
-        if (response.data && response.data.status === 'success') {
-            addToast({ type: 'success', message: response.data.message || 'Row saved!' });
-        }
 
         return response.data;
     } catch (error) {

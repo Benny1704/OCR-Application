@@ -123,7 +123,7 @@ const Upload = () => {
         try {
             const response = await api.uploadFiles(file!, formattedData, (p) => setUploadProgress(p), addToast);
             if (response.success) {
-                addToast({ type: 'success', message: response.message || 'Upload complete!' });
+                addToast({ type: 'success', message: 'Upload complete!' });
                 setFile(null);
                 setFormData({});
             }

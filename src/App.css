@@ -43,3 +43,10 @@
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 }
+
+/* Custom Dropdown Styles */
+.modern-dropdown .dropdown-list,
+.login-dropdown-list {
+    max-height: 50dvh;
+    overflow-y: auto;
+}

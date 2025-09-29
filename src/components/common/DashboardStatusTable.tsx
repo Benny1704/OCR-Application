@@ -156,10 +156,6 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             }
         } catch (err) {
             setError("Failed to load document summary.");
-            addToast({
-                type: 'error',
-                message: 'Could not fetch document summary.',
-            });
         } finally {
             setIsLoading(false);
         }

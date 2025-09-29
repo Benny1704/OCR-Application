@@ -184,7 +184,7 @@ const ManualEntry = () => {
 
             if (response && response.status === 'success' && response.data?.length > 0) {
                 const savedProduct = response.data[0];
-                addToast({ type: 'success', message: response.message || 'Product row saved.' });
+                addToast({ type: 'success', message: 'Product row saved.' });
 
                 setProductDetails(currentProducts =>
                     currentProducts.map(p =>

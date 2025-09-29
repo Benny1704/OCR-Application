@@ -117,7 +117,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             const response = await manualInvoiceEntryItemAttributes([attributePayload], addToast);
 
             if (response && response.status === 'success') {
-                addToast({ type: 'success', message: response.message || 'Row saved successfully!' });
+                addToast({ type: 'success', message: 'Row saved successfully!' });
                 await fetchLineItems();
             }
         } catch (error) {

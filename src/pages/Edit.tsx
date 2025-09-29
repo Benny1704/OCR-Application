@@ -194,7 +194,7 @@ const Edit = () => {
                 throw new Error(response.message || 'Failed to save product row.');
             }
         } catch (error: any) {
-            addToast({ type: 'error', message: `Failed to save product row: ${error.message}` });
+            addToast({ type: 'error', message: `Failed to save product row` });
             throw error;
         } finally {
             setSavingRowId(null);
@@ -242,7 +242,7 @@ const Edit = () => {
             // navigate('/queue', { state: { defaultTab: "Yet to Review" } });
 
         } catch (error: any) {
-            addToast({ type: 'error', message: `Failed to save draft: ${error.message}` });
+            addToast({ type: 'error', message: `Failed to save draft` });
         } finally {
             setIsSaving(false);
         }
@@ -280,7 +280,7 @@ const Edit = () => {
             navigate('/document');
 
         } catch (error: any) {
-            addToast({ type: 'error', message: `Failed to finalize invoice: ${error.message}` });
+            addToast({ type: 'error', message: `Failed to finalize invoice` });
         } finally {
             setIsSaving(false);
         }

@@ -412,41 +412,6 @@ const ChartCard = ({ title, icon: Icon, children, isLoading, error, onRetry, dat
     );
 };
 
-const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, payload }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius + 10) * cos;
-    const sy = cy + (outerRadius + 10) * sin;
-    const mx = cx + (outerRadius + 30) * cos;
-    const my = cy + (outerRadius + 30) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-    const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
-
-    if ((percent * 100) < 5) { // Only show line for small percentages
-        return (
-            <g>
-                <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={"#999"} fill="none" />
-                <circle cx={ex} cy={ey} r={2} fill={"#999"} stroke="none" />
-                <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#999" fontSize={12}>
-                    {`${payload.name} ${(percent * 100).toFixed(0)}%`}
-                </text>
-            </g>
-        );
-    }
-
-    return (
-        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={14}>
-            {`${(percent * 100).toFixed(0)}%`}
-        </text>
-    );
-};
-
 const Dashboard = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
@@ -663,18 +628,30 @@ const Dashboard = () => {
                         data={processedData}
                         dataKey="value"
                         nameKey="name"
-                        cx="35%"
+                        cx="50%"
                         cy="50%"
                         outerRadius="80%"
                         labelLine={false}
-                        label={renderCustomizedLabel}
                     >
                         {processedData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                         ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip formatter={(value) => formatTooltipIndianCurrency(value)} />} />
-                    <Legend layout="vertical" verticalAlign="middle" align="right" />
+                    <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="right"
+                        formatter={(value, entry) => {
+                            const { color } = entry;
+                            const { value: payloadValue } = entry.payload || {};
+                            return (
+                                <span style={{ color }}>
+                                    {value} - {formatTooltipIndianCurrency(payloadValue)}
+                                </span>
+                            );
+                        }}
+                    />
                 </PieChart>
             </ResponsiveContainer>
         );
@@ -694,18 +671,30 @@ const Dashboard = () => {
                         data={processedData}
                         dataKey="value"
                         nameKey="name"
-                        cx="35%"
+                        cx="50%"
                         cy="50%"
                         outerRadius="80%"
                         labelLine={false}
-                        label={renderCustomizedLabel}
                     >
                         {processedData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={vendorColors[index % vendorColors.length]} />
                         ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip formatter={(value) => `${value.toFixed(2)}%`} />} />
-                    <Legend layout="vertical" verticalAlign="middle" align="right" />
+                    <Legend
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="right"
+                        formatter={(value, entry) => {
+                            const { color } = entry;
+                            const { value: payloadValue } = entry.payload || {};
+                            return (
+                                <span style={{ color }}>
+                                    {value} - {payloadValue?.toFixed(2)}%
+                                </span>
+                            );
+                        }}
+                    />
                 </PieChart>
             </ResponsiveContainer>
         );
