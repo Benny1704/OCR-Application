@@ -1,4 +1,4 @@
-import type { ReactNode, Dispatch, SetStateAction, JSX } from "react";
+import type { ReactNode } from "react";
 
 // --- Generic & Reusable Interfaces ---
 export interface DataItem {
@@ -17,11 +17,25 @@ export interface CopiedCell extends CellIdentifier {
 
 export interface DataTableProps {
   tableData: DataItem[];
-  isMasterData?: boolean;
+  tableConfig?: TableConfig;
   isEditable?: boolean;
   isSearchable?: boolean;
-  onDataChange?: Dispatch<SetStateAction<any[]>>;
-  [key: string]: any; // Allow other props
+  renderActionCell?: (row: DataItem, rowIndex: number) => React.ReactNode;
+  actionColumnHeader?: string;
+  pagination?: {
+      enabled: boolean;
+      pageSize?: number;
+      pageSizeOptions?: number[];
+  };
+  maxHeight?: string;
+  isLoading?: boolean;
+  onDataChange?: (data: DataItem[]) => void;
+  onValidationChange?: (hasErrors: boolean) => void;
+  onUnsavedRowsChange?: (hasUnsavedRows: boolean) => void; // NEW PROP
+  paginationInfo?: Pagination;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onSearch?: (query: string) => void;
 }
 
 // --- Table Configuration ---
@@ -226,27 +240,24 @@ export interface LineItem extends DataItem {
 
 export interface EditableComponentProps {
   isManual?: boolean;
-  initialInvoiceDetails?: InvoiceDetails | null;
-  initialProductDetails?: ProductDetails[] | null;
-  initialAmountAndTaxDetails?: AmountAndTaxDetails | null;
+  initialInvoiceDetails?: InvoiceDetails;
+  initialProductDetails?: ProductDetails[];
+  initialAmountAndTaxDetails?: AmountAndTaxDetails;
   isReadOnly?: boolean;
-  invoiceError?: string | null;
-  productError?: string | null;
-  amountError?: string | null;
-  onRetry?: () => void;
-  messageId: string;
+  messageId?: string;
   formConfig: FormSection[];
   itemSummaryConfig: { columns: FormField[] };
   itemAttributesConfig: { columns: FormField[] };
-  onSaveNewProduct: (product: ProductDetails) => Promise<ProductDetails>;
+  onSaveNewProduct?: (product: ProductDetails) => Promise<ProductDetails>;
   onFormChange?: (
-      newInvoiceDetails: InvoiceDetails,
-      newProductDetails: ProductDetails[],
-      newAmountAndTaxDetails: AmountAndTaxDetails
+      invoiceDetails: InvoiceDetails,
+      productDetails: ProductDetails[],
+      amountAndTaxDetails: AmountAndTaxDetails
   ) => void;
   onValidationChange?: (hasErrors: boolean) => void;
-  renderActionCell?: (row: DataItem) => JSX.Element;
+  onUnsavedRowsChange?: (hasUnsavedRows: boolean) => void; // NEW PROP
   footer?: React.ReactNode;
+  renderActionCell?: (row: DataItem, rowIndex: number) => React.ReactNode;
 }
 
 // --- Component Prop Interfaces ---

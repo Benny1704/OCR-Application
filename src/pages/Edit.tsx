@@ -42,12 +42,14 @@ const Edit = () => {
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
     const [hasMandatoryFieldsError, setHasMandatoryFieldsError] = useState<boolean>(false);
+    const [hasUnsavedRows, setHasUnsavedRows] = useState<boolean>(false);
 
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
 
     const [isAmountMismatchModalOpen, setAmountMismatchModalOpen] = useState(false);
     const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
+    const [isUnsavedRowsModalOpen, setUnsavedRowsModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState<'save' | 'finalize' | null>(null);
 
     const messageId = location.state?.messageId;
@@ -62,6 +64,16 @@ const Edit = () => {
     const liveTaxableValue = useMemo(() => {
         return Number(amountAndTaxDetails?.taxable_value) || 0;
     }, [amountAndTaxDetails]);
+
+    // Check if any row has incomplete mandatory fields
+    const hasIncompleteMandatoryFields = useCallback((row: ProductDetails): boolean => {
+        if (!itemSummaryConfig) return false;
+        const requiredColumns = itemSummaryConfig.columns.filter(col => col.isRequired && col.key !== 'sno');
+        return requiredColumns.some(col => {
+            const value = row[col.key as keyof ProductDetails];
+            return value === null || value === undefined || String(value).trim() === '';
+        });
+    }, [itemSummaryConfig]);
 
     useEffect(() => {
         if (formConfig && invoiceDetails && amountAndTaxDetails) {
@@ -153,6 +165,13 @@ const Edit = () => {
             addToast({ type: 'error', message: 'Please fix validation errors before saving.' });
             throw new Error('Validation errors');
         }
+
+        // Check for incomplete mandatory fields
+        if (hasIncompleteMandatoryFields(productRow)) {
+            addToast({ type: 'error', message: 'Please fill all mandatory fields before saving.' });
+            throw new Error('Incomplete mandatory fields');
+        }
+
         if (!invoiceId) throw new Error("Cannot save product without an invoice ID.");
 
         const temporaryRowId = productRow.id;
@@ -200,7 +219,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, fetchData, hasValidationErrors]);
+    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -240,14 +259,13 @@ const Edit = () => {
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
-            // navigate('/queue', { state: { defaultTab: "Yet to Review" } });
 
         } catch (error: any) {
             addToast({ type: 'error', message: `Failed to save draft` });
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, navigate, hasValidationErrors]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, hasValidationErrors]);
 
     const proceedWithFinalize = useCallback(async () => {
         if (hasValidationErrors) {
@@ -292,6 +310,15 @@ const Edit = () => {
             addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before saving.' });
             return;
         }
+
+        // Check for unsaved rows
+        if (hasUnsavedRows) {
+            setActionToConfirm('save');
+            setUnsavedRowsModalOpen(true);
+            return;
+        }
+
+        // Check for amount mismatch
         if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('save');
             setAmountMismatchModalOpen(true);
@@ -305,6 +332,15 @@ const Edit = () => {
             addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before finalizing.' });
             return;
         }
+
+        // Check for unsaved rows
+        if (hasUnsavedRows) {
+            setActionToConfirm('finalize');
+            setUnsavedRowsModalOpen(true);
+            return;
+        }
+
+        // Check for amount mismatch
         if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('finalize');
             setAmountMismatchModalOpen(true);
@@ -331,6 +367,7 @@ const Edit = () => {
         const productRow = row as ProductDetails;
         const isSaved = !!productRow.item_id && typeof productRow.item_id === 'number' && productRow.item_id > 0;
         const isSavingThisRow = savingRowId === productRow.id;
+        const hasIncompleteFields = hasIncompleteMandatoryFields(productRow);
 
         return (
             <div className="text-center">
@@ -347,16 +384,16 @@ const Edit = () => {
                 ) : (
                     <button
                         onClick={() => handleSaveProductRow(productRow)}
-                        disabled={isSaving || hasValidationErrors}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300"
-                        title="Save Row"
+                        disabled={isSaving || hasValidationErrors || hasIncompleteFields}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300 disabled:cursor-not-allowed"
+                        title={hasIncompleteFields ? "Please fill all mandatory fields" : "Save Row"}
                     >
                         <Save size={16} />
                     </button>
                 )}
             </div>
         );
-    }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow, hasValidationErrors]);
+    }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow, hasValidationErrors, hasIncompleteMandatoryFields]);
 
     const handleViewImage = async () => {
         if (!messageId) {
@@ -395,6 +432,7 @@ const Edit = () => {
                     onSaveNewProduct={handleSaveProductRow}
                     onFormChange={handleFormChange}
                     onValidationChange={setHasValidationErrors}
+                    onUnsavedRowsChange={setHasUnsavedRows}
                     renderActionCell={renderActionCell}
                     footer={
                         <div className="flex justify-end gap-4 p-4">
@@ -430,6 +468,28 @@ const Edit = () => {
                     itemAttributesConfig={itemAttributesConfig}
                     invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
                 />
+                
+                {/* Unsaved Rows Warning Modal */}
+                <WarningConfirmationModal
+                    isOpen={isUnsavedRowsModalOpen}
+                    onClose={() => setUnsavedRowsModalOpen(false)}
+                    onConfirm={() => {
+                        setUnsavedRowsModalOpen(false);
+                        // After closing unsaved rows modal, check for amount mismatch
+                        if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
+                            setAmountMismatchModalOpen(true);
+                        } else if (actionToConfirm === 'save') {
+                            proceedWithSaveAsDraft();
+                        } else if (actionToConfirm === 'finalize') {
+                            setFinalizeModalOpen(true);
+                        }
+                    }}
+                    title="Unsaved Changes in Item Summary"
+                    message="You have unsaved rows in the product details table. Please save all rows before proceeding, or they will be lost."
+                    icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
+                />
+
+                {/* Amount Mismatch Warning Modal */}
                 <WarningConfirmationModal
                     isOpen={isAmountMismatchModalOpen}
                     onClose={() => setAmountMismatchModalOpen(false)}
@@ -438,6 +498,8 @@ const Edit = () => {
                     message={`The calculated total (${liveCalculatedAmount.toFixed(2)}) does not match the invoice total (${liveTaxableValue.toFixed(2)}). Are you sure you want to proceed?`}
                     icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
                 />
+
+                {/* Finalize Confirmation Modal */}
                 <ConfirmationModal
                     isOpen={isFinalizeModalOpen}
                     onClose={() => setFinalizeModalOpen(false)}

@@ -71,6 +71,7 @@ const EditableComponent = ({
     onSaveNewProduct,
     onFormChange,
     onValidationChange,
+    onUnsavedRowsChange,
     footer,
     renderActionCell: passedRenderActionCell
 }: EditableComponentProps) => {
@@ -94,8 +95,8 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.map(s => s.id)));
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+    const [hasUnsavedRows, setHasUnsavedRows] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-
 
     const productRows = useMemo(() => {
         if (!productDetails) {
@@ -122,6 +123,13 @@ const EditableComponent = ({
             onValidationChange(hasErrors);
         }
     }, [onValidationChange]);
+
+    const handleUnsavedRowsChange = useCallback((hasUnsaved: boolean) => {
+        setHasUnsavedRows(hasUnsaved);
+        if (onUnsavedRowsChange) {
+            onUnsavedRowsChange(hasUnsaved);
+        }
+    }, [onUnsavedRowsChange]);
 
     const combinedData = useMemo(() => ({
         ...invoiceDetails,
@@ -323,6 +331,7 @@ const EditableComponent = ({
                                                             maxHeight="100%"
                                                             onDataChange={(newData) => setProductDetails(newData as unknown as ProductDetails[])}
                                                             onValidationChange={handleValidationChange}
+                                                            onUnsavedRowsChange={handleUnsavedRowsChange}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

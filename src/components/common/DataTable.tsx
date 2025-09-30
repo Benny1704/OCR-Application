@@ -21,6 +21,7 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
     isLoading?: boolean;
     onDataChange?: (data: DataItem[]) => void;
     onValidationChange?: (hasErrors: boolean) => void;
+    onUnsavedRowsChange?: (hasUnsavedRows: boolean) => void;
     paginationInfo?: PaginationInfo;
     onPageChange?: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
@@ -49,7 +50,7 @@ const canConvertValue = (value: any, targetType: string): boolean => {
         case 'date':
             return !isNaN(Date.parse(stringValue)) || /^\d{4}-\d{2}-\d{2}$/.test(stringValue);
         case 'string':
-            return true; // Any value can be converted to string
+            return true;
         default:
             return true;
     }
@@ -62,7 +63,6 @@ const convertValue = (value: any, targetType: string): any => {
 
     switch (targetType) {
         case 'number':
-            // If it's not a valid number, return the original string to be displayed
             if (isNaN(Number(stringValue)) || stringValue === '') {
                 return value;
             }
@@ -73,7 +73,6 @@ const convertValue = (value: any, targetType: string): any => {
         case 'date':
             if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
             const date = new Date(stringValue);
-            // If the date is invalid, return the original string
             if (isNaN(date.getTime())) {
                 return value;
             }
@@ -97,6 +96,7 @@ const DataTable = ({
     isLoading = false,
     onDataChange,
     onValidationChange,
+    onUnsavedRowsChange,
     paginationInfo,
     onPageChange,
     onPageSizeChange,
@@ -236,12 +236,10 @@ const DataTable = ({
         const config = columnConfig[colKey];
         if (!config) return null;
 
-        // Check for required fields
         if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
             return `${config.label} is required.`;
         }
 
-        // Check for type validity if a value is present
         if (value !== null && value !== undefined && String(value).trim() !== '') {
             if (!canConvertValue(value, config.type || 'string')) {
                 return `Invalid value. ${config.label} must be a ${config.type}.`;
@@ -260,12 +258,36 @@ const DataTable = ({
         );
     }, [validationErrors]);
 
+    // Check if a row has unsaved changes (new row not yet saved to backend)
+    const hasUnsavedRows = useMemo(() => {
+        return tableData.some(row => {
+            // Check if row is new (has temporary ID or no item_id)
+            const isNewRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
+            return isNewRow;
+        });
+    }, [tableData]);
+
+    // Check if a specific row has incomplete mandatory fields
+    const hasIncompleteMandatoryFields = useCallback((row: DataItem): boolean => {
+        const requiredColumns = Object.values(columnConfig).filter(col => col.isRequired && col.key !== 'sno');
+        return requiredColumns.some(col => {
+            const value = row[col.key];
+            return value === null || value === undefined || String(value).trim() === '';
+        });
+    }, [columnConfig]);
+
     useEffect(() => {
         if (onValidationChange) {
             onValidationChange(hasBlockingErrors);
         }
     }, [hasBlockingErrors, onValidationChange]);
 
+    // Notify parent component about unsaved rows
+    useEffect(() => {
+        if (onUnsavedRowsChange) {
+            onUnsavedRowsChange(hasUnsavedRows);
+        }
+    }, [hasUnsavedRows, onUnsavedRowsChange]);
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
@@ -363,7 +385,6 @@ const DataTable = ({
         const targetType = columnConfig[colKey]?.type || 'string';
         let finalValue = value;
 
-        // Attempt to convert value before validating and updating
         if (canConvertValue(value, targetType)) {
             finalValue = convertValue(value, targetType);
         }
@@ -383,7 +404,6 @@ const DataTable = ({
         }
         updateData(newData, selectedCells);
     };
-
 
     const handleCellClick = (rowIndex: number, colKey: string, e: React.MouseEvent) => {
         if (colKey === fixedHeaderKey || editingCell) return;
@@ -440,7 +460,6 @@ const DataTable = ({
                     const sourceType = columnConfig[colKey]?.type || 'string';
                     const targetType = columnConfig[targetColKey]?.type || 'string';
 
-                    // Perform swap
                     let valueForTarget = sourceValue;
                     if (sourceType !== targetType) {
                         valueForTarget = convertValue(sourceValue, targetType);
@@ -453,7 +472,6 @@ const DataTable = ({
                     newData[sourceOriginalIndex][colKey] = valueForSource;
                     newData[targetOriginalIndex][targetColKey] = valueForTarget;
 
-                    // Validate new values
                     const sourceError = validateCell(valueForSource, colKey);
                     const targetError = validateCell(valueForTarget, targetColKey);
 
@@ -466,7 +484,6 @@ const DataTable = ({
             }
         });
 
-        // Update selected cells positions
         selectedCells.forEach(({ rowIndex, colKey }) => {
             let newRowIndex = rowIndex, newColKey = colKey;
             const colIndex = movableHeaders.indexOf(colKey);
@@ -626,14 +643,12 @@ const DataTable = ({
             const sourceType = columnConfig[draggedCell.colKey]?.type || 'string';
             const targetType = columnConfig[targetColKey]?.type || 'string';
 
-            // Swap values and convert if possible
             const valueForTarget = convertValue(sourceValue, targetType);
             const valueForSource = convertValue(targetValue, sourceType);
 
             newData[draggedOriginalIndex][draggedCell.colKey] = valueForSource;
             newData[targetOriginalIndex][targetColKey] = valueForTarget;
 
-            // Validate new values
             const sourceError = validateCell(valueForSource, draggedCell.colKey);
             const targetError = validateCell(valueForTarget, targetColKey);
 
@@ -649,7 +664,6 @@ const DataTable = ({
 
         handleDragEnd();
     };
-
 
     const selectionInfo = useMemo(() => {
         if (selectedCells.length === 0) return null;
@@ -777,11 +791,11 @@ const DataTable = ({
                 );
 
                 if (type === draggedType) {
-                    headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' }; // Green for same type
+                    headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' };
                 } else if (canConvert) {
-                    headerStyle = { backgroundColor: 'rgba(245, 158, 11, 0.3)' }; // Amber for convertible
+                    headerStyle = { backgroundColor: 'rgba(245, 158, 11, 0.3)' };
                 } else {
-                    headerStyle = { backgroundColor: 'rgba(239, 68, 68, 0.3)' }; // Red for non-convertible
+                    headerStyle = { backgroundColor: 'rgba(239, 68, 68, 0.3)' };
                 }
             }
         }
@@ -926,8 +940,11 @@ const DataTable = ({
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
+                    const isUnsavedRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
+                    const hasIncompleteFields = hasIncompleteMandatoryFields(row);
+                    
                     return (
-                        <motion.tr key={row.sno} variants={tableRowVariants} className={theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}>
+                        <motion.tr key={row.sno} variants={tableRowVariants} className={`${theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'} ${isUnsavedRow ? (theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50/50') : ''}`}>
                             {fixedHeaderKey && (
                                 <td
                                     className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
@@ -1070,6 +1087,11 @@ const DataTable = ({
                         {hasBlockingErrors && (
                             <InfoPill>
                                 <span className="text-red-500">⚠ Please fix the validation errors before saving.</span>
+                            </InfoPill>
+                        )}
+                        {hasUnsavedRows && (
+                            <InfoPill>
+                                <span className="text-yellow-600 dark:text-yellow-400">⚠ {tableData.filter(r => !r.item_id || (typeof r.id === 'string' && r.id.startsWith('new-'))).length} unsaved row(s)</span>
                             </InfoPill>
                         )}
                     </div>
