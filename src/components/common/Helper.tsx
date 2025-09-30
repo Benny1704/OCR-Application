@@ -13,6 +13,7 @@ interface ConfirmationModalProps {
     title: string;
     message: string;
     icon?: ReactNode;
+    showConfirmButton?: boolean;
 }
 
 // --- Other Helper Components ---
@@ -101,7 +102,7 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, 
     );
 };
 
-export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
+export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon, showConfirmButton = true }: ConfirmationModalProps) => {
     const { theme } = useTheme();
 
     return (
@@ -143,12 +144,14 @@ export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, me
                             >
                                 Continue Editing
                             </button>
-                            <button
-                                onClick={onConfirm}
-                                className="px-4 py-2 text-sm font-medium bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
-                            >
-                                Force Proceed
-                            </button>
+                            {showConfirmButton && (
+                                <button
+                                    onClick={onConfirm}
+                                    className="px-4 py-2 text-sm font-medium bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+                                >
+                                    Force Proceed
+                                </button>
+                            )}
                         </div>
                     </motion.div>
                 </motion.div>
@@ -156,7 +159,6 @@ export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, me
         </AnimatePresence>
     );
 };
-
 
 export const Toast = ({ toast, onRemove }: { toast: ToastType; onRemove: (id: number) => void; }) => {
     const { theme } = useTheme();

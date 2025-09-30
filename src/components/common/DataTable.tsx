@@ -268,13 +268,13 @@ const DataTable = ({
     }, [tableData]);
 
     // Check if a specific row has incomplete mandatory fields
-    const hasIncompleteMandatoryFields = useCallback((row: DataItem): boolean => {
-        const requiredColumns = Object.values(columnConfig).filter(col => col.isRequired && col.key !== 'sno');
-        return requiredColumns.some(col => {
-            const value = row[col.key];
-            return value === null || value === undefined || String(value).trim() === '';
-        });
-    }, [columnConfig]);
+    // const hasIncompleteMandatoryFields = useCallback((row: DataItem): boolean => {
+    //     const requiredColumns = Object.values(columnConfig).filter(col => col.isRequired && col.key !== 'sno');
+    //     return requiredColumns.some(col => {
+    //         const value = row[col.key];
+    //         return value === null || value === undefined || String(value).trim() === '';
+    //     });
+    // }, [columnConfig]);
 
     useEffect(() => {
         if (onValidationChange) {
@@ -941,7 +941,7 @@ const DataTable = ({
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
                     const isUnsavedRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
-                    const hasIncompleteFields = hasIncompleteMandatoryFields(row);
+                    // const hasIncompleteFields = hasIncompleteMandatoryFields(row);
                     
                     return (
                         <motion.tr key={row.sno} variants={tableRowVariants} className={`${theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'} ${isUnsavedRow ? (theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50/50') : ''}`}>

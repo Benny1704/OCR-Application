@@ -473,20 +473,11 @@ const Edit = () => {
                 <WarningConfirmationModal
                     isOpen={isUnsavedRowsModalOpen}
                     onClose={() => setUnsavedRowsModalOpen(false)}
-                    onConfirm={() => {
-                        setUnsavedRowsModalOpen(false);
-                        // After closing unsaved rows modal, check for amount mismatch
-                        if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
-                            setAmountMismatchModalOpen(true);
-                        } else if (actionToConfirm === 'save') {
-                            proceedWithSaveAsDraft();
-                        } else if (actionToConfirm === 'finalize') {
-                            setFinalizeModalOpen(true);
-                        }
-                    }}
+                    onConfirm={() => setUnsavedRowsModalOpen(false)}
                     title="Unsaved Changes in Item Summary"
                     message="You have unsaved rows in the product details table. Please save all rows before proceeding, or they will be lost."
                     icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
+                    showConfirmButton={false}
                 />
 
                 {/* Amount Mismatch Warning Modal */}
