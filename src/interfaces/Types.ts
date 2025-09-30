@@ -283,7 +283,7 @@ export interface FormField {
 export interface FormSection {
     id: 'supplier_invoice' | 'product_details' | 'amount_details';
     title: string;
-    fields?: FormField[];
+    fields?: any[];
 }
 
 export interface Section {

@@ -424,7 +424,7 @@ const ManualEntry = () => {
                                                     theme={theme}
                                                     disabled={isInvoiceSubmitted}
                                                     isRequired={field.isRequired}
-                                                    // type={field.type}
+                                                    type={field.type}
                                                 />
                                             ))}
                                         </div>
@@ -464,6 +464,7 @@ const ManualEntry = () => {
                                                 <button
                                                     className="w-full flex justify-between items-center px-5 py-4 text-left"
                                                     onClick={() => toggleAccordion(section.id)}
+                                                    disabled={isInvoiceSubmitted && section.id === 'supplier_invoice'}
                                                 >
                                                     <h2 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>{section.title}</h2>
                                                     <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`} />
