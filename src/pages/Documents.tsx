@@ -18,7 +18,7 @@ const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { sectionFilter, setSectionFilter } = useSections();
+  const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
   const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,6 +106,8 @@ const Documents = () => {
     );
   };
 
+  const sectionName = user?.section ? getSectionNameById(user.section) : '';
+
   return (
     <motion.div
       variants={containerVariants}
@@ -120,7 +122,7 @@ const Documents = () => {
         className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6"
       >
         <h1 className={`text-xl md:text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
-          Reviewed Documents
+          Reviewed Documents {sectionFilter === 'current' && sectionName ? `- ${sectionName}` : ''}
         </h1>
         {user?.role === 'admin' && (
           <PillToggle

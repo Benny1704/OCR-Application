@@ -180,7 +180,7 @@ const Queue = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
-  const { sectionFilter, setSectionFilter } = useSections();
+  const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
 
   const tabs: ("Queued" | "Yet to Review" | "Failed")[] = [
     "Queued",
@@ -850,7 +850,8 @@ const Queue = () => {
       </div>
     );
   };
-
+  
+  const sectionName = user?.section ? getSectionNameById(user.section) : '';
 
   return (
     <div className="queue-container animate-fade-in-up">
@@ -864,7 +865,7 @@ const Queue = () => {
       <div className="tab-container">
         <div className="header">
           <div className="left-shape">
-            <h1>Document Queue</h1>
+            <h1>Document Queue {sectionFilter === 'current' && sectionName ? `- ${sectionName}` : ''}</h1>
           </div>
           <div className="tabs">
             <ul ref={tabRef}>

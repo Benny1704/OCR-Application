@@ -26,7 +26,17 @@ interface NoDataDisplayProps {
     heading?: string;
     message?: string;
     children?: ReactNode;
-  }
+}
+
+export const formatIndianCurrency = (value: number) => {
+    if (value >= 10000000) {
+        return `₹${(value / 10000000).toFixed(2)} Cr`;
+    }
+    if (value >= 100000) {
+        return `₹${(value / 100000).toFixed(2)} L`;
+    }
+    return `₹${value.toLocaleString('en-IN')}`;
+};
 
 export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
     const { theme } = useTheme();
