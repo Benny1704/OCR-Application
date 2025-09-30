@@ -19,6 +19,7 @@ import {
     updateAmountAndTaxDetails,
     confirmInvoice,
     manualInvoiceEntryItemSummary,
+    getInvoicePdfFilename,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
 import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
@@ -357,6 +358,25 @@ const Edit = () => {
         );
     }, [savingRowId, isSaving, handleOpenPopup, handleSaveProductRow, hasValidationErrors]);
 
+    const handleViewImage = async () => {
+        if (!messageId) {
+            addToast({ type: 'error', message: 'Message ID is not available.' });
+            return;
+        }
+        try {
+            const response = await getInvoicePdfFilename(messageId);
+            if (response && response.original_filename) {
+                const filePath = `/src/invoice-pdf/${response.original_filename}`;
+                window.open(filePath, '_blank');
+            } else {
+                addToast({ type: 'error', message: 'Could not retrieve file information.' });
+            }
+        } catch (error) {
+            console.error("Failed to fetch image filename", error);
+            addToast({ type: 'error', message: 'Failed to fetch image filename.' });
+        }
+    };
+
     if (isLoading) return <Loader type="wifi" />;
     if (error) return <div className="p-4"><ErrorDisplay message={error} onRetry={fetchData} /></div>;
 
@@ -406,9 +426,7 @@ const Edit = () => {
                             fetchData();
                         }
                     }}
-                    onViewImage={() => {
-                        addToast({ type: 'info', message: 'Viewing image...' });
-                    }}
+                    onViewImage={() => {handleViewImage}}
                     itemAttributesConfig={itemAttributesConfig}
                     invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
                 />
