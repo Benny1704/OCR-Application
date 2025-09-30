@@ -60,12 +60,16 @@ const StatCard = ({
   total_output_token,
 }: StatCardProps) => {
   const { theme } = useTheme();
-  const changeColor =
-    changeType === "increase"
-      ? "text-green-400"
-      : changeType === "decrease"
-      ? "text-red-400"
-      : "text-gray-400";
+  
+  const isDecreasePositive =
+    title === "LLM Tokens Consumed" || title === "Processing Failures";
+
+  let changeColor = "text-gray-400";
+  if (changeType === "decrease") {
+    changeColor = isDecreasePositive ? "text-green-400" : "text-red-400";
+  } else if (changeType === "increase") {
+    changeColor = isDecreasePositive ? "text-red-400" : "text-green-400";
+  }
 
   const cardVariants: Variants = {
     hidden: { opacity: 0, scale: 0.95 },
@@ -126,9 +130,9 @@ const StatCard = ({
           <div className="text-right">
             <div className="flex items-center gap-2 text-base font-bold">
               {changeType === "increase" ? (
-                <ArrowUp className="w-4 h-4 text-green-400" />
+                <ArrowUp className={`w-4 h-4 ${changeColor}`} />
               ) : changeType === "decrease" ? (
-                <ArrowDown className="w-4 h-4 text-red-400" />
+                <ArrowDown className={`w-4 h-4 ${changeColor}`} />
               ) : (
                 <ArrowRight className="w-4 h-4 text-gray-400" />
               )}

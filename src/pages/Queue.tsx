@@ -19,8 +19,6 @@ import {
   Trash2,
   RefreshCw,
   ClipboardClock,
-  ClipboardCheck,
-  ClipboardX,
   User,
   Database,
   File,
@@ -476,12 +474,6 @@ const Queue = () => {
     );
   };
 
-  const tabIcons = {
-    Queued: <ClipboardClock size={16} />,
-    "Yet to Review": <ClipboardCheck size={16} />,
-    Failed: <ClipboardX size={16} />,
-  };
-
   const renderContent = () => {
     if (isLoading && documentsForTab.length === 0) {
       return <QueueListSkeleton />;
@@ -865,8 +857,17 @@ const Queue = () => {
       <div className="tab-container">
         <div className="header">
           <div className="left-shape">
-            <h1>Document Queue</h1>
-            <p>{sectionFilter === 'current' && sectionName ? `${sectionName}` : ''}</p>
+            <div>
+              <h1>Document Queue</h1>
+              {(sectionFilter === 'current' && sectionName) ? (
+                <div className={`active-tab ${activeTab.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <p>{sectionFilter === 'current' && sectionName ? `${sectionName}` : ''}</p>
+                  <div className="badge">{pagination[activeTab]?.total_items || 0}</div>
+                </div>
+              ) : (
+                ''
+              )}
+            </div>
           </div>
           <div className="tabs">
             <ul ref={tabRef}>
@@ -877,7 +878,9 @@ const Queue = () => {
                   onClick={() => setActiveTab(tab)}
                 >
                   <span className="dot"></span>
-                  <p className="text">{tab}</p>
+                  <p className="text">
+                    {tab}
+                  </p>
                 </li>
               ))}
               <div className="tab-effect"></div>
@@ -885,20 +888,15 @@ const Queue = () => {
           </div>
           <div className="right-shape">
             {user?.role === 'admin' && (
-                  <PillToggle
-                      options={[
-                          { label: 'Overall', value: 'overall' },
-                          { label: 'Current Section', value: 'current' },
-                      ]}
-                      selected={sectionFilter}
-                      onSelect={setSectionFilter}
-                  />
+              <PillToggle
+                  options={[
+                      { label: 'Overall', value: 'overall' },
+                      { label: 'Current Section', value: 'current' },
+                  ]}
+                  selected={sectionFilter}
+                  onSelect={setSectionFilter}
+              />
             )}
-            <div className={`active-tab ${activeTab.toLowerCase().replace(/\s+/g, '-')}`}>
-              {tabIcons[activeTab]}
-              {activeTab}
-              <div className="badge">{pagination[activeTab]?.total_items || 0}</div>
-            </div>
           </div>
         </div>
 
