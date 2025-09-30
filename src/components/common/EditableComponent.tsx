@@ -12,7 +12,7 @@ import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
-import { retryMessage } from '../../lib/api/Api';
+import { retryMessage, getInvoicePdfFilename } from '../../lib/api/Api';
 import { accordionVariants } from './Animation';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
@@ -115,7 +115,7 @@ const EditableComponent = ({
             onFormChange(invoiceDetails, productDetails as ProductDetails[], amountDetails);
         }
     }, [invoiceDetails, productDetails, amountDetails, onFormChange]);
-    
+
     const handleValidationChange = useCallback((hasErrors: boolean) => {
         setHasValidationErrors(hasErrors);
         if (onValidationChange) {
@@ -141,10 +141,26 @@ const EditableComponent = ({
         }
     };
 
-    // const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
-    const handleViewImage = () => 0;
+    const handleViewImage = async () => {
+        if (!messageId) {
+            addToast({ type: 'error', message: 'Message ID is not available.' });
+            return;
+        }
+        try {
+            const response = await getInvoicePdfFilename(messageId);
+            if (response && response.original_filename) {
+                const filePath = `/src/invoice-pdf/${response.original_filename}`;
+                window.open(filePath, '_blank');
+            } else {
+                addToast({ type: 'error', message: 'Could not retrieve file information.' });
+            }
+        } catch (error) {
+            console.error("Failed to fetch image filename", error);
+            addToast({ type: 'error', message: 'Failed to fetch image filename.' });
+        }
+    };
     // const openRetryModal = () => setRetryModalOpen(true);
-    
+
     const handleSimpleRetry = async () => {
         setRetryModalOpen(false);
         if (messageId) {
@@ -247,7 +263,7 @@ const EditableComponent = ({
                             <span className="text-sm opacity-50">/</span>
                             <span className="text-sm font-medium">Invoice: {liveTaxableValue.toFixed(2)}</span>
                         </div>
-                        <button onClick={handleViewImage} className={`${secondaryButtonClasses}`} disabled>
+                        <button onClick={handleViewImage} className={`${secondaryButtonClasses}`}>
                             <Eye className="w-4 h-4" /> View Image
                         </button>
                         {/* {!isReadOnly && user?.role === 'admin' && (

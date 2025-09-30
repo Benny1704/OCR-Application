@@ -562,3 +562,13 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
         throw error;
     }
 };
+
+export const getInvoicePdfFilename = async (messageId: string): Promise<{ queue_id: string, original_filename: string } | null> => {
+    try {
+        const response = await api.get(`/invoice_pdf_filename/${messageId}`);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+        return null;
+    }
+};
