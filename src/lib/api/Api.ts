@@ -129,9 +129,13 @@ export const alterImage = async (params: { imageData: string; rotation: number; 
     }
 };
 
-export const getQueuedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<QueuedDocument>> => {
+export const getQueuedDocuments = async (page: number = 1, pageSize: number = 10, section_id?: number): Promise<PaginatedResponse<QueuedDocument>> => {
     try {
-        const response = await api.get('/document/queued', { params: { page, page_size: pageSize } });
+        const params: any = { page, page_size: pageSize };
+        if (section_id) {
+            params.section_id = section_id;
+        }
+        const response = await api.get('/document/queued', { params });
         return response.data;
     } catch (error) {
         handleError(error);
@@ -139,9 +143,13 @@ export const getQueuedDocuments = async (page: number = 1, pageSize: number = 10
     }
 };
 
-export const getProcessedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
+export const getProcessedDocuments = async (page: number = 1, pageSize: number = 10, section_id?: number): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
-        const response = await api.get('/document/processed', { params: { page, page_size: pageSize } });
+        const params: any = { page, page_size: pageSize };
+        if (section_id) {
+            params.section_id = section_id;
+        }
+        const response = await api.get('/document/processed', { params });
         return response.data;
     } catch (error) {
         handleError(error);
@@ -149,9 +157,13 @@ export const getProcessedDocuments = async (page: number = 1, pageSize: number =
     }
 };
 
-export const getFailedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<FailedDocument>> => {
+export const getFailedDocuments = async (page: number = 1, pageSize: number = 10, section_id?: number): Promise<PaginatedResponse<FailedDocument>> => {
     try {
-        const response = await api.get('/document/failed', { params: { page, page_size: pageSize } });
+        const params: any = { page, page_size: pageSize };
+        if (section_id) {
+            params.section_id = section_id;
+        }
+        const response = await api.get('/document/failed', { params });
         return response.data;
     } catch (error) {
         handleError(error);
@@ -159,16 +171,19 @@ export const getFailedDocuments = async (page: number = 1, pageSize: number = 10
     }
 };
 
-export const getCompletedDocuments = async (page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<ProcessedDocument>> => {
+export const getCompletedDocuments = async (page: number = 1, pageSize: number = 10, section_id?: number): Promise<PaginatedResponse<ProcessedDocument>> => {
     try {
-        const response = await api.get('/document/completed', { params: { page, page_size: pageSize } });
+        const params: any = { page, page_size: pageSize };
+        if (section_id) {
+            params.section_id = section_id;
+        }
+        const response = await api.get('/document/completed', { params });
         return response.data;
     } catch (error) {
         handleError(error);
         return { data: [], pagination: { page: 1, page_size: 10, total_items: 0, total_pages: 1, has_next: false, has_previous: false } };
     }
 };
-
 
 export const getDocumentSummary = async (section_id?: number, is_today?: boolean) => {
     try {
@@ -444,6 +459,7 @@ export const getInvoiceConfig = async (): Promise<{ fields: FormField[] }> => {
 export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/invoiceMeta');
+        console.log("getInvoiceMetaConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -454,6 +470,7 @@ export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemSummary');
+        console.log("getItemSummaryConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -464,7 +481,6 @@ export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemAttributesConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemAttributes');
-        console.log("getItemAttributesConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);

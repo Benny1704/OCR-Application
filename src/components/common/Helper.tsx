@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { toastVariants } from './Animation';
+import { svgVariants, toastVariants } from './Animation';
 
 // --- Confirmation Modal ---
 interface ConfirmationModalProps {
@@ -21,6 +21,12 @@ interface PopupProps {
     onClose: () => void;
     data: DataItem | null;
 }
+
+interface NoDataDisplayProps {
+    heading?: string;
+    message?: string;
+    children?: ReactNode;
+  }
 
 export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
     const { theme } = useTheme();
@@ -408,6 +414,51 @@ export const HowToUse = () => {
                 ))}
             </motion.div>
         </motion.div>
+    );
+};
+
+export const NoDataDisplay = ({ heading, message, children }: NoDataDisplayProps) => {
+    const { theme } = useTheme();
+
+    // Define colors based on the theme for a cohesive look
+    const primaryColor = 'rgba(139, 92, 246, 0.7)'; // A slightly transparent violet
+    const secondaryColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+    const textColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+    const headingColor = theme === 'dark' ? 'text-gray-200' : 'text-gray-700';
+    
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
+             <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                className="flex flex-col items-center"
+            >
+                {/* A more illustrative and modern SVG representation */}
+                <svg className="w-32 h-32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Ghostly representation of a bar chart in the background */}
+                    <motion.path d="M25 80 V40" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.1} />
+                    <motion.path d="M42 80 V60" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.2} />
+                    <motion.path d="M59 80 V50" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.3} />
+                    <motion.path d="M76 80 V70" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.4} />
+
+                    {/* A magnifying glass with a question mark, indicating a search with no results */}
+                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20, delay: 1.2 }}>
+                        <circle cx="45" cy="45" r="15" stroke={primaryColor} strokeWidth="3" fill="transparent" />
+                        <line x1="57" y1="57" x2="67" y2="67" stroke={primaryColor} strokeWidth="3" strokeLinecap="round" />
+                        <text x="45" y="49" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="bold" fill={primaryColor} textAnchor="middle">?</text>
+                    </motion.g>
+                </svg>
+
+                <h3 className={`text-xl font-semibold mt-6 ${headingColor}`}>
+                    {heading || "Nothing to display"}
+                </h3>
+                <p className={`text-sm mt-2 max-w-xs ${textColor}`}>
+                    {message || "We couldn't find any data for your current selection. Please try different filters."}
+                </p>
+                {children}
+            </motion.div>
+        </div>
     );
 };
 

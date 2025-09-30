@@ -6,14 +6,15 @@ import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, Arrow
 import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { useSections } from '../contexts/SectionContext'; // 1. Import the useSections hook
+import { useSections } from '../contexts/SectionContext'; 
 import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
 import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bouncyComponentVariants } from '../components/common/Animation';
-import { motion, type Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 import PillToggle from '../components/common/PillToggle';
 import ModernDropdown from '../components/common/ModernDropdown';
+import { NoDataDisplay } from '../components/common/Helper';
 
 const iconMap: { [key: string]: ElementType } = {
     Wallet,
@@ -355,63 +356,6 @@ const CustomTooltip = ({ active, payload, formatter }: CustomTooltipProps) => {
     return null;
 };
 
-const NoDataDisplay = () => {
-    const { theme } = useTheme();
-
-    // Define colors based on the theme for a cohesive look
-    const primaryColor = 'rgba(139, 92, 246, 0.7)'; // A slightly transparent violet
-    const secondaryColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
-    const textColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
-    const headingColor = theme === 'dark' ? 'text-gray-200' : 'text-gray-700';
-
-    // Animation variants for Framer Motion
-    const svgVariants: Variants = {
-        hidden: { pathLength: 0, opacity: 0 },
-        visible: (i: number) => ({
-            pathLength: 1,
-            opacity: 1,
-            transition: {
-                pathLength: { delay: i * 0.2, type: "spring", duration: 1.5, bounce: 0 },
-                opacity: { delay: i * 0.2, duration: 0.01 }
-            }
-        })
-    };
-    
-    return (
-        <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
-             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-                className="flex flex-col items-center"
-            >
-                {/* A more illustrative and modern SVG representation */}
-                <svg className="w-32 h-32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* Ghostly representation of a bar chart in the background */}
-                    <motion.path d="M25 80 V40" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.1} />
-                    <motion.path d="M42 80 V60" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.2} />
-                    <motion.path d="M59 80 V50" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.3} />
-                    <motion.path d="M76 80 V70" stroke={secondaryColor} strokeWidth="6" strokeLinecap="round" variants={svgVariants} initial="hidden" animate="visible" custom={0.4} />
-
-                    {/* A magnifying glass with a question mark, indicating a search with no results */}
-                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20, delay: 1.2 }}>
-                        <circle cx="45" cy="45" r="15" stroke={primaryColor} strokeWidth="3" fill="transparent" />
-                        <line x1="57" y1="57" x2="67" y2="67" stroke={primaryColor} strokeWidth="3" strokeLinecap="round" />
-                        <text x="45" y="49" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="bold" fill={primaryColor} textAnchor="middle">?</text>
-                    </motion.g>
-                </svg>
-
-                <h3 className={`text-xl font-semibold mt-6 ${headingColor}`}>
-                    Nothing to display
-                </h3>
-                <p className={`text-sm mt-2 max-w-xs ${textColor}`}>
-                    We couldn't find any data for your current selection. Please try different filters.
-                </p>
-            </motion.div>
-        </div>
-    );
-};
-
 const ChartCard = ({ title, subtitle, icon: Icon, children, isLoading, error, onRetry, data, isVendorChart = false, fullWidth = false, ...filterProps }: ChartCardProps) => {
     const { theme } = useTheme();
     const hasData = data && data.length > 0;
@@ -462,7 +406,7 @@ const ChartCard = ({ title, subtitle, icon: Icon, children, isLoading, error, on
                         {children}
                     </div>
                 ) : (
-                    <NoDataDisplay />
+                    <NoDataDisplay heading="Nothing to display" message="We couldn't find any data for your current selection. Please try different filters."/>
                 )}
             </div>
         </motion.div>
@@ -473,7 +417,7 @@ const Dashboard = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const navigate = useNavigate();
-    const { getSectionNameById } = useSections(); // 2. Get the lookup function from the context
+    const { getSectionNameById, sectionFilter, setSectionFilter } = useSections(); 
     
     const [kpiMetrics, setKpiMetrics] = useState<any[]>([]);
     const [kpiError, setKpiError] = useState<string | null>(null);
@@ -512,7 +456,6 @@ const Dashboard = () => {
     const [discountByVendorSelectedYear, setDiscountByVendorSelectedYear] = useState<number>(new Date().getFullYear());
     const [discountByVendorSelectedMonth, setDiscountByVendorSelectedMonth] = useState<number>(0);
     const [discountByVendorTopN, setDiscountByVendorTopN] = useState<number>(10);
-    const [sectionFilter, setSectionFilter] = useState<'overall' | 'current'>('overall');
 
     const fetchInitialData = useCallback(async () => {
         if (!user) return;

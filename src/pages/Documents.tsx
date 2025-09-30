@@ -10,10 +10,15 @@ import { documentConfig } from "../lib/config/Config";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { TableSkeleton } from "../components/common/SkeletonLoaders";
 import { formatDateTime } from "./Queue";
+import { useSections } from "../contexts/SectionContext";
+import PillToggle from "../components/common/PillToggle";
+import { useAuth } from "../hooks/useAuth";
 
 const Documents = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { sectionFilter, setSectionFilter } = useSections();
   const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,11 +26,21 @@ const Documents = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const getSectionId = useCallback(() => {
+    if (!user) return undefined;
+    if (user.role === 'admin') {
+        return sectionFilter === 'current' ? user.section : undefined;
+    }
+    return user.section;
+  }, [user, sectionFilter]);
+
   const fetchDocuments = useCallback(async (page: number, size: number) => {
+    if (!user) return;
     setIsLoading(true);
     setError(null);
     try {
-        const { data, pagination: paginationData } = await getCompletedDocuments(page, size);
+        const sectionId = getSectionId();
+        const { data, pagination: paginationData } = await getCompletedDocuments(page, size, sectionId);
         if (Array.isArray(data)) {
           setDocuments(data.map((item: any, index: number) => ({
             id: item.message_id,
@@ -49,7 +64,7 @@ const Documents = () => {
     } finally {
         setIsLoading(false);
     }
-  }, []);
+  }, [getSectionId, user]);
 
   useEffect(() => {
     fetchDocuments(currentPage, pageSize);
@@ -107,6 +122,16 @@ const Documents = () => {
         <h1 className={`text-xl md:text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
           Reviewed Documents
         </h1>
+        {user?.role === 'admin' && (
+          <PillToggle
+              options={[
+                  { label: 'Overall', value: 'overall' },
+                  { label: 'Current Section', value: 'current' },
+              ]}
+              selected={sectionFilter}
+              onSelect={setSectionFilter}
+          />
+        )}
       </motion.div>
 
       <motion.div variants={itemVariants} className="flex-grow overflow-auto">

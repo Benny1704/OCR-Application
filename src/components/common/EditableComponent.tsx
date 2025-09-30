@@ -108,7 +108,7 @@ const EditableComponent = ({
         productRows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0)
     ), [productRows]);
 
-    const liveInvoiceAmount = useMemo(() => Number((amountDetails as any)?.invoice_amount) || 0, [amountDetails]);
+    const liveInvoiceAmount = useMemo(() => Number((amountDetails as any)?.taxable_value) || 0, [amountDetails]);
 
     useEffect(() => {
         if (onFormChange) {

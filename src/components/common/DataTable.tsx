@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus, Inbox } from 'lucide-react';
+import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
 import { Popup, InfoPill, HowToUse } from './Helper';
 import { tableBodyVariants, tableRowVariants } from './Animation';
+import { NoDataDisplay } from './Helper';
 
 export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'> {
     tableData: DataItem[];
@@ -895,9 +896,7 @@ const DataTable = ({
                     <tr>
                         <td colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} className="text-center p-8">
                             <div className="flex flex-col items-center gap-4 text-gray-500">
-                                <Inbox size={48} className="text-gray-400" />
-                                <h3 className={`font-semibold text-lg ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>No Data Found</h3>
-                                <p className="text-sm">There are no records to display for your current search.</p>
+                                <NoDataDisplay heading="No Data Found" message="There are no records to display for your current search." />
                                 {isEditable && (
                                     <button
                                         onClick={handleAddRow}

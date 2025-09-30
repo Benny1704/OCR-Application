@@ -1,6 +1,9 @@
+// src/contexts/SectionContext.tsx
 import { createContext, useContext, useState, useEffect,type ReactNode, useCallback } from 'react';
 import { getSections } from '../lib/api/Api';
 import { type Section } from '../interfaces/Types';
+
+type SectionFilter = 'overall' | 'current';
 
 // Define the shape of the data our context will provide
 interface SectionContextType {
@@ -8,6 +11,8 @@ interface SectionContextType {
     loading: boolean;
     error: string | null;
     getSectionNameById: (id: number) => string; // The lookup function
+    sectionFilter: SectionFilter;
+    setSectionFilter: (filter: SectionFilter) => void;
 }
 
 // Create the actual context
@@ -18,6 +23,7 @@ export const SectionProvider = ({ children }: { children: ReactNode }) => {
     const [sections, setSections] = useState<Section[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [sectionFilter, setSectionFilter] = useState<SectionFilter>('overall');
 
     useEffect(() => {
         // This function runs once when the component is first rendered
@@ -43,7 +49,7 @@ export const SectionProvider = ({ children }: { children: ReactNode }) => {
     }, [sections]); // This function will update if the 'sections' array ever changes
 
     // The value provided to all consuming components
-    const value = { sections, loading, error, getSectionNameById };
+    const value = { sections, loading, error, getSectionNameById, sectionFilter, setSectionFilter };
 
     return (
         <SectionContext.Provider value={value}>

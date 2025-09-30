@@ -36,13 +36,15 @@ import {
   Building,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
-import { RetryModal, StatusBadge } from "../components/common/Helper";
+import { NoDataDisplay, RetryModal, StatusBadge } from "../components/common/Helper";
 import { motion, AnimatePresence } from "framer-motion";
 import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments, deleteMessage, togglePriority, retryMessage } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
 import { useToast } from "../hooks/useToast";
 import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
+import { useSections } from "../contexts/SectionContext";
+import PillToggle from "../components/common/PillToggle";
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -178,6 +180,7 @@ const Queue = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
+  const { sectionFilter, setSectionFilter } = useSections();
 
   const tabs: ("Queued" | "Yet to Review" | "Failed")[] = [
     "Queued",
@@ -193,7 +196,6 @@ const Queue = () => {
   const [processedDocuments, setProcessedDocuments] = useState<ProcessedDocument[]>([]);
   const [failedDocuments, setFailedDocuments] = useState<FailedDocument[]>([]);
 
-  // NEW FEATURE: State for last updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Record<string, Date | null>>({
     Queued: null,
     "Yet to Review": null,
@@ -213,18 +215,28 @@ const Queue = () => {
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
+  const getSectionId = useCallback(() => {
+    if (!user) return undefined;
+    if (user.role === 'admin') {
+        return sectionFilter === 'current' ? user.section : undefined;
+    }
+    return user.section;
+  }, [user, sectionFilter]);
+
   const fetchDocuments = useCallback(async (isRefresh = false) => {
+    if (!user) return;
     setIsLoading(true);
     if (!isRefresh) {
         setError(null);
     }
     try {
+        const sectionId = getSectionId();
         let queuedResponse: ApiResponse<QueuedDocument>;
         let processedResponse: ApiResponse<ProcessedDocument>;
         let failedResponse: ApiResponse<FailedDocument>;
 
         if (activeTab === 'Queued') {
-            queuedResponse = await getQueuedDocuments(currentPage, pageSize);
+            queuedResponse = await getQueuedDocuments(currentPage, pageSize, sectionId);
             if (Array.isArray(queuedResponse.data)) {
               setQueuedDocuments(queuedResponse.data.map((item: any) => ({
                   id: item.message_id,
@@ -242,7 +254,7 @@ const Queue = () => {
             }
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Yet to Review') {
-            processedResponse = await getProcessedDocuments(currentPage, pageSize);
+            processedResponse = await getProcessedDocuments(currentPage, pageSize, sectionId);
             if (Array.isArray(processedResponse.data)) {
               setProcessedDocuments(processedResponse.data.map((item: any, index: number) => ({
                   id: item.message_id,
@@ -262,7 +274,7 @@ const Queue = () => {
             }
             setPagination(prev => ({...prev, "Yet to Review": processedResponse.pagination}));
         } else if (activeTab === 'Failed') {
-            failedResponse = await getFailedDocuments(currentPage, pageSize);
+            failedResponse = await getFailedDocuments(currentPage, pageSize, sectionId);
             if (Array.isArray(failedResponse.data)) {
               setFailedDocuments(failedResponse.data.map((item: any) => ({
                   id: item.message_id,
@@ -279,7 +291,6 @@ const Queue = () => {
             }
             setPagination(prev => ({...prev, Failed: failedResponse.pagination}));
         }
-        // NEW FEATURE: Update the timestamp for the active tab
         setLastUpdated(prev => ({ ...prev, [activeTab]: new Date() }));
         if (isRefresh) {
             addToast({ type: 'success', message: `${activeTab} documents updated!` });
@@ -290,7 +301,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeTab]);
+  }, [currentPage, pageSize, activeTab, getSectionId, user]);
 
 
   useEffect(() => {
@@ -312,7 +323,6 @@ const Queue = () => {
       
         return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
       });
-      // return queuedDocuments;
     } else if (activeTab === "Yet to Review") {
       return processedDocuments;
     } else {
@@ -328,7 +338,6 @@ const Queue = () => {
   );
 
   useEffect(() => {
-    // Auto-select the first document if none is selected or if the selected one is no longer in the list
     if (
       documentsForTab.length > 0 &&
       !documentsForTab.some((d) => d.id === selectedDocumentId)
@@ -340,7 +349,6 @@ const Queue = () => {
   }, [documentsForTab, selectedDocumentId]);
 
   useEffect(() => {
-    // Reset page to 1 when tab changes
     setCurrentPage(1);
   }, [activeTab]);
 
@@ -417,11 +425,12 @@ const Queue = () => {
     });
     if (tabRef.current) observer.observe(tabRef.current);
     return () => {
-      if (tabRef.current) observer.unobserve(tabRef.current);
+      if (tabRef.current) {
+        observer.unobserve(tabRef.current)
+      }
     };
   }, [activeTab]);
 
-  // Improved compact info display component
   const CompactInfo = ({ 
     icon, 
     label, 
@@ -485,7 +494,6 @@ const Queue = () => {
     if (activeTab === "Yet to Review") {
       return (
         <>
-            {/* NEW FEATURE: Last updated and refresh button */}
             <div className={`flex items-center justify-end p-2 text-xs ${textSecondary}`}>
                 <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Last Updated: <span className={`font-light ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{formatLastUpdated(lastUpdated[activeTab])}</span></p>
                 <button
@@ -524,7 +532,6 @@ const Queue = () => {
             className={`rounded-xl border flex flex-col ${theme === "dark" ? "bg-gray-800/20" : "bg-white"
               } ${borderPrimary} overflow-hidden`}
           >
-            {/* NEW FEATURE: Header with last updated and refresh button */}
             <div className={`p-3 border-b ${borderPrimary} flex-shrink-0 flex justify-between items-center`}>
               <h3 className={`font-semibold text-base ${textHeader}`}>
                 {activeTab} Documents
@@ -660,7 +667,6 @@ const Queue = () => {
                       </div>
                     )}
 
-                  {/* Compact Document Information */}
                   <div>
                     <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
                       Document Information
@@ -679,7 +685,6 @@ const Queue = () => {
                     </div>
                   </div>
                   
-                  {/* Compact Supplier Information */}
                   {(activeTab === "Queued" || activeTab === "Failed") && 'supplier_meta' in selectedDocument && selectedDocument.supplier_meta && (
                     <div>
                       <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
@@ -700,7 +705,6 @@ const Queue = () => {
                     </div>
                   )}
 
-                  {/* Compact Invoice Information */}
                   {(activeTab === "Queued" || activeTab === "Failed") && 'invoice_meta' in selectedDocument && selectedDocument.invoice_meta && (
                     <div>
                       <h4 className={`font-semibold text-sm mb-2 ${textHeader}`}>
@@ -842,18 +846,7 @@ const Queue = () => {
 
     return (
       <div className="flex-grow flex flex-col justify-center items-center text-center py-12">
-        <div
-          className={`flex items-center justify-center w-20 h-20 rounded-full mb-4 ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"
-            }`}
-        >
-          <FileText className={`w-10 h-10 ${textSecondary}`} />
-        </div>
-        <p className={`font-semibold text-base ${textHeader}`}>
-          No {activeTab.toLowerCase()} documents found
-        </p>
-        <p className={`text-sm mt-1 ${textSecondary}`}>
-          This queue is currently empty.
-        </p>
+                <NoDataDisplay heading={`No ${activeTab.toLowerCase()} documents found`} message="This queue is currently empty."/>
       </div>
     );
   };
@@ -889,6 +882,16 @@ const Queue = () => {
             </ul>
           </div>
           <div className="right-shape">
+            {user?.role === 'admin' && (
+                  <PillToggle
+                      options={[
+                          { label: 'Overall', value: 'overall' },
+                          { label: 'Current Section', value: 'current' },
+                      ]}
+                      selected={sectionFilter}
+                      onSelect={setSectionFilter}
+                  />
+            )}
             <div className={`active-tab ${activeTab.toLowerCase().replace(/\s+/g, '-')}`}>
               {tabIcons[activeTab]}
               {activeTab}
