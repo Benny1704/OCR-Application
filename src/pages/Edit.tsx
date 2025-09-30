@@ -58,8 +58,8 @@ const Edit = () => {
         return productDetails.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0);
     }, [productDetails]);
 
-    const liveInvoiceAmount = useMemo(() => {
-        return Number(amountAndTaxDetails?.invoice_amount) || 0;
+    const liveTaxableValue = useMemo(() => {
+        return Number(amountAndTaxDetails?.taxable_value) || 0;
     }, [amountAndTaxDetails]);
 
     useEffect(() => {
@@ -291,7 +291,7 @@ const Edit = () => {
             addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before saving.' });
             return;
         }
-        if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
+        if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('save');
             setAmountMismatchModalOpen(true);
         } else {
@@ -304,7 +304,7 @@ const Edit = () => {
             addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields before finalizing.' });
             return;
         }
-        if (Math.abs(liveCalculatedAmount - liveInvoiceAmount) > 0.01) {
+        if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('finalize');
             setAmountMismatchModalOpen(true);
         } else {
@@ -417,7 +417,7 @@ const Edit = () => {
                     onClose={() => setAmountMismatchModalOpen(false)}
                     onConfirm={handleForceProceed}
                     title="Amount Mismatch"
-                    message={`The calculated total (${liveCalculatedAmount.toFixed(2)}) does not match the invoice total (${liveInvoiceAmount.toFixed(2)}). Are you sure you want to proceed?`}
+                    message={`The calculated total (${liveCalculatedAmount.toFixed(2)}) does not match the invoice total (${liveTaxableValue.toFixed(2)}). Are you sure you want to proceed?`}
                     icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
                 />
                 <ConfirmationModal

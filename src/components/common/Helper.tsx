@@ -26,7 +26,24 @@ interface NoDataDisplayProps {
     heading?: string;
     message?: string;
     children?: ReactNode;
-}
+  }
+
+export const formatIndianCurrency = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    const numberValue = Number(value);
+    if (isNaN(numberValue)) {
+        return String(value);
+    }
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(numberValue).replace('₹', '₹ ');
+};
+
 
 export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, icon }: ConfirmationModalProps) => {
     const { theme } = useTheme();

@@ -108,7 +108,7 @@ const EditableComponent = ({
         productRows.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0)
     ), [productRows]);
 
-    const liveInvoiceAmount = useMemo(() => Number((amountDetails as any)?.taxable_value) || 0, [amountDetails]);
+    const liveTaxableValue = useMemo(() => Number((amountDetails as any)?.taxable_value) || 0, [amountDetails]);
 
     useEffect(() => {
         if (onFormChange) {
@@ -241,11 +241,11 @@ const EditableComponent = ({
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${theme === 'dark' ? 'bg-slate-800 text-gray-200' : 'bg-white text-gray-800'} ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
-                            <span className={`text-sm font-medium ${Math.abs(liveCalculatedAmount - liveInvoiceAmount) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            <span className={`text-sm font-medium ${Math.abs(liveCalculatedAmount - liveTaxableValue) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 Calc: {liveCalculatedAmount.toFixed(2)}
                             </span>
                             <span className="text-sm opacity-50">/</span>
-                            <span className="text-sm font-medium">Invoice: {liveInvoiceAmount.toFixed(2)}</span>
+                            <span className="text-sm font-medium">Invoice: {liveTaxableValue.toFixed(2)}</span>
                         </div>
                         <button onClick={handleViewImage} className={`${secondaryButtonClasses}`} disabled>
                             <Eye className="w-4 h-4" /> View Image
@@ -302,6 +302,7 @@ const EditableComponent = ({
                                                                     key={field.key}
                                                                     type={field.type}
                                                                     isRequired={field.isRequired}
+                                                                    isCurrency={field.isCurrency}
                                                                     label={field.label}
                                                                     name={field.key}
                                                                     value={getValue(field.key)}

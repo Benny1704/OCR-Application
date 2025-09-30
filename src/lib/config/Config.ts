@@ -3,6 +3,7 @@ export interface FormField {
   label: string;
   type?: string;
   options?: { value: string | number; label: string }[];
+  isCurrency?: boolean;
 }
 
 export interface FormSection {
@@ -35,7 +36,7 @@ export const uploadFormConfig: FormField[] = [
   { key: 'supplier_name', label: 'Supplier Name', type: 'text' },
   { key: 'gst_no', label: 'GST No', type: 'text' },
   { key: 'invoice_no', label: 'Invoice No', type: 'text' },
-  { key: 'invoice_amount', label: 'Invoice Amount', type: 'number' },
+  { key: 'invoice_amount', label: 'Invoice Amount', type: 'number' , isCurrency: true},
   { key: 'invoice_date', label: 'Invoice Date', type: 'datetime-local' },
 ];
 
@@ -49,68 +50,3 @@ export const documentConfig = {
     { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: false },
   ]
 };
-
-// export const formConfig: FormSection[] = [
-//   {
-//     id: 'supplier_invoice',
-//     title: 'Supplier & Invoice Details',
-//     fields: [
-//       { key: 'supplier_name', label: 'Supplier Name' },
-//       { key: 'supplier_gst', label: 'Supplier GST' },
-//       { key: 'supplier_address', label: 'Supplier Address' },
-//       { key: 'invoice_number', label: 'Invoice No' },
-//       { key: 'irn', label: 'IRN' },
-//       { key: 'invoice_date', label: 'Invoice Date' },
-//       { key: 'way_bill', label: 'Way Bill' },
-//       { key: 'acknowledgement_number', label: 'Acknowledgement Number' },
-//       { key: 'acknowledgement_date', label: 'Acknowledgement Date' },
-//     ],
-//   },
-//   {
-//     id: 'product_details',
-//     title: 'Product Details',
-//   },
-//   {
-//     id: 'amount_details',
-//     title: 'Amount & Tax Details',
-//     fields: [
-//       { key: 'invoice_amount', label: 'Invoice Amount' },
-//       { key: 'taxable_value', label: 'Taxable Value' },
-//       { key: 'cgst_amount', label: 'CGST Amount' },
-//       { key: 'sgst_amount', label: 'SGST Amount' },
-//       { key: 'igst_amount', label: 'IGST Amount' },
-//       { key: 'igst_percentage', label: 'IGST %' },
-//       { key: 'total_tax_amount', label: 'Total Tax Amount' },
-//       { key: 'other_deductions', label: 'Other Deductions' },
-//       { key: 'freight_charges', label: 'Freight Charges' },
-//       { key: 'other_charges', label: 'Other Charges' },
-//       { key: 'round_off_amount', label: 'Round Off Amount' },
-//       { key: 'discount_percentage', label: 'Discount %' },
-//       { key: 'discount_amount', label: 'Discount Amount' },
-//     ],
-//   },
-// ];
-
-// export const itemSummaryConfig = {
-// columns: [
-//   { key: 'category', label: 'Category', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'UOM', label: 'UOM', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'item_description', label: 'Item Description', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'design_code', label: 'Design Code', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'total_quantity', label: 'Total Quantity', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'total_amount', label: 'Total Amount', isEditable: true, isRequired: true, isCalculated: true },
-//   { key: 'HSN', label: 'HSN', isEditable: true, isRequired: true, isCalculated: false },
-// ]
-// };
-
-// export const itemAttributesConfig = {
-// columns: [
-//   { key: 'size', label: 'Size', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'total_count', label: 'Total Count', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'color_code', label: 'Color Code', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'single_unit_price', label: 'Single Unit (Rate)', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'single_unit_mrp', label: 'Single Unit (MRP)', isEditable: true, isRequired: true, isCalculated: false },
-//   { key: 'no_item_split', label: 'No. of Split', isEditable: true, isRequired: true, isCalculated: false },
-//   // { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: true },
-// ]
-// };

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { formatIndianCurrency } from './Helper';
 
 interface DynamicFieldProps {
   label: string;
@@ -9,6 +10,7 @@ interface DynamicFieldProps {
   theme?: string;
   type?: string;
   isRequired?: boolean;
+  isCurrency?: boolean;
 }
 
 export const DynamicField = ({
@@ -20,18 +22,26 @@ export const DynamicField = ({
   theme = 'light',
   type = 'text',
   isRequired = false,
+  isCurrency = false,
 }: DynamicFieldProps) => {
-  // The original error was likely caused by trying to access a property on a null value.
-  // By checking for null/undefined and defaulting to an empty string, we prevent this.
+  const [isEditing, setIsEditing] = useState(false);
   const displayValue = value ?? '';
-  const isTextArea = typeof displayValue === 'string' && displayValue.length > 100; // Example condition for using a textarea
+  const isTextArea = typeof displayValue === 'string' && displayValue.length > 100;
+
+  const handleFocus = () => {
+    if (!disabled) {
+      setIsEditing(true);
+    }
+  };
+  const handleBlur = () => setIsEditing(false);
 
   const commonProps = {
     id: name,
     name: name,
-    value: displayValue,
     onChange: onChange,
     disabled: disabled,
+    onFocus: handleFocus,
+    onBlur: handleBlur,
     className: `w-full px-3 py-2 text-sm md:text-base rounded-lg border focus:outline-none focus:ring-2 transition-colors ${
       disabled
         ? 'cursor-not-allowed bg-opacity-50'
@@ -43,16 +53,28 @@ export const DynamicField = ({
     }`,
   };
 
+  // Determine the value to display
+  const valueToShow = isEditing || !isCurrency ? displayValue : formatIndianCurrency(displayValue);
+
+  // Determine the input type: 'number' when editing a currency field, 'text' otherwise.
+  const inputType = isEditing && isCurrency ? 'number' : 'text';
+
   return (
     <div className="w-full">
       <label htmlFor={name} className="block text-xs md:text-sm font-medium mb-1">
         {label} {isRequired && <span className="text-red-500">*</span>}
       </label>
-      {isTextArea ? (
-        <textarea {...commonProps} rows={3} />
-      ) : (
-        <input type={type} {...commonProps} />
-      )}
+      <div className="relative">
+        {isTextArea ? (
+          <textarea {...commonProps} value={displayValue} rows={3} />
+        ) : (
+          <input
+            type={isCurrency ? inputType : type}
+            {...commonProps}
+            value={valueToShow}
+          />
+        )}
+      </div>
     </div>
   );
 };

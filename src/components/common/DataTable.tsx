@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
-import { Popup, InfoPill, HowToUse } from './Helper';
+import { Popup, InfoPill, HowToUse, formatIndianCurrency } from './Helper';
 import { tableBodyVariants, tableRowVariants } from './Animation';
 import { NoDataDisplay } from './Helper';
 
@@ -754,6 +754,11 @@ const DataTable = ({
         if (inputType === 'boolean') {
             return <input type="checkbox" checked={!!cellValue} readOnly className={`h-4 w-4 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`} />;
         }
+        
+        if (colConfig?.isCurrency) {
+            return formatIndianCurrency(cellValue);
+        }
+
         return String(cellValue ?? '');
     };
 

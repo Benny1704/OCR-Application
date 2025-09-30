@@ -865,7 +865,8 @@ const Queue = () => {
       <div className="tab-container">
         <div className="header">
           <div className="left-shape">
-            <h1>Document Queue {sectionFilter === 'current' && sectionName ? `- ${sectionName}` : ''}</h1>
+            <h1>Document Queue</h1>
+            <p>{sectionFilter === 'current' && sectionName ? `${sectionName}` : ''}</p>
           </div>
           <div className="tabs">
             <ul ref={tabRef}>

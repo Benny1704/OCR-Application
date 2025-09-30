@@ -35,6 +35,7 @@ export interface TableColumnConfig {
     isRequired?: boolean;
     isCalculated?: boolean;
     fixed?: boolean;
+    isCurrency?: boolean
 }
 
 export interface TableConfig {
