@@ -3,7 +3,7 @@ import type { LineItem, DataItem, ProductDetails } from '../../interfaces/Types'
 import DataTable from './DataTable';
 import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
-import { Save, AlertTriangle, Eye, PlusCircle, CheckCircle } from 'lucide-react';
+import { Save, AlertTriangle, Eye, CheckCircle } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal } from './Helper';
 import { updateLineItems, getLineItems, manualInvoiceEntryItemAttributes } from '../../lib/api/Api';
@@ -28,6 +28,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     const [isDirty, setIsDirty] = useState(false);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFormValid, setIsFormValid] = useState(false); // New state for validation
 
     const fetchLineItems = useCallback(async () => {
         if (product?.item_id && invoiceId) {
@@ -50,6 +51,24 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         }
     }, [product, invoiceId]);
 
+
+    // Validation function to check for mandatory fields
+    const validateLineItems = useCallback((items: LineItem[]) => {
+        // Get mandatory fields from the config, assuming a 'required' property exists
+        const mandatoryFields = itemAttributesConfig
+            .filter((field: any) => field.required)
+            .map((field: any) => field.accessor);
+
+        if (items.length === 0) return true; // No rows to validate
+
+        return items.every(item =>
+            mandatoryFields.every((field: string) => {
+                const value = item[field as keyof LineItem];
+                return value !== null && value !== undefined && value !== '';
+            })
+        );
+    }, [itemAttributesConfig]);
+
     useEffect(() => {
         if (isOpen) {
             fetchLineItems();
@@ -57,13 +76,23 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     }, [isOpen, fetchLineItems]);
 
     useEffect(() => {
-        setIsDirty(!isEqual(initialLineItems, lineItems));
-    }, [lineItems, initialLineItems]);
+        const dirty = !isEqual(initialLineItems, lineItems);
+        setIsDirty(dirty);
+        if (dirty) {
+            setIsFormValid(validateLineItems(lineItems));
+        } else {
+            setIsFormValid(true); // If not dirty, no need to validate
+        }
+    }, [lineItems, initialLineItems, validateLineItems]);
+
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
-        if (isReadOnly) return;
+        if (isReadOnly || !isFormValid) {
+            addToast({ type: 'error', message: 'Please fill all mandatory fields.' });
+            return;
+        };
         if (!product?.item_id) {
             addToast({ type: 'error', message: 'Cannot save: Missing product item ID.' });
             return;
@@ -123,33 +152,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         } catch (error) {
             console.error("Failed to save line item:", error);
         }
-    };
-
-
-    const handleAddRow = () => {
-        if (isReadOnly) return;
-        const newRow: LineItem = {
-            item_id: product?.item_id || 0,
-            item_description: '',
-            total_count: 0,
-            single_unit_price: 0,
-            discount_percentage: '0',
-            discount_amount: 0,
-            single_unit_mrp: 0,
-            HSN: '',
-            cgst_percentage: '0',
-            sgst_percentage: '0',
-            igst_percentage: '0',
-            EAN: '',
-            attribute_id: 0,
-            size: '',
-            pieces: 0,
-            color_code: '',
-            ean_code: '',
-            hsn: '',
-            id: ''
-        };
-        setLineItems(prev => [...prev, newRow]);
     };
 
     const renderActionCell = (row: DataItem) => {
@@ -228,20 +230,13 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                             </div>
                         )}
                     </main>
-
+                    {/* --- Footer with "Add Row" button removed --- */}
                     {!isReadOnly && (
-                        <footer className={`flex-shrink-0 flex justify-between items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                            <button
-                                onClick={handleAddRow}
-                                className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-blue-700 disabled:opacity-50"
-                                disabled={isReadOnly}
-                            >
-                                <PlusCircle size={16} /> Add Row
-                            </button>
+                        <footer className={`flex-shrink-0 flex justify-end items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                             <button
                                 onClick={handleSave}
                                 className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700 disabled:opacity-50"
-                                disabled={isReadOnly || !isDirty}
+                                disabled={isReadOnly || !isDirty || !isFormValid}
                             >
                                 <Save size={16} /> Save Changes
                             </button>

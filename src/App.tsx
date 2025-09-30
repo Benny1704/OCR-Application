@@ -26,6 +26,7 @@ import { Toast, UploadStatus } from "./components/common/Helper";
 import { AnimatePresence } from "framer-motion";
 import Review from "./pages/Review";
 import { setGlobalToast } from "./lib/api/Api";
+import { SectionProvider } from "./contexts/SectionContext";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   const auth = useContext(AuthContext);
@@ -121,7 +122,9 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppRoutesAndToasts />
+          <SectionProvider>
+            <AppRoutesAndToasts />
+          </SectionProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
@@ -129,4 +132,3 @@ function App() {
 }
 
 export default App;
-
