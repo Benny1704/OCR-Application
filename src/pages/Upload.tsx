@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast';
 import * as api from '../lib/api/Api';
 import { uploadFormConfig, type FormField } from '../lib/config/Config';
 import { listVariants, optionVariants, containerVariants, itemVariants } from '../components/common/Animation';
+import { useAuth } from '../hooks/useAuth'; // Import useAuth
 
 // --- Custom Animated Select Component ---
 const CustomSelect = ({ field, value, onChange, theme }: { field: FormField, value: any, onChange: (key: string, value: any) => void, theme: string }) => {
@@ -73,8 +74,9 @@ const CustomSelect = ({ field, value, onChange, theme }: { field: FormField, val
 // --- Main Upload Component ---
 const Upload = () => {
     const { theme } = useTheme();
+    const { user } = useAuth(); // Get user from auth context
     const [file, setFile] = useState<File | null>(null);
-    const [formData, setFormData] = useState<{ [key: string]: any }>({});
+    const [formData, setFormData] = useState<{ [key: string]: any }>({ section_id: user?.section || '' });
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const { addToast } = useToast();
@@ -125,7 +127,7 @@ const Upload = () => {
             if (response.success) {
                 addToast({ type: 'success', message: 'Upload complete!' });
                 setFile(null);
-                setFormData({});
+                setFormData({ section_id: user?.section || '' });
             }
         } catch (error) {
             console.error("Upload failed in component:", error);
@@ -175,6 +177,7 @@ const Upload = () => {
                                 <div className="flex-grow overflow-hidden">
                                     <p className="font-medium truncate" title={file.name}>{file.name}</p>
                                     <p className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>{formatBytes(file.size)}</p>
+
                                 </div>
                                 <div className="flex items-center ml-4 space-x-1">
                                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(URL.createObjectURL(file))} className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`} title="Preview"><Eye className="w-5 h-5" /></motion.button>

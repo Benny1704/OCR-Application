@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, Save, Eye, ChevronDown } from 'lucide-react';
+import { Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+// import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, EditableComponentProps } from '../../interfaces/Types';
 import DataTable from './DataTable';
@@ -76,7 +76,7 @@ const EditableComponent = ({
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    // const { user } = useAuth();
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
 
@@ -143,7 +143,7 @@ const EditableComponent = ({
 
     // const handleViewImage = () => addToast({ type: 'error', message: 'Image view functionality is not yet connected.' });
     const handleViewImage = () => 0;
-    const openRetryModal = () => setRetryModalOpen(true);
+    // const openRetryModal = () => setRetryModalOpen(true);
     
     const handleSimpleRetry = async () => {
         setRetryModalOpen(false);
@@ -247,14 +247,14 @@ const EditableComponent = ({
                             <span className="text-sm opacity-50">/</span>
                             <span className="text-sm font-medium">Invoice: {liveInvoiceAmount.toFixed(2)}</span>
                         </div>
-                        <button onClick={handleViewImage} className={secondaryButtonClasses} disabled>
+                        <button onClick={handleViewImage} className={`${secondaryButtonClasses}`} disabled>
                             <Eye className="w-4 h-4" /> View Image
                         </button>
-                        {!isReadOnly && user?.role === 'admin' && (
+                        {/* {!isReadOnly && user?.role === 'admin' && (
                             <button onClick={openRetryModal} className={secondaryButtonClasses}>
                                 <RefreshCw className="w-4 h-4" /> Retry
                             </button>
-                        )}
+                        )} */}
                     </div>
                 </div>
             </header>

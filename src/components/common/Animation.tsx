@@ -6,7 +6,7 @@ export const itemVariants: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
+    transition: { duration: 0.3, ease: "easeOut" }
   }
 };
 
@@ -15,7 +15,7 @@ export const containerVariants: Variants = { // <-- ADDED TYPE ANNOTATION
   visible: {
       opacity: 1,
       transition: {
-          staggerChildren: 0.15,
+          staggerChildren: 0.08,
       }
   }
 };
@@ -140,7 +140,7 @@ export const pageWithStaggerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 };

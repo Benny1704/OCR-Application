@@ -305,13 +305,14 @@ const Queue = () => {
   const documentsForTab = useMemo(() => {
     if (activeTab === "Queued") {
       return [...queuedDocuments].sort((a, b) => {
-        if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
         if (a.status === "Processing" && b.status !== "Processing") return -1;
         if (b.status === "Processing" && a.status !== "Processing") return 1;
-        return (
-          new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-        );
+      
+        if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
+      
+        return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
       });
+      // return queuedDocuments;
     } else if (activeTab === "Yet to Review") {
       return processedDocuments;
     } else {
