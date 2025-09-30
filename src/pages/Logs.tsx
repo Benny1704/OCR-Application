@@ -397,7 +397,7 @@ const Logs = () => {
     setGraphError(null);
     try {
       const data = await getMonthlyProcessingStats(graphYear);
-      setGraphData(data.weeklyProcessingData);
+      setGraphData(data.monthlyProcessingData);
     } catch (err: any) {
       setGraphError(err.message || "Failed to fetch graph data.");
     } finally {

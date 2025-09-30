@@ -318,6 +318,7 @@ export const getDiscountByVendor = async (year: number, month?: number, section_
 export const getInvoiceDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}`);
+        console.log("getInvoiceDetails: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -328,6 +329,7 @@ export const getInvoiceDetails = async (invoiceId: number) => {
 export const getProductDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items`);
+        console.log("getProductDetails: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -338,6 +340,7 @@ export const getProductDetails = async (invoiceId: number) => {
 export const getAmountAndTaxDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/meta-discount`);
+        console.log("getAmountAndTaxDetails: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -348,7 +351,7 @@ export const getAmountAndTaxDetails = async (invoiceId: number) => {
 export const getLineItems = async (invoiceId: number, itemId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
-        console.log("lineItems: "+JSON.stringify(response.data));
+        console.log("getLineItems: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -360,8 +363,7 @@ export const getLineItems = async (invoiceId: number, itemId: number) => {
 
 export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetails) => {
     try {
-
-        // console.log("updateInvoiceDetails: "+JSON.stringify(data));
+        console.log("updateInvoiceDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}`, data);
         return response.data;
     } catch (error) {
@@ -373,8 +375,7 @@ export const updateInvoiceDetails = async (invoiceId: number, data: InvoiceDetai
 export const updateProductDetails = async (invoiceId: number, data: any) => {
     try {
         const { items } = data;
-        console.log("updateProductDetails: "+JSON.stringify(data));
-
+        console.log("updateProductDetails: "+JSON.stringify(items));
         const response = await api.put(`/invoice/${invoiceId}/item-summary`, items);
         return response.data;
     } catch (error) {
@@ -385,8 +386,7 @@ export const updateProductDetails = async (invoiceId: number, data: any) => {
 
 export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountAndTaxDetails) => {
     try {
-
-        // console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
+        console.log("updateAmountAndTaxDetails: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${invoiceId}/meta-discount`, data);
         return response.data;
     } catch (error) {
@@ -397,8 +397,7 @@ export const updateAmountAndTaxDetails = async (invoiceId: number, data: AmountA
 
 export const updateLineItems = async (itemId: number, data: LineItem[]) => {
     try {
-
-        // console.log("updateLineItems: "+JSON.stringify(data));
+        console.log("updateLineItems: "+JSON.stringify(data));
         const response = await api.put(`/invoice/${itemId}/item-attribute`, data);
         return response.data;
     } catch (error) {
@@ -431,6 +430,7 @@ export const getProcessingFailuresStats = (year: number, month?: number) => {
 
 export const getMonthlyProcessingStats = async (year: number) => {
     const response = await api.get('/summary/monthly-processing', { params: { year } });
+    console.log("getMonthlyProcessingStats: "+JSON.stringify(response.data))
     return response.data;
 };
 
@@ -463,7 +463,6 @@ export const getInvoiceConfig = async (): Promise<{ fields: FormField[] }> => {
 export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/invoiceMeta');
-        console.log("getInvoiceMetaConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -474,7 +473,6 @@ export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemSummary');
-        console.log("getItemSummaryConfig: "+ JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -500,9 +498,7 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
             ...invoiceData,
             message_id: messageID
         };
-        console.log("manualInvoiceEntryInvoice: "+JSON.stringify(payload));
         const response = await api.post('/manual_invoice_entry/invoice', payload);
-        console.log("manualInvoiceEntryInvoice response: "+JSON.stringify(response.data));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -512,7 +508,6 @@ export const manualInvoiceEntryInvoice = async (messageID: string, invoiceData: 
 
 export const manualInvoiceEntryInvoiceMeta = async (metaData: Partial<AmountAndTaxDetails>) => {
     try {
-        console.log("manualInvoiceEntryInvoiceMeta: "+JSON.stringify(metaData));
         const response = await api.post('/manual_invoice_entry/invoice_meta', metaData);
         return response.data;
     } catch (error) {
@@ -558,6 +553,7 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
         }));
 
         // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
+        console.log("manualInvoiceEntryItemAttributes: "+JSON.stringify({attributes: cleanedAttributes}));
         const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
 
         return response.data;

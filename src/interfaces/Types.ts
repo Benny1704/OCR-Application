@@ -279,6 +279,7 @@ export interface FormField {
     isEditable?: boolean;
     isRequired?: boolean;
     isCalculated?: boolean;
+    isCurrency?:boolean;
 }
 
 export interface FormSection {

@@ -168,9 +168,9 @@ const Edit = () => {
                     total_amount: Number(productRow.total_amount) || 0,
                     gst_percentage: Number(productRow.gst_percentage) || 0,
                     style_code: productRow.style_code || "",
-                    category: "string",
-                    uom: "string",
-                    design_code: "string",
+                    category: productRow.category || "",
+                    uom: productRow.uom || "",
+                    design_code: productRow.design_code || ""
                 }
             ]
         };

@@ -851,7 +851,7 @@ const Dashboard = () => {
                                 <Bar
                                     dataKey="expense"
                                     fill="url(#expenseGradient)"
-                                    name="Expense"
+                                    name="Amount"
                                     radius={[4, 4, 0, 0]}
                                     barSize={16}
                                 />

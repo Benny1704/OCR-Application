@@ -322,7 +322,7 @@ const Kbd = ({ children }: { children: ReactNode }) => {
 };
 
 // Revamped HowToUse component with staggered animations
-export const HowToUse = () => {
+export const HowToUse = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
     const { theme } = useTheme();
 
     const containerVariants = {
@@ -378,59 +378,72 @@ export const HowToUse = () => {
     ];
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 15, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} // Snappy cubic-bezier transition
-            className={`absolute bottom-full right-0 mb-3 w-96 rounded-xl shadow-2xl z-[100] overflow-hidden border ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/60 backdrop-blur-lg' : 'bg-white/80 border-gray-200/60 backdrop-blur-lg'}`}
-        >
-            <div className={`p-4 border-b flex items-center gap-4 ${theme === 'dark' ? 'border-gray-700/60' : 'border-gray-200/60'}`}>
-                <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-violet-900/50 text-violet-300' : 'bg-violet-100 text-violet-600'}`}>
-                    <Keyboard size={24} />
-                </div>
-                <div>
-                    <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Shortcuts Guide</h4>
-                    <p className={`text-sm mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Master the data grid</p>
-                </div>
-            </div>
-            <motion.div 
-                className="p-4 max-h-80 overflow-y-auto"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                {shortcuts.map(section => (
-                    <div key={section.category} className="mb-5 last:mb-0">
-                        <motion.h5 
-                            variants={itemVariants} 
-                            className={`font-semibold text-sm mb-3 px-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} // Snappy cubic-bezier transition
+                        className={`w-96 rounded-xl shadow-2xl z-[100] overflow-hidden border ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/60 backdrop-blur-lg' : 'bg-white/80 border-gray-200/60 backdrop-blur-lg'}`}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className={`p-4 border-b flex items-center gap-4 ${theme === 'dark' ? 'border-gray-700/60' : 'border-gray-200/60'}`}>
+                            <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-violet-900/50 text-violet-300' : 'bg-violet-100 text-violet-600'}`}>
+                                <Keyboard size={24} />
+                            </div>
+                            <div>
+                                <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Shortcuts Guide</h4>
+                                <p className={`text-sm mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Master the data grid</p>
+                            </div>
+                        </div>
+                        <motion.div 
+                            className="p-4 max-h-80 overflow-y-auto"
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
                         >
-                            {section.category}
-                        </motion.h5>
-                        <ul className="space-y-2">
-                            {section.items.map(shortcut => (
-                                <motion.li 
-                                    key={shortcut.action} 
-                                    variants={itemVariants}
-                                    className="flex justify-between items-center text-sm p-1 rounded-md"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>{shortcut.icon}</span>
-                                        <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{shortcut.action}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        {shortcut.keys.map((key, index) => (
-                                            <Fragment key={index}>{key}</Fragment>
+                            {shortcuts.map(section => (
+                                <div key={section.category} className="mb-5 last:mb-0">
+                                    <motion.h5 
+                                        variants={itemVariants} 
+                                        className={`font-semibold text-sm mb-3 px-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
+                                    >
+                                        {section.category}
+                                    </motion.h5>
+                                    <ul className="space-y-2">
+                                        {section.items.map(shortcut => (
+                                            <motion.li 
+                                                key={shortcut.action} 
+                                                variants={itemVariants}
+                                                className="flex justify-between items-center text-sm p-1 rounded-md"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>{shortcut.icon}</span>
+                                                    <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{shortcut.action}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    {shortcut.keys.map((key, index) => (
+                                                        <Fragment key={index}>{key}</Fragment>
+                                                    ))}
+                                                </div>
+                                            </motion.li>
                                         ))}
-                                    </div>
-                                </motion.li>
+                                    </ul>
+                                </div>
                             ))}
-                        </ul>
-                    </div>
-                ))}
-            </motion.div>
-        </motion.div>
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
@@ -1073,13 +1073,11 @@ const DataTable = ({
                             </InfoPill>
                         )}
                     </div>
-                    <div className="relative" ref={helpRef}>
-                        <button onClick={() => setShowHelp(prev => !prev)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+                    <div>
+                        <button onClick={() => setShowHelp(true)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
                             <Info size={16} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
                         </button>
-                        <AnimatePresence>
-                            {showHelp && <HowToUse />}
-                        </AnimatePresence>
+                        <HowToUse isOpen={showHelp} onClose={() => setShowHelp(false)} />
                     </div>
                 </div>
             )}

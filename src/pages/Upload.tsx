@@ -96,11 +96,10 @@ const Upload = () => {
     const handleInputChange = (key: string, value: any) => setFormData(prev => ({ ...prev, [key]: value }));
 
     const isFormValid = useMemo(() => {
-        // return uploadFormConfig.every(field => {
-        //     const value = formData[field.key];
-        //     return value !== undefined && value !== null && value !== '';
-        // }) && file;
-        return true;
+        return uploadFormConfig.every(field => {
+            const value = formData[field.key];
+            return value !== undefined && value !== null && value !== '';
+        }) && file;
     }, [formData, file]);
 
     const handleProceed = async () => {
@@ -219,7 +218,7 @@ const Upload = () => {
                                 ))}
                             </div>
                             <motion.div className="mt-auto p-4 border-t border-inherit flex-shrink-0" variants={itemVariants}>
-                                <motion.button onClick={handleProceed} disabled={isUploading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <motion.button onClick={handleProceed} disabled={!isFormValid || isUploading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed">
                                     Verify and Proceed
                                 </motion.button>
                             </motion.div>

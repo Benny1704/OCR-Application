@@ -54,10 +54,12 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
 
     // Validation function to check for mandatory fields
     const validateLineItems = useCallback((items: LineItem[]) => {
-        // Get mandatory fields from the config, assuming a 'required' property exists
-        const mandatoryFields = itemAttributesConfig
-            .filter((field: any) => field.required)
-            .map((field: any) => field.accessor);
+        // Ensure itemAttributesConfig is an array before filtering
+        const mandatoryFields = Array.isArray(itemAttributesConfig)
+            ? itemAttributesConfig
+                .filter((field: any) => field.required)
+                .map((field: any) => field.accessor)
+            : [];
 
         if (items.length === 0) return true; // No rows to validate
 
