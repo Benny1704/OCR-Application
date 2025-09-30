@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Save, Eye, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, DataItem, EditableComponentProps } from '../../interfaces/Types';
 import DataTable from './DataTable';
@@ -14,6 +13,7 @@ import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
 import { retryMessage, getInvoicePdfFilename } from '../../lib/api/Api';
 import { accordionVariants } from './Animation';
+import ErrorHandler from './ErrorHandler';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -76,7 +76,6 @@ const EditableComponent = ({
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
-    // const { user } = useAuth();
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
 
@@ -95,6 +94,7 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.map(s => s.id)));
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
 
     const productRows = useMemo(() => {
@@ -143,23 +143,37 @@ const EditableComponent = ({
 
     const handleViewImage = async () => {
         if (!messageId) {
-            addToast({ type: 'error', message: 'Message ID is not available.' });
+            setError("Message ID is not available.");
             return;
         }
         try {
             const response = await getInvoicePdfFilename(messageId);
             if (response && response.original_filename) {
                 const filePath = `/src/invoice-pdf/${response.original_filename}`;
-                window.open(filePath, '_blank');
+
+                fetch(filePath, { method: 'HEAD' })
+                    .then(res => {
+                        const contentType = res.headers.get('Content-Type');
+                        if (res.ok && contentType && !contentType.includes('text/html')) {
+                            window.open(filePath, '_blank');
+                        } else {
+                            setError(`File not found: ${response.original_filename}`);
+                        }
+                    })
+                    .catch(() => {
+                        setError(`File not found: ${response.original_filename}`);
+                    });
             } else {
-                addToast({ type: 'error', message: 'Could not retrieve file information.' });
+                setError("Could not retrieve file information.");
             }
-        } catch (error) {
-            console.error("Failed to fetch image filename", error);
-            addToast({ type: 'error', message: 'Failed to fetch image filename.' });
+        } catch (err: any) {
+            if (err.statusCode === 422) {
+                setError("Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.");
+            } else {
+                setError(err.message || "An unexpected error occurred.");
+            }
         }
     };
-    // const openRetryModal = () => setRetryModalOpen(true);
 
     const handleSimpleRetry = async () => {
         setRetryModalOpen(false);
@@ -242,6 +256,10 @@ const EditableComponent = ({
         });
     };
 
+    if (error) {
+        return <ErrorHandler errorMessage={error} />;
+    }
+
     return (
       <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
@@ -266,11 +284,6 @@ const EditableComponent = ({
                         <button onClick={handleViewImage} className={`${secondaryButtonClasses}`}>
                             <Eye className="w-4 h-4" /> View Image
                         </button>
-                        {/* {!isReadOnly && user?.role === 'admin' && (
-                            <button onClick={openRetryModal} className={secondaryButtonClasses}>
-                                <RefreshCw className="w-4 h-4" /> Retry
-                            </button>
-                        )} */}
                     </div>
                 </div>
             </header>

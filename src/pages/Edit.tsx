@@ -426,7 +426,7 @@ const Edit = () => {
                             fetchData();
                         }
                     }}
-                    onViewImage={() => {handleViewImage}}
+                    onViewImage={handleViewImage}
                     itemAttributesConfig={itemAttributesConfig}
                     invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
                 />

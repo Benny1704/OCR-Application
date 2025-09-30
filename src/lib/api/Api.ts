@@ -33,9 +33,11 @@ api.interceptors.request.use(
 // --- Centralized Error Handler ---
 const handleError = (error: any) => {
     let errorMessage = "An unknown error occurred.";
+    let statusCode: number | undefined;
 
     if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<any>;
+        statusCode = axiosError.response?.status;
         if (axiosError.response) {
             const errorData = axiosError.response.data;
             errorMessage = errorData.detail || errorData.message || axiosError.message;
@@ -50,11 +52,13 @@ const handleError = (error: any) => {
 
     console.error("API Error:", error);
 
-    if (globalAddToast) {
+    if (globalAddToast && statusCode !== 422) {
         globalAddToast({ message: errorMessage, type: "error" });
     }
 
-    throw new Error(errorMessage);
+    const errorToThrow = new Error(errorMessage) as any;
+    errorToThrow.statusCode = statusCode;
+    throw errorToThrow;
 };
 
 // --- API Functions ---
