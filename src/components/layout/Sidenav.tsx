@@ -34,7 +34,7 @@ const Sidenav = () => {
     const [sections, setSections] = useState<Section[]>([]);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [selectedSection, setSelectedSection] = useState<number | null>(null);
-    const [password, setPassword] = useState('');
+    const [password, setPassword] = useState('password@123');
     const [showPassword, setShowPassword] = useState(false);
     const [isSwitching, setIsSwitching] = useState(false);
     const { addToast } = useToast();

@@ -82,8 +82,8 @@ const Login = () => {
             >
                 <motion.div variants={itemVariants} className="flex flex-col items-center mb-6 text-center">
                     <img src={brandLogo} className="w-25 mb-4" alt="RMKV Logo" />
-                    <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-                    <p className="text-gray-400 text-sm">Log in to continue to RMKV</p>
+                    <h1 className="text-xl font-bold text-white">Welcome to RMKV Silks!</h1>
+                    {/* <p className="text-gray-400 text-sm">Log in to continue to RMKV</p> */}
                 </motion.div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">

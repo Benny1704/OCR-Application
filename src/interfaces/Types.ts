@@ -213,13 +213,13 @@ export interface LineItem extends DataItem {
   color_code: string;
   single_unit_price: number;
   single_unit_mrp: number;
-  ean_code: string;
   discount_percentage: string | null;
   discount_amount: number;
   cgst_percentage: string | null;
   sgst_percentage: string | null;
   igst_percentage: string | null;
   hsn: string;
+  ean_code: string;
   [key: string]: any;
 }
 
