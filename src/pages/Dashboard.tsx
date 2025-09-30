@@ -14,13 +14,24 @@ import Animation, { headerVariants, sectionVariants, bouncyButtonVariants, bounc
 import { motion } from 'framer-motion';
 import PillToggle from '../components/common/PillToggle';
 import ModernDropdown from '../components/common/ModernDropdown';
-import { NoDataDisplay, formatIndianCurrency } from '../components/common/Helper';
+import { NoDataDisplay } from '../components/common/Helper';
 
 const iconMap: { [key: string]: ElementType } = {
     Wallet,
     FileDiff,
     Banknote,
     TrendingUp,
+};
+
+// Helper function to format numbers in Indian currency format for KPI cards
+const formatIndianCurrency = (value: number) => {
+    if (value >= 10000000) {
+        return `₹${(value / 10000000).toFixed(2)} Cr`;
+    }
+    if (value >= 100000) {
+        return `₹${(value / 100000).toFixed(2)} L`;
+    }
+    return `₹${value.toLocaleString('en-IN')}`;
 };
 
 // Helper function for chart tooltips to show full numbers with Indian commas
