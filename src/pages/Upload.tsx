@@ -96,10 +96,7 @@ const Upload = () => {
     const handleInputChange = (key: string, value: any) => setFormData(prev => ({ ...prev, [key]: value }));
 
     const isFormValid = useMemo(() => {
-        return uploadFormConfig.every(field => {
-            const value = formData[field.key];
-            return value !== undefined && value !== null && value !== '';
-        }) && file;
+        return true;
     }, [formData, file]);
 
     const handleProceed = async () => {

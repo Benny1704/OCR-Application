@@ -267,15 +267,6 @@ const DataTable = ({
         });
     }, [tableData]);
 
-    // Check if a specific row has incomplete mandatory fields
-    // const hasIncompleteMandatoryFields = useCallback((row: DataItem): boolean => {
-    //     const requiredColumns = Object.values(columnConfig).filter(col => col.isRequired && col.key !== 'sno');
-    //     return requiredColumns.some(col => {
-    //         const value = row[col.key];
-    //         return value === null || value === undefined || String(value).trim() === '';
-    //     });
-    // }, [columnConfig]);
-
     useEffect(() => {
         if (onValidationChange) {
             onValidationChange(hasBlockingErrors);
@@ -509,18 +500,53 @@ const DataTable = ({
         if (originalRowIndex === undefined) return;
 
         const newData: DataItem[] = structuredClone(tableData);
+        const newValidationErrors = { ...validationErrors };
         let newSelectedCells = [...selectedCells];
 
         const colIndex = movableHeaders.indexOf(colKey);
         if (direction === 'left' && colIndex > 0) {
             const targetColKey = movableHeaders[colIndex - 1];
-            if (columnConfig[colKey]?.type !== columnConfig[targetColKey]?.type) return;
-            newData.forEach((row) => { [row[colKey], row[targetColKey]] = [row[targetColKey], row[colKey]]; });
+            // Swap columns and validate each cell
+            newData.forEach((row, idx) => {
+                const sourceValue = row[colKey];
+                const targetValue = row[targetColKey];
+                const sourceType = columnConfig[colKey]?.type || 'string';
+                const targetType = columnConfig[targetColKey]?.type || 'string';
+
+                // Convert values to target types
+                const valueForTarget = convertValue(sourceValue, targetType);
+                const valueForSource = convertValue(targetValue, sourceType);
+                
+                row[colKey] = valueForSource;
+                row[targetColKey] = valueForTarget;
+
+                // Validate converted values
+                if (!newValidationErrors[idx]) newValidationErrors[idx] = {};
+                newValidationErrors[idx][colKey] = validateCell(valueForSource, colKey);
+                newValidationErrors[idx][targetColKey] = validateCell(valueForTarget, targetColKey);
+            });
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'right' && colIndex < movableHeaders.length - 1) {
             const targetColKey = movableHeaders[colIndex + 1];
-            if (columnConfig[colKey]?.type !== columnConfig[targetColKey]?.type) return;
-            newData.forEach((row) => { [row[colKey], row[targetColKey]] = [row[targetColKey], row[colKey]]; });
+            // Swap columns and validate each cell
+            newData.forEach((row, idx) => {
+                const sourceValue = row[colKey];
+                const targetValue = row[targetColKey];
+                const sourceType = columnConfig[colKey]?.type || 'string';
+                const targetType = columnConfig[targetColKey]?.type || 'string';
+
+                // Convert values to target types
+                const valueForTarget = convertValue(sourceValue, targetType);
+                const valueForSource = convertValue(targetValue, sourceType);
+                
+                row[colKey] = valueForSource;
+                row[targetColKey] = valueForTarget;
+
+                // Validate converted values
+                if (!newValidationErrors[idx]) newValidationErrors[idx] = {};
+                newValidationErrors[idx][colKey] = validateCell(valueForSource, colKey);
+                newValidationErrors[idx][targetColKey] = validateCell(valueForTarget, targetColKey);
+            });
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
@@ -530,8 +556,9 @@ const DataTable = ({
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
 
+        setValidationErrors(newValidationErrors);
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig]);
+    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
@@ -785,10 +812,8 @@ const DataTable = ({
         if (isEditable && draggedCell) {
             const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
             if (key !== fixedHeaderKey) {
-                const canConvert = canConvertValue(
-                    tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey],
-                    type
-                );
+                const draggedValue = tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey];
+                const canConvert = canConvertValue(draggedValue, type);
 
                 if (type === draggedType) {
                     headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' };
@@ -941,13 +966,26 @@ const DataTable = ({
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
                     const isUnsavedRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
-                    // const hasIncompleteFields = hasIncompleteMandatoryFields(row);
                     
                     return (
-                        <motion.tr key={row.sno} variants={tableRowVariants} className={`${theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'} ${isUnsavedRow ? (theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50/50') : ''}`}>
+                        <motion.tr 
+                            key={row.sno} 
+                            variants={tableRowVariants} 
+                            className={`
+                                ${theme === 'dark' 
+                                    ? 'bg-[#1C1C2E] hover:bg-[#252540]' 
+                                    : 'bg-white hover:bg-blue-50'
+                                } 
+                                ${isUnsavedRow 
+                                    ? (theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50/50') 
+                                    : ''
+                                }
+                                transition-colors duration-150
+                            `}
+                        >
                             {fixedHeaderKey && (
                                 <td
-                                    className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-gray-800/50 text-gray-300' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
+                                    className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-white text-gray-700'}`}
                                     style={{
                                         zIndex: 40,
                                         boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'

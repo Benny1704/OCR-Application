@@ -45,8 +45,12 @@
 }
 
 /* Custom Dropdown Styles */
-.modern-dropdown .dropdown-list,
-.login-dropdown-list {
+.modern-dropdown .dropdown-list {
     max-height: 60dvh;
+    overflow-y: auto;
+}
+
+.login-dropdown-list {
+    max-height: 50dvh;
     overflow-y: auto;
 }
