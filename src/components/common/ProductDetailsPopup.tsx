@@ -5,7 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
 import { Save, AlertTriangle, Eye, CheckCircle } from 'lucide-react';
 import { isEqual } from 'lodash';
-import { ConfirmationModal } from './Helper';
+import { ConfirmationModal, WarningConfirmationModal } from './Helper';
 import { updateLineItems, getLineItems, manualInvoiceEntryItemAttributes } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
 
@@ -27,8 +27,11 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     const [initialLineItems, setInitialLineItems] = useState<LineItem[]>([]);
     const [isDirty, setIsDirty] = useState(false);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [isUnsavedRowsModalOpen, setUnsavedRowsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isFormValid, setIsFormValid] = useState(false); // New state for validation
+    const [isFormValid, setIsFormValid] = useState(false);
+    const [hasUnsavedRows, setHasUnsavedRows] = useState<boolean>(false);
+    const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
 
     const fetchLineItems = useCallback(async () => {
         if (product?.item_id && invoiceId) {
@@ -51,17 +54,15 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         }
     }, [product, invoiceId]);
 
-
     // Validation function to check for mandatory fields
     const validateLineItems = useCallback((items: LineItem[]) => {
-        // Ensure itemAttributesConfig is an array before filtering
-        const mandatoryFields = Array.isArray(itemAttributesConfig)
-            ? itemAttributesConfig
-                .filter((field: any) => field.required)
-                .map((field: any) => field.accessor)
+        const mandatoryFields = Array.isArray(itemAttributesConfig?.columns)
+            ? itemAttributesConfig.columns
+                .filter((field: any) => field.isRequired)
+                .map((field: any) => field.key)
             : [];
 
-        if (items.length === 0) return true; // No rows to validate
+        if (items.length === 0) return true;
 
         return items.every(item =>
             mandatoryFields.every((field: string) => {
@@ -69,6 +70,16 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 return value !== null && value !== undefined && value !== '';
             })
         );
+    }, [itemAttributesConfig]);
+
+    // Check if any row has incomplete mandatory fields
+    const hasIncompleteMandatoryFields = useCallback((row: LineItem): boolean => {
+        if (!itemAttributesConfig?.columns) return false;
+        const requiredColumns = itemAttributesConfig.columns.filter((col: any) => col.isRequired && col.key !== 'sno');
+        return requiredColumns.some((col: any) => {
+            const value = row[col.key as keyof LineItem];
+            return value === null || value === undefined || String(value).trim() === '';
+        });
     }, [itemAttributesConfig]);
 
     useEffect(() => {
@@ -83,22 +94,40 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         if (dirty) {
             setIsFormValid(validateLineItems(lineItems));
         } else {
-            setIsFormValid(true); // If not dirty, no need to validate
+            setIsFormValid(true);
         }
     }, [lineItems, initialLineItems, validateLineItems]);
 
+    const handleUnsavedRowsChange = useCallback((hasUnsaved: boolean) => {
+        setHasUnsavedRows(hasUnsaved);
+    }, []);
+
+    const handleValidationChange = useCallback((hasErrors: boolean) => {
+        setHasValidationErrors(hasErrors);
+    }, []);
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
-        if (isReadOnly || !isFormValid) {
-            addToast({ type: 'error', message: 'Please fill all mandatory fields.' });
+        if (isReadOnly) return;
+
+        // Check for validation errors
+        if (hasValidationErrors || !isFormValid) {
+            addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields.' });
             return;
-        };
+        }
+
+        // Check for unsaved rows - BLOCK with no force proceed
+        if (hasUnsavedRows) {
+            setUnsavedRowsModalOpen(true);
+            return;
+        }
+
         if (!product?.item_id) {
             addToast({ type: 'error', message: 'Cannot save: Missing product item ID.' });
             return;
         }
+
         const savedLineItems = await updateLineItems(product.item_id, lineItems);
         if (savedLineItems) {
             onSave(isDirty);
@@ -125,10 +154,18 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
 
     const handleSaveRow = async (row: any) => {
         if (isReadOnly) return;
+
+        // Check for incomplete mandatory fields
+        if (hasIncompleteMandatoryFields(row)) {
+            addToast({ type: 'error', message: 'Please fill all mandatory fields before saving.' });
+            return;
+        }
+
         if (!product?.item_id) {
             addToast({ type: 'error', message: 'Product ID is missing.' });
             return;
         }
+
         try {
             const attributePayload = {
                 item_id: product.item_id,
@@ -153,12 +190,14 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             }
         } catch (error) {
             console.error("Failed to save line item:", error);
+            addToast({ type: 'error', message: 'Failed to save row.' });
         }
     };
 
     const renderActionCell = (row: DataItem) => {
         const lineItem = row as LineItem;
         const isSaved = typeof lineItem.attribute_id === 'number' && lineItem.attribute_id > 0;
+        const hasIncompleteFields = hasIncompleteMandatoryFields(lineItem);
 
         return (
             <div className="text-center">
@@ -167,9 +206,9 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 ) : (
                     <button
                         onClick={() => handleSaveRow(lineItem)}
-                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
-                        title="Save Row"
-                        disabled={isReadOnly}
+                        className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-emerald-300 disabled:cursor-not-allowed"
+                        title={hasIncompleteFields ? "Please fill all mandatory fields" : "Save Row"}
+                        disabled={isReadOnly || hasIncompleteFields}
                     >
                         <Save size={16} />
                     </button>
@@ -177,7 +216,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             </div>
         );
     };
-
 
     return (
         <>
@@ -222,23 +260,24 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                                     tableConfig={itemAttributesConfig}
                                     isEditable={!isReadOnly}
                                     isSearchable={true}
-                                    // isDraggable={!isReadOnly}
                                     pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
                                     maxHeight="100%"
                                     onDataChange={handleDataChange}
+                                    onValidationChange={handleValidationChange}
+                                    onUnsavedRowsChange={handleUnsavedRowsChange}
                                     renderActionCell={renderActionCell}
                                     actionColumnHeader="Status"
                                 />
                             </div>
                         )}
                     </main>
-                    {/* --- Footer with "Add Row" button removed --- */}
+
                     {!isReadOnly && (
                         <footer className={`flex-shrink-0 flex justify-end items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                             <button
                                 onClick={handleSave}
-                                className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700 disabled:opacity-50"
-                                disabled={isReadOnly || !isDirty || !isFormValid}
+                                className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isReadOnly || !isDirty || !isFormValid || hasValidationErrors}
                             >
                                 <Save size={16} /> Save Changes
                             </button>
@@ -246,6 +285,8 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                     )}
                 </div>
             </div>
+
+            {/* Unsaved Changes Modal (when closing with dirty state) */}
             <ConfirmationModal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setConfirmModalOpen(false)}
@@ -253,6 +294,17 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 title="Unsaved Changes"
                 message="You have unsaved changes. Are you sure you want to close?"
                 icon={<AlertTriangle className="text-yellow-500" size={24} />}
+            />
+
+            {/* Unsaved Rows Modal (when trying to save) - NO FORCE PROCEED */}
+            <WarningConfirmationModal
+                isOpen={isUnsavedRowsModalOpen}
+                onClose={() => setUnsavedRowsModalOpen(false)}
+                onConfirm={() => setUnsavedRowsModalOpen(false)}
+                title="Unsaved Rows in Line Items"
+                message="You have unsaved rows in the line items table. Please save all rows before saving changes."
+                icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
+                showConfirmButton={false}
             />
         </>
     );
