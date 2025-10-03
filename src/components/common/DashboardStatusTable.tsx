@@ -108,10 +108,22 @@ const StatusCard = ({
                                 <span className="text-xs text-blue-400 font-medium">Processing</span>
                             </div>
                         )}
-                        {!isLoading && count > 0 && title === 'Completed' && (
+                        {!isLoading && count > 0 && title === 'For Review' && (
+                            <div className="flex items-center space-x-1">
+                                <Database className="w-3 h-3 text-amber-400" />
+                                <span className="text-xs text-amber-400 font-medium">Pending Review</span>
+                            </div>
+                        )}
+                        {!isLoading && count > 0 && title === 'Reviewed' && (
                             <div className="flex items-center space-x-1">
                                 <TrendingUp className="w-3 h-3 text-green-400" />
-                                <span className="text-xs text-green-400 font-medium">Success Rate</span>
+                                <span className="text-xs text-green-400 font-medium">Successfully Reviewed</span>
+                            </div>
+                        )}
+                        {!isLoading && count > 0 && title === 'Failed' && (
+                            <div className="flex items-center space-x-1">
+                                <XCircle className="w-3 h-3 text-red-400" />
+                                <span className="text-xs text-red-400 font-medium">Needs Attention</span>
                             </div>
                         )}
                     </div>
@@ -179,7 +191,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             count: counts.queued,
             icon: FileClock,
             color: "text-blue-400",
-            description: "Awaiting processing",
+            description: "Documents waiting to be processed",
             gradient: "bg-gradient-to-br from-blue-500/20 to-blue-600/5",
             onClick: () => handleNavigation('Queued')
         },
@@ -188,7 +200,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             count: counts.processed,
             icon: Database,
             color: "text-amber-400",
-            description: "Needs verification",
+            description: "Documents that need your review",
             gradient: "bg-gradient-to-br from-amber-500/20 to-amber-600/5",
             onClick: () => handleNavigation('Yet to Review')
         },
@@ -197,7 +209,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             count: counts.completed,
             icon: FileCheck,
             color: "text-green-400",
-            description: "Successfully reviewed",
+            description: "Documents successfully reviewed",
             gradient: "bg-gradient-to-br from-green-500/20 to-green-600/5",
             onClick: () => handleNavigation('Completed')
         },
@@ -206,7 +218,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
             count: counts.failed,
             icon: XCircle,
             color: "text-red-400",
-            description: "Requires attention",
+            description: "Documents that require attention",
             gradient: "bg-gradient-to-br from-red-500/20 to-red-600/5",
             onClick: () => handleNavigation('Failed')
         }
@@ -255,7 +267,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
                 </div>
             )}
 
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
                 {statusConfig.map((config, index) => (
                     <StatusCard
                         key={config.title}

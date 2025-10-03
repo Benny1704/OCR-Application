@@ -243,6 +243,7 @@ const Queue = () => {
                   uploadDate: formatDateTime(item.uploaded_on),
                   uploadedBy: item.uploaded_by,
                   messageId: item.message_id,
+                  sectionName: getSectionNameById(item.section_id),
                   isPriority: item.is_priority,
                   status: item.status || "Queued",
                   queue_position: item.queue_position,
@@ -264,6 +265,7 @@ const Queue = () => {
                   invoiceId: item.invoice_id,
                   irnNumber: item.irn,
                   uploadedBy: item.uploaded_by,
+                  sectionName: getSectionNameById(item.section_id),
                   uploadDate: formatDateTime(item.uploaded_at),
                   invoiceDate: formatDateTime(item.invoice_date),
                   messageId: item.message_id,
@@ -281,6 +283,7 @@ const Queue = () => {
                   uploadedBy: item.uploaded_by,
                   uploadDate: formatDateTime(item.uploaded_on),
                   messageId: item.message_id,
+                  sectionName: getSectionNameById(item.section_id),
                   errorMessage: item.error_message,
                   status: "Failed",
                   supplier_meta: item.supplier_meta,
@@ -569,7 +572,7 @@ const Queue = () => {
                     <p
                       className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}
                     >
-                      {doc.name}
+                      {doc.name} - {doc.sectionName}
                       {'isPriority' in doc && doc.isPriority && (
                         <Star
                           className="w-3.5 h-3.5 text-yellow-400"

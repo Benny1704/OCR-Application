@@ -42,11 +42,13 @@ export const uploadFormConfig: FormField[] = [
 
 export const documentConfig = {
   columns: [
-    { key: 'name', label: 'File Name', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'supplierName', label: 'Supplier Name', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'supplierNumber', label: 'Supplier GSTIN', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'invoiceNumber', label: 'Invoice Number', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'uploadDate', label: 'Upload Date', isEditable: true, isRequired: true, isCalculated: false },
-    { key: 'invoiceDate', label: 'Invoice Date', isEditable: true, isRequired: true, isCalculated: false },
+    { key: 'name', label: 'File Name', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'supplierName', label: 'Supplier Name', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'supplierNumber', label: 'Supplier GSTIN', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'invoiceNumber', label: 'Invoice Number', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'sectionName', label: 'Section Name', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'uploadDate', label: 'Upload Date', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'invoiceDate', label: 'Invoice Date', isEditable: false, isRequired: false, isCalculated: false },
+    { key: 'invoiceDate', label: 'Invoice Date', isEditable: false, isRequired: false, isCalculated: false },
   ]
 };

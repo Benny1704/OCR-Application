@@ -6,7 +6,7 @@ import { Plus, Banknote, FilePieChart, TrendingUp, Wallet, ArrowDownRight, Arrow
 import { Menu, Transition } from "@headlessui/react";
 import DashboardStatusTable from '../components/common/DashboardStatusTable';
 import { useAuth } from '../hooks/useAuth';
-import { useSections } from '../contexts/SectionContext'; 
+import { useSections } from '../contexts/SectionContext';
 import { getTotalDiscountThisMonth, getTotalSpendThisMonth, getFinancialObligations, getInvoiceCount, getSpendByVendor, getDiscountByVendor } from '../lib/api/Api';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
@@ -417,8 +417,8 @@ const Dashboard = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const navigate = useNavigate();
-    const { getSectionNameById, sectionFilter, setSectionFilter } = useSections(); 
-    
+    const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
+
     const [kpiMetrics, setKpiMetrics] = useState<any[]>([]);
     const [kpiError, setKpiError] = useState<string | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(true);
@@ -600,7 +600,7 @@ const Dashboard = () => {
 
     const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     const textHeader = theme === 'dark' ? 'text-white' : 'text-gray-900';
-    
+
     // 3. Look up the section name using the user's section ID
     const sectionName = user?.section ? getSectionNameById(user.section) : '';
 
@@ -623,12 +623,12 @@ const Dashboard = () => {
             </div>
         );
     }
-    
+
     const getSubtitle = (filterType: string, selectedYear: number, fromYear: number, toYear: number, selectedMonth?: number) => {
         if (filterType === 'yearly') {
             return `Yearly report from ${fromYear} to ${toYear}`;
         }
-        
+
         if (selectedMonth && selectedMonth > 0) {
             const monthName = new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' });
             return `${monthName} report for ${selectedYear}`;

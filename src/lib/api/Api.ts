@@ -153,7 +153,7 @@ export const getProcessedDocuments = async (page: number = 1, pageSize: number =
         if (section_id) {
             params.section_id = section_id;
         }
-        const response = await api.get('/document/processed', { params });
+        const response = await api.get('/document/processed', { params });        
         return response.data;
     } catch (error) {
         handleError(error);
