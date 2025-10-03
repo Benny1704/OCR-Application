@@ -260,12 +260,13 @@ const DataTable = ({
 
     // Check if a row has unsaved changes (new row not yet saved to backend)
     const hasUnsavedRows = useMemo(() => {
+        if (!isEditable) return false;
         return tableData.some(row => {
             // Check if row is new (has temporary ID or no item_id)
             const isNewRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
             return isNewRow;
         });
-    }, [tableData]);
+    }, [tableData, isEditable]);
 
     useEffect(() => {
         if (onValidationChange) {
@@ -965,7 +966,7 @@ const DataTable = ({
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
-                    const isUnsavedRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
+                    const isUnsavedRow = isEditable && (!row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-')));
                     
                     return (
                         <motion.tr 
@@ -974,12 +975,8 @@ const DataTable = ({
                             className={`
                                 ${theme === 'dark' 
                                     ? 'bg-[#1C1C2E] hover:bg-[#252540]' 
-                                    : 'bg-white hover:bg-blue-50'
+                                    : 'bg-white hover:bg-violet-50/50'
                                 } 
-                                ${isUnsavedRow 
-                                    ? (theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50/50') 
-                                    : ''
-                                }
                                 transition-colors duration-150
                             `}
                         >
@@ -991,6 +988,12 @@ const DataTable = ({
                                         boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
                                     }}
                                 >
+                                    {isUnsavedRow && (
+                                        <div 
+                                            className={`absolute left-0 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-violet-500' : 'bg-violet-600'}`}
+                                            title="Unsaved Row"
+                                        />
+                                    )}
                                     {row[fixedHeaderKey]}
                                 </td>
                             )}
