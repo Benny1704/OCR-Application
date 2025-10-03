@@ -95,7 +95,6 @@ const EditableComponent = ({
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(formConfig.map(s => s.id)));
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
-    const [hasUnsavedRows, setHasUnsavedRows] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const productRows = useMemo(() => {
@@ -125,7 +124,6 @@ const EditableComponent = ({
     }, [onValidationChange]);
 
     const handleUnsavedRowsChange = useCallback((hasUnsaved: boolean) => {
-        setHasUnsavedRows(hasUnsaved);
         if (onUnsavedRowsChange) {
             onUnsavedRowsChange(hasUnsaved);
         }
@@ -269,8 +267,8 @@ const EditableComponent = ({
     }
 
     return (
-      <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
-           <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+        <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
+            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div className="min-w-0">
                         <h1 className={`text-xl md:text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
