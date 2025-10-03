@@ -232,7 +232,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                     <header className={`flex-shrink-0 flex justify-between items-center p-6 sm:p-8 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                         <div>
                             <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                                Line Item Details for {product?.item_description}
+                                Line Item Details
                             </p>
                         </div>
                         <div className="flex items-center gap-4">

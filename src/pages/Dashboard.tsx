@@ -740,7 +740,7 @@ const Dashboard = () => {
                             Insights {sectionFilter === 'current' && sectionName ? `- ${sectionName}` : ''}
                         </h1>
                         <p className={`text-sm ${textSecondary}`}>
-                            Welcome back, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>!
+                            Welcome, <span className="font-medium text-violet-500">{user?.username || 'Admin'}</span>!
                             Here's your business insights.
                         </p>
                     </div>
