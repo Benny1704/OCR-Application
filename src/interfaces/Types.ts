@@ -116,7 +116,7 @@ export interface Document {
   status: "Queued" | "Processing" | "Processed" | "Failed" | "Reviewed";
   uploadDate: string;
   uploadedBy: string;
-  sectionName: string;
+  sectionName?: string;
 }
 
 export interface QueuedDocument extends Document {
