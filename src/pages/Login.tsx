@@ -22,7 +22,9 @@ const Login = () => {
     // --- Dropdown Specific State and Logic ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const selectedSectionName = sections?.find(s => s.section_id === selectedSection)?.section_name;
+    const selectedSectionName = Array.isArray(sections)
+        ? sections.find(s => s.section_id === selectedSection)?.section_name
+        : "";
 
     useEffect(() => {
         const fetchSections = async () => {

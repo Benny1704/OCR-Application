@@ -44,7 +44,7 @@ export const SectionProvider = ({ children }: { children: ReactNode }) => {
     // This is our helper function to find a name from an ID.
     // useCallback ensures the function isn't recreated on every render, which is a performance optimization.
     const getSectionNameById = useCallback((id: number): string => {
-        const section = sections.find(s => s.section_id === id);
+        const section = Array.isArray(sections) ? sections.find(s => s.section_id === id) : "";
         return section ? section.section_name : `ID: ${id}`; // Return the name, or the ID as a fallback
     }, [sections]); // This function will update if the 'sections' array ever changes
 

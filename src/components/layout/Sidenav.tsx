@@ -110,7 +110,9 @@ const Sidenav = () => {
         }
     };
     
-    const currentSectionName = sections.find(s => s.section_id === user?.section)?.section_name || '...';
+    const currentSectionName = Array.isArray(sections)
+        ? sections.find(s => s.section_id === user?.section)?.section_name
+        : "...";
 
     const navItem = [
         ...(user?.role === 'admin' ? [{ name: "Dashboard", link: "dashboard", icon: "fi-rr-objects-column" }] : []),
@@ -210,7 +212,7 @@ const Sidenav = () => {
                                             <h4>Confirm Switch</h4>
                                             <button className="close-modal" onClick={() => setShowPasswordModal(false)}><X size={18} /></button>
                                         </div>
-                                        <p>Enter password to switch to <strong>{sections.find(s => s.section_id === selectedSection)?.section_name}</strong></p>
+                                        <p>Enter password to switch to <strong>{Array.isArray(sections) ? sections.find(s => s.section_id === selectedSection)?.section_name : "..."}</strong></p>
                                         <form onSubmit={handleSectionSwitch}>
                                             <div className="input-wrapper">
                                                 <Lock size={16} className="input-icon" />
