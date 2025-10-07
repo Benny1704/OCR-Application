@@ -121,7 +121,7 @@ const DataTable = ({
     useEffect(() => {
         setCurrentView(tableData);
     }, [tableData]);
-    
+
     // Close help tooltip when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -165,12 +165,18 @@ const DataTable = ({
             finalColumns = [snoColumn];
         }
 
+        // ** FIX: Ensure finalColumns has unique keys to prevent React warnings **
+        const uniqueColumns = finalColumns.filter((col, index, self) =>
+            index === self.findIndex((c) => c.key === col.key)
+        );
+
         const fixedKey = 'sno';
-        const movable = finalColumns.filter(col => col.key !== fixedKey).map(col => col.key);
-        const configMap = finalColumns.reduce((acc, col) => {
+        const movable = uniqueColumns.filter(col => col.key !== fixedKey).map(col => col.key);
+        const configMap = uniqueColumns.reduce((acc, col) => {
             acc[col.key] = col;
             return acc;
         }, {} as Record<string, TableColumnConfig>);
+
 
         return {
             fixedHeaderKey: fixedKey,
@@ -517,7 +523,7 @@ const DataTable = ({
                 // Convert values to target types
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
-                
+
                 row[colKey] = valueForSource;
                 row[targetColKey] = valueForTarget;
 
@@ -539,7 +545,7 @@ const DataTable = ({
                 // Convert values to target types
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
-                
+
                 row[colKey] = valueForSource;
                 row[targetColKey] = valueForTarget;
 
@@ -796,7 +802,7 @@ const DataTable = ({
         if (inputType === 'boolean') {
             return <input type="checkbox" checked={!!cellValue} readOnly className={`h-4 w-4 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`} />;
         }
-        
+
         if (colConfig?.isCurrency) {
             return formatIndianCurrency(cellValue);
         }
@@ -945,7 +951,7 @@ const DataTable = ({
                                 {isEditable && (
                                     <button
                                         onClick={handleAddRow}
-                                        className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
+                                        className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
                                         ${theme === 'dark'
                                                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'}`
@@ -967,16 +973,16 @@ const DataTable = ({
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
                     const isUnsavedRow = isEditable && (!row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-')));
-                    
+
                     return (
-                        <motion.tr 
-                            key={row.sno} 
-                            variants={tableRowVariants} 
+                        <motion.tr
+                            key={row.sno}
+                            variants={tableRowVariants}
                             className={`
-                                ${theme === 'dark' 
-                                    ? 'bg-[#1C1C2E] hover:bg-[#252540]' 
+                                ${theme === 'dark'
+                                    ? 'bg-[#1C1C2E] hover:bg-[#252540]'
                                     : 'bg-white hover:bg-violet-50/50'
-                                } 
+                                }
                                 transition-colors duration-150
                             `}
                         >
@@ -989,7 +995,7 @@ const DataTable = ({
                                     }}
                                 >
                                     {isUnsavedRow && (
-                                        <div 
+                                        <div
                                             className={`absolute left-0 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-violet-500' : 'bg-violet-600'}`}
                                             title="Unsaved Row"
                                         />
@@ -1003,7 +1009,7 @@ const DataTable = ({
 
                                 return (
                                     <td
-                                        key={label}
+                                        key={`${row.sno}-${label}`}
                                         onDoubleClick={() => isEditable && columnConfig[label]?.isEditable !== false && setEditingCell({ rowIndex, colKey: label })}
                                         onClick={(e) => handleCellClick(rowIndex, label, e)}
                                         draggable={isEditable}
@@ -1046,7 +1052,7 @@ const DataTable = ({
                         >
                             <button
                                 onClick={handleAddRow}
-                                className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200 
+                                className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
                                 ${theme === 'dark'
                                         ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
                                         : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'}`

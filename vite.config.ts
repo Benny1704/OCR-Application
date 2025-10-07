@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(),tailwindcss()],
   server: {
     headers: {
-      "Content-Security-Policy": "style-src 'self' https://cdn-uicons.flaticon.com https://fonts.googleapis.com"
+      "Content-Security-Policy": "style-src 'self' https://cdn-uicons.flaticon.com https://fonts.googleapis.com 'unsafe-inline'"
     }
   }
 })
