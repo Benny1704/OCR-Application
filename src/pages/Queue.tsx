@@ -32,6 +32,8 @@ import {
   Hash,
   DollarSign,
   Building,
+  FilePen,
+  FilePlus,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { NoDataDisplay, RetryModal, StatusBadge } from "../components/common/Helper";
@@ -391,7 +393,7 @@ const Queue = () => {
     });
   };
 
-  const openRetryModal = () => setRetryModalOpen(true);
+  // const openRetryModal = () => setRetryModalOpen(true);
   const handleSimpleRetry = async () => {
     setRetryModalOpen(false);
     if (selectedDocumentId) {
@@ -471,7 +473,7 @@ const Queue = () => {
             : "bg-blue-100 text-blue-700 hover:bg-blue-200"
         }`}
       >
-        {isReviewed ? <FileSignature className="w-3 h-3" /> : <i className="fi fi-rr-file-edit text-xs"></i>}
+        {isReviewed ? <FileSignature className="w-3 h-3" /> : <FilePen className="w-3 h-3" />}
         {isReviewed ? "Draft" : "Review"}
       </button>
     );
@@ -785,11 +787,11 @@ const Queue = () => {
                                 : "bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100"
                               }`}
                           >
-                            <i className="fi fi-rr-add-document text-xs"></i> Manual Entry
+                            <FilePlus className="h-3.5 w-3.5"/> Manual Entry
                           </button>
                           {user?.role === 'admin' && (
                             <button
-                              onClick={openRetryModal}
+                              onClick={handleSimpleRetry}
                               className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
                                   ? "bg-yellow-900/40 border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
                                   : "bg-yellow-50 border border-yellow-200 text-yellow-800 hover:bg-yellow-100"

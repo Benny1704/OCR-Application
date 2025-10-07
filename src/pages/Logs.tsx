@@ -679,6 +679,7 @@ const Logs = () => {
                         tickLine={false}
                         axisLine={false}
                         tick={{ fill: chartColors.text }}
+                        allowDecimals={false}
                       />
                       <Tooltip
                         content={<CustomTooltip />}
