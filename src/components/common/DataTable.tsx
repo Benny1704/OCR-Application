@@ -326,7 +326,7 @@ const DataTable = ({
     }, [history, historyIndex, isEditable, onDataChange]);
 
     const handleAddRow = useCallback(() => {
-        if (!isEditable) return;
+        if (!isEditable || hasUnsavedRows) return;
 
         const newRow: DataItem = {
             id: `new-${Date.now()}`
@@ -347,7 +347,7 @@ const DataTable = ({
         const newValidationErrors: ValidationErrors = { ...validationErrors };
         newValidationErrors[originalIndex] = {};
         Object.values(columnConfig).forEach(col => {
-            if (col.key !== 'sno') {
+            if (col.key !== 'sno' && col.isRequired) {
                 newValidationErrors[originalIndex][col.key] = validateCell(newRow[col.key], col.key);
             }
         });
@@ -373,7 +373,7 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
+    }, [isEditable, hasUnsavedRows, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
 
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
@@ -951,12 +951,14 @@ const DataTable = ({
                                 {isEditable && (
                                     <button
                                         onClick={handleAddRow}
+                                        disabled={hasUnsavedRows}
                                         className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
                                         ${theme === 'dark'
                                                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'}`
-                                        }
-                                        title="Insert New Row"
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                                            }
+                                        ${hasUnsavedRows ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        title={hasUnsavedRows ? "Save the current new row before adding another" : "Insert New Row"}
                                     >
                                         <Plus size={16} /> Insert Row
                                     </button>
@@ -1052,12 +1054,14 @@ const DataTable = ({
                         >
                             <button
                                 onClick={handleAddRow}
+                                disabled={hasUnsavedRows}
                                 className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
                                 ${theme === 'dark'
                                         ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
-                                        : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'}`
-                                }
-                                title="Insert New Row"
+                                        : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'
+                                    }
+                                ${hasUnsavedRows ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={hasUnsavedRows ? "Save the current new row before adding another" : "Insert New Row"}
                             >
                                 <Plus size={16} /> Insert Row
                             </button>

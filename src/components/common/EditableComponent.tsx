@@ -14,6 +14,7 @@ import { useParams } from 'react-router-dom';
 import { retryMessage, getInvoicePdfFilename } from '../../lib/api/Api';
 import { accordionVariants } from './Animation';
 import ErrorHandler from './ErrorHandler';
+import { ViewImageAbsPath } from '../../lib/config/Config';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -155,7 +156,7 @@ const EditableComponent = ({
         try {
             const response = await getInvoicePdfFilename(messageId);
             if (response && response.original_filename) {
-                const filePath = `/src/invoice-pdf/${response.original_filename}`;
+                const filePath = `${ViewImageAbsPath}${response.original_filename}`;
 
                 fetch(filePath, { method: 'HEAD' })
                     .then(res => {

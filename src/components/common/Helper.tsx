@@ -1,4 +1,4 @@
-import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info, ArrowLeftRight, ArrowUpDown, ChevronsUpDown, ClipboardPaste, Copy, Keyboard, MousePointer2, Redo2, Undo2, MousePointerClick, Expand, PlusSquare } from 'lucide-react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info, ArrowLeftRight, ArrowUpDown, ChevronsUpDown, ClipboardPaste, Copy, Keyboard, MousePointer2, Redo2, Undo2, MousePointerClick, Expand, PlusSquare, Loader2 } from 'lucide-react';
 import { useState, useEffect, Fragment, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
@@ -495,24 +495,55 @@ export const NoDataDisplay = ({ heading, message, children }: NoDataDisplayProps
 };
 
 export const RetryModal = ({ isOpen, onClose, onRetry, onRetryWithAlterations }: { isOpen: boolean; onClose: () => void; onRetry: () => void; onRetryWithAlterations: () => void; }) => { if (!isOpen) return null; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex justify-center items-center p-4" onClick={onClose}> <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}> <h3 className="text-xl font-bold text-gray-800 dark:text-white text-center mb-2">Retry Processing</h3> <p className="text-gray-500 dark:text-gray-400 text-center mb-6 text-sm">Choose how you would like to re-process.</p> <div className="space-y-3"> <button onClick={onRetry} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-4 rounded-lg text-sm"> <RefreshCw className="w-4 h-4"/> Just Retry </button> <button onClick={onRetryWithAlterations} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg text-sm"> Retry with Alterations </button> </div> </div> </div> ); };
-export const StatusBadge = ({ status, large = false, theme = 'light' }: { status: Document['status'], large?: boolean, theme?: 'light' | 'dark' }) => {
-    const lightStyles = {
-        Queued: 'bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-600/20',
-        Processing: 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20 animate-pulse',
-        Processed: 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20',
-        Failed: 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20',
-        Reviewed: 'bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-600/20',
+export const StatusBadge = ({ status, large = false, theme: initialTheme = 'light' }: { status: Document['status'], large?: boolean, theme?: 'light' | 'dark' }) => {
+    const { theme } = useTheme();
+    const resolvedTheme = initialTheme || theme;
+
+    const statusConfig = {
+        Queued: {
+            icon: <Info size={14} />,
+            label: 'Queued',
+            styles: resolvedTheme === 'dark'
+                ? 'bg-blue-900/50 text-blue-300 ring-1 ring-inset ring-blue-400/30'
+                : 'bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-600/20',
+        },
+        Processing: {
+            icon: <Loader2 size={14} className="animate-spin" />,
+            label: 'Processing',
+            styles: resolvedTheme === 'dark'
+                ? 'bg-yellow-900/50 text-yellow-300 ring-1 ring-inset ring-yellow-400/30'
+                : 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20',
+        },
+        Processed: {
+            icon: <CheckCircle size={14} />,
+            label: 'Processed',
+            styles: resolvedTheme === 'dark'
+                ? 'bg-green-900/50 text-green-300 ring-1 ring-inset ring-green-400/30'
+                : 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20',
+        },
+        Failed: {
+            icon: <X size={14} />,
+            label: 'Failed',
+            styles: resolvedTheme === 'dark'
+                ? 'bg-red-900/50 text-red-300 ring-1 ring-inset ring-red-400/30'
+                : 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20',
+        },
+        Reviewed: {
+            icon: <CheckCircle size={14} />,
+            label: 'Reviewed',
+            styles: resolvedTheme === 'dark'
+                ? 'bg-purple-900/50 text-purple-300 ring-1 ring-inset ring-purple-400/30'
+                : 'bg-purple-100 text-purple-800 ring-1 ring-inset ring-purple-600/20',
+        },
     };
-    const darkStyles = {
-        Queued: 'bg-blue-900/50 text-blue-300 ring-1 ring-inset ring-blue-400/30',
-        Processing: 'bg-yellow-900/50 text-yellow-300 ring-1 ring-inset ring-yellow-400/30 animate-pulse',
-        Processed: 'bg-green-900/50 text-green-300 ring-1 ring-inset ring-green-400/30',
-        Failed: 'bg-red-900/50 text-red-300 ring-1 ring-inset ring-red-400/30',
-        Reviewed: 'bg-purple-900/50 text-purple-300 ring-1 ring-inset ring-purple-400/30',
-    };
-    
-    const styles = theme === 'light' ? lightStyles : darkStyles;
-    const size = large ? 'px-3 py-1 text-xs' : 'px-2 py-0.5 text-[10px]';
-    
-    return <span className={`${size} rounded-full font-semibold capitalize ${styles[status]}`}>{status}</span>;
+
+    const config = statusConfig[status] || statusConfig.Queued;
+    const size = large ? 'px-3.5 py-1.5 text-sm' : 'px-3 py-1 text-xs';
+
+    return (
+        <div className={`inline-flex items-center justify-center gap-2 rounded-full font-semibold capitalize transition-colors duration-300 ${size} ${config.styles}`}>
+            {config.icon}
+            <span>{config.label}</span>
+        </div>
+    );
 };

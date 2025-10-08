@@ -52,3 +52,5 @@ export const documentConfig = {
     { key: 'invoiceDate', label: 'Invoice Date', isEditable: false, isRequired: false, isCalculated: false },
   ]
 };
+
+export const ViewImageAbsPath = "/src/invoice-pdf/";

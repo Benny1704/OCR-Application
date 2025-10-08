@@ -204,7 +204,11 @@ const Queue = () => {
 
   const [pagination, setPagination] = useState<Record<string, Pagination>>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSizes, setPageSizes] = useState<Record<string, number>>({
+    "Queued": 10,
+    "Yet to Review": 10,
+    "Failed": 10,
+  });
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -231,6 +235,7 @@ const Queue = () => {
     }
     try {
         const sectionId = getSectionId();
+        const pageSize = pageSizes[activeTab];
         let queuedResponse: ApiResponse<QueuedDocument>;
         let processedResponse: ApiResponse<ProcessedDocument>;
         let failedResponse: ApiResponse<FailedDocument>;
@@ -304,7 +309,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeTab, getSectionId, user]);
+  }, [currentPage, pageSizes, activeTab, getSectionId, user]);
 
 
   useEffect(() => {
@@ -509,14 +514,14 @@ const Queue = () => {
               actionColumnHeader="Review"
               pagination={{
                 enabled: true,
-                pageSize: 10,
+                pageSize: pageSizes[activeTab],
                 pageSizeOptions: [5, 10, 25, 50, 100],
               }}
               maxHeight="calc(100vh - 280px)"
               isLoading={isLoading}
               paginationInfo={pagination["Yet to Review"]}
               onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
+              onPageSizeChange={(size) => setPageSizes(prev => ({ ...prev, "Yet to Review": size }))}
             />
         </>
       );
@@ -571,17 +576,16 @@ const Queue = () => {
                     <File size={18} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p
-                      className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}
-                    >
-                      {doc.name} - {doc.sectionName}
+                  <div className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}>
+                      <span className="truncate">{doc.name}</span>
                       {'isPriority' in doc && doc.isPriority && (
                         <Star
-                          className="w-3.5 h-3.5 text-yellow-400"
+                          className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0"
                           fill="currentColor"
                         />
                       )}
-                    </p>
+                    </div>
+                    <p className={`text-xs truncate ${textSecondary}`}>{doc.sectionName}</p>
                   </div>
                   <StatusBadge status={doc.status} theme={theme} />
                 </button>

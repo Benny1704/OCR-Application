@@ -23,6 +23,7 @@ import {
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
 import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
+import { ViewImageAbsPath } from '../lib/config/Config';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
@@ -403,7 +404,7 @@ const Edit = () => {
         try {
             const response = await getInvoicePdfFilename(messageId);
             if (response && response.original_filename) {
-                const filePath = `/src/invoice-pdf/${response.original_filename}`;
+                const filePath = `${ViewImageAbsPath}${response.original_filename}`;
                 window.open(filePath, '_blank');
             } else {
                 addToast({ type: 'error', message: 'Could not retrieve file information.' });
