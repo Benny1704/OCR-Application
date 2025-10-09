@@ -3,7 +3,7 @@ import { useState, useEffect, Fragment, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { svgVariants, toastVariants } from './Animation';
+import { svgVariants, toastVariants, popupVariants } from './Animation';
 
 // --- Confirmation Modal ---
 interface ConfirmationModalProps {
@@ -56,14 +56,14 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                         className={`relative w-full max-w-md rounded-2xl shadow-xl overflow-hidden ring-1 
                             ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
                         onClick={e => e.stopPropagation()}
@@ -112,14 +112,14 @@ export const WarningConfirmationModal = ({ isOpen, onClose, onConfirm, title, me
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                         className={`relative w-full max-w-md rounded-2xl shadow-xl overflow-hidden ring-1 
                             ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200 ring-white/10' : 'bg-white text-gray-900 ring-black/5'}`}
                         onClick={e => e.stopPropagation()}
@@ -274,13 +274,14 @@ export const Popup = ({ isOpen, onClose, data }: PopupProps) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200]"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.9, y: 20 }}
-                        animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.9, y: 20 }}
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                         className={`p-6 rounded-lg shadow-xl w-full max-w-md relative ${theme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -386,15 +387,15 @@ export const HowToUse = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 backdrop-blur-sm z-[100] flex justify-center items-center p-4"
+                    className="fixed inset-0 backdrop-blur-sm z-[200] flex justify-center items-center p-4"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} // Snappy cubic-bezier transition
-                        className={`w-96 rounded-xl shadow-2xl z-[100] overflow-hidden border ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/60 backdrop-blur-lg' : 'bg-white/80 border-gray-200/60 backdrop-blur-lg'}`}
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className={`w-96 rounded-xl shadow-2xl z-[200] overflow-hidden border ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/60 backdrop-blur-lg' : 'bg-white/80 border-gray-200/60 backdrop-blur-lg'}`}
                         onClick={e => e.stopPropagation()}
                     >
                         <div className={`p-4 border-b flex items-center gap-4 ${theme === 'dark' ? 'border-gray-700/60' : 'border-gray-200/60'}`}>
@@ -494,7 +495,41 @@ export const NoDataDisplay = ({ heading, message, children }: NoDataDisplayProps
     );
 };
 
-export const RetryModal = ({ isOpen, onClose, onRetry, onRetryWithAlterations }: { isOpen: boolean; onClose: () => void; onRetry: () => void; onRetryWithAlterations: () => void; }) => { if (!isOpen) return null; return ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex justify-center items-center p-4" onClick={onClose}> <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}> <h3 className="text-xl font-bold text-gray-800 dark:text-white text-center mb-2">Retry Processing</h3> <p className="text-gray-500 dark:text-gray-400 text-center mb-6 text-sm">Choose how you would like to re-process.</p> <div className="space-y-3"> <button onClick={onRetry} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-4 rounded-lg text-sm"> <RefreshCw className="w-4 h-4"/> Just Retry </button> <button onClick={onRetryWithAlterations} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg text-sm"> Retry with Alterations </button> </div> </div> </div> ); };
+export const RetryModal = ({ isOpen, onClose, onRetry, onRetryWithAlterations }: { isOpen: boolean; onClose: () => void; onRetry: () => void; onRetryWithAlterations: () => void; }) => { 
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4" 
+                    onClick={onClose}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <motion.div 
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6" 
+                        onClick={e => e.stopPropagation()}
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                    >
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white text-center mb-2">Retry Processing</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-center mb-6 text-sm">Choose how you would like to re-process.</p>
+                        <div className="space-y-3">
+                            <button onClick={onRetry} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold py-2.5 px-4 rounded-lg text-sm">
+                                <RefreshCw className="w-4 h-4"/> Just Retry
+                            </button>
+                            <button onClick={onRetryWithAlterations} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg text-sm">
+                                Retry with Alterations
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
 export const StatusBadge = ({ status, large = false, theme: initialTheme = 'light' }: { status: Document['status'], large?: boolean, theme?: 'light' | 'dark' }) => {
     const { theme } = useTheme();
     const resolvedTheme = initialTheme || theme;

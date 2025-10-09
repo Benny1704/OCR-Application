@@ -436,7 +436,7 @@ const Edit = () => {
                     onUnsavedRowsChange={setHasUnsavedRows}
                     renderActionCell={renderActionCell}
                     footer={
-                        <div className="flex justify-end gap-4 p-4">
+                        <div className="flex justify-end gap-4 p-2.5">
                             <button
                                 onClick={handleSaveAsDraft}
                                 disabled={!isDirty || isSaving || hasValidationErrors || hasMandatoryFieldsError}

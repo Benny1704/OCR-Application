@@ -79,7 +79,7 @@ const AppRoutesAndToasts = () => {
 
     // We provide our smart function to the entire API layer.
     setGlobalToast(debouncedAddToast);
-  }, []); // The effect re-runs if addToast ever changes.
+  }, []);
 
   return (
     <>
