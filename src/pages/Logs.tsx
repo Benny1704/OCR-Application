@@ -284,57 +284,79 @@ const FilterDropdown = ({
   );
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, chartColors }: any) => {
   const { theme } = useTheme();
+
   if (active && payload && payload.length) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`p-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
+        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: { type: "spring", stiffness: 300, damping: 20 },
+        }}
+        exit={{
+          opacity: 0,
+          y: 10,
+          scale: 0.9,
+          transition: { duration: 0.2 },
+        }}
+        style={{
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
+        className={`p-4 rounded-xl shadow-2xl border ${
           theme === "dark"
-            ? "border-gray-700/40 bg-gray-800/90"
-            : "border-gray-200/50 bg-white/90"
+            ? "border-gray-700/40 bg-gray-800/80"
+            : "border-gray-200/50 bg-white/80"
         }`}
       >
-        <p className="font-bold text-base mb-2 bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+        <p className="font-bold text-base mb-3 bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
           {label}
         </p>
-        <div className="space-y-2">
-          {payload.map((pld: any) => (
-            <div
-              key={pld.dataKey}
-              className="flex items-center justify-between text-sm"
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2.5 h-2.5 rounded-full shadow-sm"
-                  style={{ background: pld.fill }}
-                />
+        <div className="space-y-2.5">
+          {payload.map((pld: any) => {
+            const color =
+              chartColors[pld.dataKey as keyof typeof chartColors];
+            return (
+              <div
+                key={pld.dataKey}
+                className="flex items-center justify-between text-sm w-full"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{
+                      background: color,
+                      boxShadow: `0 0 8px ${color}`,
+                    }}
+                  />
+                  <span
+                    className={`font-medium w-24 truncate ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-700"
+                    }`}
+                  >
+                    {pld.name}
+                  </span>
+                </div>
                 <span
-                  className={`font-medium ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-700"
+                  className={`font-bold text-base tracking-wider text-right w-16 ${
+                    theme === "dark" ? "text-violet-300" : "text-violet-600"
                   }`}
                 >
-                  {pld.name}
+                  {pld.value.toLocaleString()}
                 </span>
               </div>
-              <span
-                className={`font-bold text-base ${
-                  theme === "dark" ? "text-violet-300" : "text-violet-600"
-                }`}
-              >
-                {pld.value.toLocaleString()}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </motion.div>
     );
   }
   return null;
 };
-
 // --- MAIN COMPONENT ---
 
 const Logs = () => {
@@ -682,7 +704,7 @@ const Logs = () => {
                         allowDecimals={false}
                       />
                       <Tooltip
-                        content={<CustomTooltip />}
+                        content={<CustomTooltip chartColors={chartColors} />}
                         cursor={{ fill: "rgba(139, 92, 246, 0.05)" }}
                       />
                       <Legend
