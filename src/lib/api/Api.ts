@@ -93,9 +93,8 @@ export const uploadFiles = async (
     const formData = new FormData();
     formData.append('file', file);
     formData.append('invoice_register_details', JSON.stringify(invoiceDetails));
-
     try {
-        const response = await api.post('/cdc/upload-invoice', formData, {
+        const response = await api.post('/upload/upload-invoice', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -106,9 +105,6 @@ export const uploadFiles = async (
                 }
             },
         });
-        if (globalAddToast) {
-            globalAddToast({ message: response.data.response, type: "success" });
-        }
         return { success: true, message: response.data.response };
     } catch (error) {
         handleError(error);
