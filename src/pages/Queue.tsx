@@ -12,7 +12,7 @@ import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 import type { QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination, ApiResponse } from "../interfaces/Types";
-import { useNavigate, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import {
   Star,
   FileText,
@@ -45,6 +45,8 @@ import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
+import { useAppNavigation } from "../hooks/useAppNavigation";
+import { useRestoreQueueState } from "../hooks/useRestoreState";
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -177,7 +179,7 @@ const PaginationControls = ({ pagination, onPageChange, theme }: { pagination: P
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const location = useLocation();
   const { addToast } = useToast();
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
@@ -188,8 +190,12 @@ const Queue = () => {
     "Failed",
   ];
   const tabRef = useRef<HTMLUListElement>(null);
+  
+  // Initialize state from location.state for navigation preservation
   const [activeTab, setActiveTab] = useState<"Queued" | "Yet to Review" | "Failed">(() => {
-    return location.state?.defaultTab || "Queued";
+    const savedTab = location.state?.activeTab || location.state?.defaultTab;
+    console.log('Queue initializing with tab:', savedTab || "Queued");
+    return savedTab || "Queued";
   });
 
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
@@ -203,11 +209,22 @@ const Queue = () => {
   });
 
   const [pagination, setPagination] = useState<Record<string, Pagination>>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSizes, setPageSizes] = useState<Record<string, number>>({
-    "Queued": 10,
-    "Yet to Review": 10,
-    "Failed": 10,
+  
+  // Initialize pagination state from location
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = location.state?.currentPage;
+    console.log('Queue initializing with page:', savedPage || 1);
+    return savedPage || 1;
+  });
+  
+  const [pageSizes, setPageSizes] = useState<Record<string, number>>(() => {
+    const savedPageSizes = location.state?.pageSizes;
+    console.log('Queue initializing with pageSizes:', savedPageSizes);
+    return savedPageSizes || {
+      "Queued": 10,
+      "Yet to Review": 10,
+      "Failed": 10,
+    };
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -309,7 +326,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSizes, activeTab, getSectionId, user]);
+  }, [currentPage, pageSizes, activeTab, getSectionId, user, addToast]);
 
 
   useEffect(() => {
@@ -360,6 +377,55 @@ const Queue = () => {
     setCurrentPage(1);
   }, [activeTab]);
 
+  // Navigation handlers with state preservation
+  const handleNavigateToEdit = useCallback((invoiceId: string, messageId: string) => {
+    console.log('Navigating to edit with state:', { activeTab, currentPage, pageSizes, sectionFilter });
+    navigate(`/edit/${invoiceId}`, {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
+  const handleNavigateToManualEntry = useCallback((id: string, messageId: string) => {
+    console.log('Navigating to manual entry with state:', { activeTab, currentPage, pageSizes, sectionFilter });
+    navigate(`/manualEntry/${id}`, {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
+  const handleNavigateToImageAlteration = useCallback((messageId: string) => {
+    console.log('Navigating to image alteration with state:', { activeTab, currentPage, pageSizes, sectionFilter });
+    navigate("/imageAlteration", {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
   const handleSetPriority = (id: string) => {
     const doc = queuedDocuments.find(d => d.id === id);
     if (!doc || doc.isPriority) return;
@@ -398,7 +464,6 @@ const Queue = () => {
     });
   };
 
-  // const openRetryModal = () => setRetryModalOpen(true);
   const handleSimpleRetry = async () => {
     setRetryModalOpen(false);
     if (selectedDocumentId) {
@@ -407,9 +472,10 @@ const Queue = () => {
         await fetchDocuments(true);
     }
   };
+  
   const handleRetryWithAlterations = () => {
     setRetryModalOpen(false);
-    navigate("/imageAlteration", { state: { messageId: selectedDocumentId } });
+    handleNavigateToImageAlteration(selectedDocumentId!);
   };
 
   const updateActivePosition = () => {
@@ -467,7 +533,7 @@ const Queue = () => {
     
     return (
       <button
-        onClick={() => navigate(`/edit/${document.invoiceId}`, { state: { messageId: document.messageId } })}
+        onClick={() => handleNavigateToEdit(document.invoiceId, document.messageId)}
         className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium transition-all ${
           isReviewed
             ? theme === "dark"
@@ -785,7 +851,7 @@ const Queue = () => {
                       {activeTab === "Failed" && (
                         <>
                           <button
-                            onClick={() => navigate(`/manualEntry/${selectedDocument.id}`, { state: { messageId: selectedDocument.messageId } })}
+                            onClick={() => handleNavigateToManualEntry(selectedDocument.id, selectedDocument.messageId)}
                             className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
                                 ? "bg-blue-900/40 border border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
                                 : "bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100"
