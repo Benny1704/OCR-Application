@@ -6,7 +6,7 @@ import { useNavigation } from '../contexts/NavigationContext';
  * Use this instead of useNavigate from react-router-dom for better state preservation
  */
 export const useAppNavigation = () => {
-  const { navigateWithHistory, goBack, goForward, canGoBack, canGoForward } = useNavigation();
+  const { navigateWithHistory, goBack, goForward, canGoBack, canGoForward, updateCurrentState } = useNavigation();
 
   const navigate = useCallback(
     (to: string, options?: { state?: any; replace?: boolean }) => {
@@ -21,5 +21,6 @@ export const useAppNavigation = () => {
     goForward,
     canGoBack,
     canGoForward,
+    updateCurrentState,
   };
 };

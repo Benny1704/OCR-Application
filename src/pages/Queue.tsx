@@ -46,7 +46,6 @@ import ErrorDisplay from "../components/common/ErrorDisplay";
 import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
 import { useAppNavigation } from "../hooks/useAppNavigation";
-import { useRestoreQueueState } from "../hooks/useRestoreState";
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -179,10 +178,11 @@ const PaginationControls = ({ pagination, onPageChange, theme }: { pagination: P
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { navigate } = useAppNavigation();
+  const { navigate, updateCurrentState } = useAppNavigation();
   const location = useLocation();
   const { addToast } = useToast();
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
+  const isInitialMount = useRef(true);
 
   const tabs: ("Queued" | "Yet to Review" | "Failed")[] = [
     "Queued",
@@ -191,11 +191,8 @@ const Queue = () => {
   ];
   const tabRef = useRef<HTMLUListElement>(null);
   
-  // Initialize state from location.state for navigation preservation
   const [activeTab, setActiveTab] = useState<"Queued" | "Yet to Review" | "Failed">(() => {
-    const savedTab = location.state?.activeTab || location.state?.defaultTab;
-    console.log('Queue initializing with tab:', savedTab || "Queued");
-    return savedTab || "Queued";
+    return location.state?.queueState?.activeTab || "Queued";
   });
 
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
@@ -210,17 +207,12 @@ const Queue = () => {
 
   const [pagination, setPagination] = useState<Record<string, Pagination>>({});
   
-  // Initialize pagination state from location
   const [currentPage, setCurrentPage] = useState(() => {
-    const savedPage = location.state?.currentPage;
-    console.log('Queue initializing with page:', savedPage || 1);
-    return savedPage || 1;
+    return location.state?.queueState?.currentPage || 1;
   });
   
   const [pageSizes, setPageSizes] = useState<Record<string, number>>(() => {
-    const savedPageSizes = location.state?.pageSizes;
-    console.log('Queue initializing with pageSizes:', savedPageSizes);
-    return savedPageSizes || {
+    return location.state?.queueState?.pageSizes || {
       "Queued": 10,
       "Yet to Review": 10,
       "Failed": 10,
@@ -235,6 +227,21 @@ const Queue = () => {
   );
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    updateCurrentState({
+      queueState: {
+        activeTab,
+        currentPage,
+        pageSizes,
+        sectionFilter,
+      },
+    });
+  }, [activeTab, currentPage, pageSizes, sectionFilter, updateCurrentState]);
 
   const getSectionId = useCallback(() => {
     if (!user) return undefined;
@@ -377,9 +384,7 @@ const Queue = () => {
     setCurrentPage(1);
   }, [activeTab]);
 
-  // Navigation handlers with state preservation
   const handleNavigateToEdit = useCallback((invoiceId: string, messageId: string) => {
-    console.log('Navigating to edit with state:', { activeTab, currentPage, pageSizes, sectionFilter });
     navigate(`/edit/${invoiceId}`, {
       state: {
         messageId,
@@ -395,7 +400,6 @@ const Queue = () => {
   }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
 
   const handleNavigateToManualEntry = useCallback((id: string, messageId: string) => {
-    console.log('Navigating to manual entry with state:', { activeTab, currentPage, pageSizes, sectionFilter });
     navigate(`/manualEntry/${id}`, {
       state: {
         messageId,
@@ -411,7 +415,6 @@ const Queue = () => {
   }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
 
   const handleNavigateToImageAlteration = useCallback((messageId: string) => {
-    console.log('Navigating to image alteration with state:', { activeTab, currentPage, pageSizes, sectionFilter });
     navigate("/imageAlteration", {
       state: {
         messageId,
