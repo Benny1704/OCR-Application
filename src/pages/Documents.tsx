@@ -14,7 +14,6 @@ import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
 import { useAuth } from "../hooks/useAuth";
 import { useAppNavigation } from "../hooks/useAppNavigation";
-import { useRestoreDocumentsState } from "../hooks/useRestoreState";
 
 const Documents = () => {
   const { theme } = useTheme();
