@@ -27,11 +27,12 @@ import { AnimatePresence } from "framer-motion";
 import Review from "./pages/Review";
 import { setGlobalToast } from "./lib/api/Api";
 import { SectionProvider } from "./contexts/SectionContext";
+import { NavigationProvider } from "./contexts/NavigationContext";
+import GlobalNavigationButtons from "./components/common/GlobalNavigationButton";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   const auth = useContext(AuthContext);
   
-  // Handle the case where context is not yet available
   if (!auth) return null; 
   
   if (!auth.user) {
@@ -45,41 +46,29 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   );
 };
 
-// This component is correctly placed inside all the providers.
 const AppRoutesAndToasts = () => {
-  // We can safely call useToast() here.
   const { toasts, removeToast, uploadFiles, hideUploadStatus, addToast } = useToast();
-  // Create a ref to track if an error toast is already visible.
   const errorToastDebounce = useRef(false);
 
-  // We'll set the global toast function from here.
   useEffect(() => {
-    // This is our new, smarter toast function that prevents spam.
     const debouncedAddToast = (toast: { message: string, type: "error" | "success" }) => {
-      // For success messages, we always want to show them.
       if (toast.type === 'success') {
         addToast(toast);
         return;
       }
       
-      // For error messages, we check if our "alarm" is already ringing.
       if (toast.type === 'error' && !errorToastDebounce.current) {
-        // If not, we ring the alarm and set the flag.
         errorToastDebounce.current = true;
         addToast(toast);
         
-        // We reset the flag after a delay. This should be a bit longer
-        // than your toast's auto-dismiss time to prevent another toast
-        // from popping up immediately as the first one disappears.
         setTimeout(() => {
           errorToastDebounce.current = false;
-        }, 5000); // 5 seconds, adjust if your toast duration is different.
+        }, 5000);
       }
     };
 
-    // We provide our smart function to the entire API layer.
     setGlobalToast(debouncedAddToast);
-  }, []); // The effect re-runs if addToast ever changes.
+  }, [addToast]);
 
   return (
     <>
@@ -102,6 +91,9 @@ const AppRoutesAndToasts = () => {
         </Route>
       </Routes>
       
+      {/* Global Navigation Buttons */}
+      <GlobalNavigationButtons />
+      
       <div className="fixed top-4 right-4 z-[100] flex flex-col items-end gap-2">
         <AnimatePresence>
           {uploadFiles && uploadFiles.length > 0 && (
@@ -116,14 +108,15 @@ const AppRoutesAndToasts = () => {
   );
 };
 
-// The App component now only sets up the providers.
 function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
           <SectionProvider>
-            <AppRoutesAndToasts />
+            <NavigationProvider>
+              <AppRoutesAndToasts />
+            </NavigationProvider>
           </SectionProvider>
         </AuthProvider>
       </ToastProvider>

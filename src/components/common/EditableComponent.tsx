@@ -12,8 +12,9 @@ import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
 import { retryMessage, getInvoicePdfFilename } from '../../lib/api/Api';
-import { accordionVariants } from './Animation';
+import { accordionVariants, pageWithStaggerVariants, headerVariants, sectionVariants } from './Animation';
 import ErrorHandler from './ErrorHandler';
+import { ViewImageAbsPath } from '../../lib/config/Config';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -274,40 +275,52 @@ const EditableComponent = ({
     }
 
     return (
-        <div className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
-            <header className={`sticky top-0 z-20 px-6 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-[#1C1C2E]/80 border-slate-700' : 'bg-gray-50/80 border-slate-200'}`}>
+        <motion.div
+            variants={pageWithStaggerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className={`h-full flex flex-col rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-slate-900 text-gray-200' : 'bg-gray-50 text-gray-900'}`}>
+            <motion.header
+                variants={headerVariants}
+                className={`sticky top-0 z-20 px-4 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-white/50 border-slate-200'}`}>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <div className="min-w-0">
-                        <h1 className={`text-xl md:text-2xl font-bold leading-tight ${theme === 'dark' ? 'text-gray-50' : 'text-gray-900'}`}>
+                        <h1 className={`text-lg font-bold leading-tight tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                             {isManual ? "Manual Entry" : (isReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
                         </h1>
-                        <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <span className="mr-4">Supplier: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.supplier_name || '-'}</span></span>
-                            <span>Invoice No: <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{invoiceDetails?.invoice_number || '-'}</span></span>
+                        <div className={`text-xs mt-1 flex items-center gap-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <span>Supplier: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.supplier_name || 'N/A'}</span></span>
+                            <span className="text-gray-500 dark:text-gray-400">•</span>
+                            <span>Invoice No: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.invoice_number || 'N/A'}</span></span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-4 flex-wrap">
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${theme === 'dark' ? 'bg-slate-800 text-gray-200' : 'bg-white text-gray-800'} ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
-                            <span className={`text-sm font-medium ${Math.abs(liveCalculatedAmount - liveTaxableValue) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                Calc: {liveCalculatedAmount.toFixed(2)}
+                            <span className={`text-md font-medium ${Math.abs(liveCalculatedAmount - liveTaxableValue) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                Calculated : {liveCalculatedAmount.toFixed(2)}
                             </span>
-                            <span className="text-sm opacity-50">/</span>
-                            <span className="text-sm font-medium">Invoice: {liveTaxableValue.toFixed(2)}</span>
+                            <span className="text-md opacity-50">/</span>
+                            <span className="text-md font-medium">Taxable: {liveTaxableValue.toFixed(2)}</span>
                         </div>
-                        <button onClick={handleViewImage} className={`${secondaryButtonClasses}`}>
+                        <button onClick={handleViewImage} className={`${secondaryButtonClasses} hover:bg-opacity-80`}>
                             <Eye className="w-4 h-4" /> View Image
                         </button>
                     </div>
                 </div>
-            </header>
+            </motion.header>
 
             <main className="flex-grow py-6 md:py-8 overflow-y-auto">
-                <div className="px-6 space-y-6 animate-fade-in-up">
+                <motion.div
+                    variants={sectionVariants}
+                    className="px-6 space-y-6">
                     <div className="space-y-5">
                         {formConfig.map((section) => {
                             const isOpen = openAccordions.has(section.id);
                             return (
-                                <div key={section.id} className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                <motion.div
+                                    key={section.id}
+                                    className={`rounded-xl border shadow-sm transition-all duration-300 ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     <button
                                         className="w-full flex justify-between items-center px-5 py-4 text-left"
                                         onClick={() => toggleAccordion(section.id)}
@@ -360,14 +373,23 @@ const EditableComponent = ({
                                             </motion.section>
                                         )}
                                     </AnimatePresence>
-                                </div>
+                                </motion.div>
                             )
                         })}
                     </div>
-                </div>
+                </motion.div>
             </main>
 
-            {!isReadOnly && footer}
+            {!isReadOnly && (
+                <motion.footer
+                    variants={sectionVariants}
+                    className="sticky bottom-0 z-10 p-2 mt-auto"
+                >
+                    <div className={`rounded-xl border shadow-lg p-2 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-slate-200'} backdrop-blur-sm`}>
+                        {footer}
+                    </div>
+                </motion.footer>
+            )}
 
             <RetryModal isOpen={isRetryModalOpen} onClose={() => setRetryModalOpen(false)} onRetry={handleSimpleRetry} onRetryWithAlterations={handleRetryWithAlterations} />
             <ProductDetailPopup
@@ -380,7 +402,7 @@ const EditableComponent = ({
                 invoiceId={parseInt(invoiceId!, 10)}
                 isReadOnly={isReadOnly}
             />
-        </div>
+        </motion.div>
     );
 };
 

@@ -3,11 +3,13 @@ import type { LineItem, DataItem, ProductDetails } from '../../interfaces/Types'
 import DataTable from './DataTable';
 import { useTheme } from '../../hooks/useTheme';
 import Loader from './Loader';
-import { Save, AlertTriangle, Eye, CheckCircle } from 'lucide-react';
+import { Save, AlertTriangle, Eye, CheckCircle, X } from 'lucide-react';
 import { isEqual } from 'lodash';
 import { ConfirmationModal, WarningConfirmationModal } from './Helper';
 import { updateLineItems, getLineItems, manualInvoiceEntryItemAttributes } from '../../lib/api/Api';
 import { useToast } from '../../hooks/useToast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { popupVariants } from './Animation';
 
 interface ProductDetailPopupProps {
     isOpen: boolean;
@@ -54,7 +56,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         }
     }, [product, invoiceId]);
 
-    // Validation function to check for mandatory fields
     const validateLineItems = useCallback((items: LineItem[]) => {
         const mandatoryFields = Array.isArray(itemAttributesConfig?.columns)
             ? itemAttributesConfig.columns
@@ -72,7 +73,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         );
     }, [itemAttributesConfig]);
 
-    // Check if any row has incomplete mandatory fields
     const hasIncompleteMandatoryFields = useCallback((row: LineItem): boolean => {
         if (!itemAttributesConfig?.columns) return false;
         const requiredColumns = itemAttributesConfig.columns.filter((col: any) => col.isRequired && col.key !== 'sno');
@@ -106,18 +106,14 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         setHasValidationErrors(hasErrors);
     }, []);
 
-    if (!isOpen) return null;
-
     const handleSave = async () => {
         if (isReadOnly) return;
 
-        // Check for validation errors
         if (hasValidationErrors || !isFormValid) {
             addToast({ type: 'error', message: 'Please fix validation errors and fill all mandatory fields.' });
             return;
         }
 
-        // Check for unsaved rows - BLOCK with no force proceed
         if (hasUnsavedRows) {
             setUnsavedRowsModalOpen(true);
             return;
@@ -155,7 +151,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     const handleSaveRow = async (row: any) => {
         if (isReadOnly) return;
 
-        // Check for incomplete mandatory fields
         if (hasIncompleteMandatoryFields(row)) {
             addToast({ type: 'error', message: 'Please fill all mandatory fields before saving.' });
             return;
@@ -219,75 +214,85 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     };
 
     return (
-        <>
-            <div
-                className="fixed inset-0 bg-black/70 backdrop-blur-xl z-100 flex justify-center items-center p-4 transition-opacity duration-300"
-                onClick={handleClose}
-            >
-                <div
-                    className={`w-full h-full max-h-[95vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden ring-1
-                        ${theme === "dark" ? "bg-[#1C1C2E] text-gray-200 ring-white/10" : "bg-gray-50 text-gray-900 ring-black/5"}
-                        transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
-                    onClick={e => e.stopPropagation()}
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex justify-center items-center p-4"
+                    onClick={handleClose}
                 >
-                    <header className={`flex-shrink-0 flex justify-between items-center p-6 sm:p-8 border-b ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                        <div>
-                            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                                Line Item Details
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <button onClick={onViewImage} className={`flex items-center gap-2 ${theme === 'dark' ? 'bg-white/10 hover:bg-white/15 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} font-medium py-2 px-4 rounded-lg transition-colors`}>
-                                <Eye size={16} /> View Image
-                            </button>
-                            <button
-                                onClick={handleClose}
-                                className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                                ${theme === 'dark' ? 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20' : 'text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'}`}
-                                aria-label="Close"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-                    </header>
-
-                    <main className="flex-grow overflow-y-auto p-6 sm:p-8">
-                        {isLoading ? (
-                            <div className="flex justify-center items-center h-full"><Loader type="dots" /></div>
-                        ) : (
-                            <div className={`rounded-lg p-4 overflow-hidden ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
-                                <DataTable
-                                    tableData={lineItems}
-                                    tableConfig={itemAttributesConfig}
-                                    isEditable={!isReadOnly}
-                                    isSearchable={true}
-                                    pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
-                                    maxHeight="100%"
-                                    onDataChange={handleDataChange}
-                                    onValidationChange={handleValidationChange}
-                                    onUnsavedRowsChange={handleUnsavedRowsChange}
-                                    renderActionCell={renderActionCell}
-                                    actionColumnHeader="Status"
-                                />
+                    <motion.div
+                        variants={popupVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className={`w-full h-full max-h-[95vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden ring-1
+                            ${theme === "dark" ? "bg-slate-900 text-gray-200 ring-white/10" : "bg-white text-gray-900 ring-black/5"}`}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <header className={`flex-shrink-0 flex justify-between items-center p-4 border-b ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                            <div>
+                                <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                                    Line Item Details
+                                </h2>
+                                {/* <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {product?.item_description || 'No description'}
+                                </p> */}
                             </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={onViewImage} className={`flex items-center gap-2 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} font-medium py-2 px-3 rounded-lg text-sm transition-colors`}>
+                                    <Eye size={14} /> View Image
+                                </button>
+                                <button
+                                    onClick={handleClose}
+                                    className={`p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                    ${theme === 'dark' ? 'text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700' : 'text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'}`}
+                                    aria-label="Close"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </header>
+
+                        <main className="flex-grow overflow-y-auto p-6">
+                            {isLoading ? (
+                                <div className="flex justify-center items-center h-full"><Loader type="dots" /></div>
+                            ) : (
+                                <div className={`rounded-lg p-4 overflow-hidden ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
+                                    <DataTable
+                                        tableData={lineItems}
+                                        tableConfig={itemAttributesConfig}
+                                        isEditable={!isReadOnly}
+                                        isSearchable={true}
+                                        pagination={{ enabled: true, pageSize: 5, pageSizeOptions: [5, 10, 25] }}
+                                        maxHeight="100%"
+                                        onDataChange={handleDataChange}
+                                        onValidationChange={handleValidationChange}
+                                        onUnsavedRowsChange={handleUnsavedRowsChange}
+                                        renderActionCell={renderActionCell}
+                                        actionColumnHeader="Status"
+                                    />
+                                </div>
+                            )}
+                        </main>
+
+                        {!isReadOnly && (
+                            <footer className={`flex-shrink-0 flex justify-end items-center p-3 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                                <button
+                                    onClick={handleSave}
+                                    className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold py-2 px-5 rounded-lg text-sm transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={isReadOnly || !isDirty || !isFormValid || hasValidationErrors}
+                                >
+                                    <Save size={14} /> Save Changes
+                                </button>
+                            </footer>
                         )}
-                    </main>
+                    </motion.div>
+                </motion.div>
+            )}
 
-                    {!isReadOnly && (
-                        <footer className={`flex-shrink-0 flex justify-end items-center p-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
-                            <button
-                                onClick={handleSave}
-                                className="flex items-center gap-2 bg-violet-600 text-white font-bold py-2 px-4 rounded-lg transition-colors hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={isReadOnly || !isDirty || !isFormValid || hasValidationErrors}
-                            >
-                                <Save size={16} /> Save Changes
-                            </button>
-                        </footer>
-                    )}
-                </div>
-            </div>
-
-            {/* Unsaved Changes Modal (when closing with dirty state) */}
             <ConfirmationModal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setConfirmModalOpen(false)}
@@ -297,7 +302,6 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 icon={<AlertTriangle className="text-yellow-500" size={24} />}
             />
 
-            {/* Unsaved Rows Modal (when trying to save) - NO FORCE PROCEED */}
             <WarningConfirmationModal
                 isOpen={isUnsavedRowsModalOpen}
                 onClose={() => setUnsavedRowsModalOpen(false)}
@@ -307,7 +311,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
                 showConfirmButton={false}
             />
-        </>
+        </AnimatePresence>
     );
 };
 

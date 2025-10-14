@@ -3,7 +3,7 @@ import DataTable from "../components/common/DataTable";
 import { useTheme } from "../hooks/useTheme";
 import { motion } from "framer-motion";
 import { containerVariants, itemVariants } from "../components/common/Animation";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { type DataItem, type ProcessedDocument, type Pagination } from "../interfaces/Types";
 import { getCompletedDocuments } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
@@ -13,16 +13,30 @@ import { formatDateTime } from "./Queue";
 import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
 import { useAuth } from "../hooks/useAuth";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 
 const Documents = () => {
   const { theme } = useTheme();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
+  const location = useLocation();
   const { user } = useAuth();
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
   const [documents, setDocuments] = useState<ProcessedDocument[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  
+  // Initialize state from location for navigation preservation
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = location.state?.currentPage;
+    console.log('Documents initializing with page:', savedPage || 1);
+    return savedPage || 1;
+  });
+  
+  const [pageSize, setPageSize] = useState(() => {
+    const savedPageSize = location.state?.pageSize;
+    console.log('Documents initializing with pageSize:', savedPageSize || 25);
+    return savedPageSize || 25;
+  });
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +63,7 @@ const Documents = () => {
             supplierName: item.supplier_name,
             supplierNumber: item.supplier_gst_in,
             invoiceNumber: item.invoice_number,
-            sectionName: getSectionNameById(item.section_id),
+            sectionName: item.section_name,
             invoiceId: item.invoice_id,
             irnNumber: item.irn,
             uploadedBy: item.uploaded_by,
@@ -71,10 +85,29 @@ const Documents = () => {
     fetchDocuments(currentPage, pageSize);
   }, [fetchDocuments, currentPage, pageSize]);
 
+  // Navigation handler with state preservation
+  const handleNavigateToReview = useCallback((doc: ProcessedDocument) => {
+    console.log('Navigating to review with state:', { currentPage, pageSize, sectionFilter });
+    navigate(`/review/${doc.invoiceId}`, {
+      state: {
+        messageId: doc.messageId,
+        fromDocuments: true,
+        documentsState: {
+          currentPage,
+          pageSize,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, currentPage, pageSize, sectionFilter]);
+
   const renderActionCell = (row: DataItem) => {
     const doc = row as ProcessedDocument;
     return (
-        <button onClick={() => navigate(`/review/${doc.invoiceId}`, { state: { messageId: doc.messageId } })} className="edit-btn" >
+        <button 
+          onClick={() => handleNavigateToReview(doc)} 
+          className="edit-btn"
+        >
             <i className="fi fi-rr-file-check"></i> Review
         </button>
     );

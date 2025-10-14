@@ -12,7 +12,7 @@ import DataTable from "../components/common/DataTable";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 import type { QueuedDocument, ProcessedDocument, FailedDocument, DataItem, Pagination, ApiResponse } from "../interfaces/Types";
-import { useNavigate, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import {
   Star,
   FileText,
@@ -32,6 +32,8 @@ import {
   Hash,
   DollarSign,
   Building,
+  FilePen,
+  FilePlus,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
 import { NoDataDisplay, RetryModal, StatusBadge } from "../components/common/Helper";
@@ -43,6 +45,7 @@ import { QueueListSkeleton } from "../components/common/SkeletonLoaders";
 import ErrorDisplay from "../components/common/ErrorDisplay";
 import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 
 // --- Helper function to format date/time ---
 const formatLastUpdated = (date: Date | null) => {
@@ -175,10 +178,11 @@ const PaginationControls = ({ pagination, onPageChange, theme }: { pagination: P
 const Queue = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigate, updateCurrentState } = useAppNavigation();
   const location = useLocation();
   const { addToast } = useToast();
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
+  const isInitialMount = useRef(true);
 
   const tabs: ("Queued" | "Yet to Review" | "Failed")[] = [
     "Queued",
@@ -186,8 +190,9 @@ const Queue = () => {
     "Failed",
   ];
   const tabRef = useRef<HTMLUListElement>(null);
+  
   const [activeTab, setActiveTab] = useState<"Queued" | "Yet to Review" | "Failed">(() => {
-    return location.state?.defaultTab || "Queued";
+    return location.state?.queueState?.activeTab || "Queued";
   });
 
   const [queuedDocuments, setQueuedDocuments] = useState<QueuedDocument[]>([]);
@@ -201,8 +206,18 @@ const Queue = () => {
   });
 
   const [pagination, setPagination] = useState<Record<string, Pagination>>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  
+  const [currentPage, setCurrentPage] = useState(() => {
+    return location.state?.queueState?.currentPage || 1;
+  });
+  
+  const [pageSizes, setPageSizes] = useState<Record<string, number>>(() => {
+    return location.state?.queueState?.pageSizes || {
+      "Queued": 10,
+      "Yet to Review": 10,
+      "Failed": 10,
+    };
+  });
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +227,21 @@ const Queue = () => {
   );
   const [isRetryModalOpen, setRetryModalOpen] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    updateCurrentState({
+      queueState: {
+        activeTab,
+        currentPage,
+        pageSizes,
+        sectionFilter,
+      },
+    });
+  }, [activeTab, currentPage, pageSizes, sectionFilter, updateCurrentState]);
 
   const getSectionId = useCallback(() => {
     if (!user) return undefined;
@@ -229,6 +259,7 @@ const Queue = () => {
     }
     try {
         const sectionId = getSectionId();
+        const pageSize = pageSizes[activeTab];
         let queuedResponse: ApiResponse<QueuedDocument>;
         let processedResponse: ApiResponse<ProcessedDocument>;
         let failedResponse: ApiResponse<FailedDocument>;
@@ -243,7 +274,7 @@ const Queue = () => {
                   uploadDate: formatDateTime(item.uploaded_on),
                   uploadedBy: item.uploaded_by,
                   messageId: item.message_id,
-                  sectionName: getSectionNameById(item.section_id),
+                  sectionName: item.section_name,
                   isPriority: item.is_priority,
                   status: item.status || "Queued",
                   queue_position: item.queue_position,
@@ -265,7 +296,7 @@ const Queue = () => {
                   invoiceId: item.invoice_id,
                   irnNumber: item.irn,
                   uploadedBy: item.uploaded_by,
-                  sectionName: getSectionNameById(item.section_id),
+                  sectionName: item.section_name,
                   uploadDate: formatDateTime(item.uploaded_at),
                   invoiceDate: formatDateTime(item.invoice_date),
                   messageId: item.message_id,
@@ -283,7 +314,7 @@ const Queue = () => {
                   uploadedBy: item.uploaded_by,
                   uploadDate: formatDateTime(item.uploaded_on),
                   messageId: item.message_id,
-                  sectionName: getSectionNameById(item.section_id),
+                  sectionName: item.section_name,
                   errorMessage: item.error_message,
                   status: "Failed",
                   supplier_meta: item.supplier_meta,
@@ -302,7 +333,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeTab, getSectionId, user]);
+  }, [currentPage, pageSizes, activeTab, getSectionId, user, addToast]);
 
 
   useEffect(() => {
@@ -353,6 +384,51 @@ const Queue = () => {
     setCurrentPage(1);
   }, [activeTab]);
 
+  const handleNavigateToEdit = useCallback((invoiceId: string, messageId: string) => {
+    navigate(`/edit/${invoiceId}`, {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
+  const handleNavigateToManualEntry = useCallback((id: string, messageId: string) => {
+    navigate(`/manualEntry/${id}`, {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
+  const handleNavigateToImageAlteration = useCallback((messageId: string) => {
+    navigate("/imageAlteration", {
+      state: {
+        messageId,
+        fromQueue: true,
+        queueState: {
+          activeTab,
+          currentPage,
+          pageSizes,
+          sectionFilter
+        }
+      }
+    });
+  }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
+
   const handleSetPriority = (id: string) => {
     const doc = queuedDocuments.find(d => d.id === id);
     if (!doc || doc.isPriority) return;
@@ -391,7 +467,6 @@ const Queue = () => {
     });
   };
 
-  const openRetryModal = () => setRetryModalOpen(true);
   const handleSimpleRetry = async () => {
     setRetryModalOpen(false);
     if (selectedDocumentId) {
@@ -400,9 +475,10 @@ const Queue = () => {
         await fetchDocuments(true);
     }
   };
+  
   const handleRetryWithAlterations = () => {
     setRetryModalOpen(false);
-    navigate("/imageAlteration", { state: { messageId: selectedDocumentId } });
+    handleNavigateToImageAlteration(selectedDocumentId!);
   };
 
   const updateActivePosition = () => {
@@ -460,7 +536,7 @@ const Queue = () => {
     
     return (
       <button
-        onClick={() => navigate(`/edit/${document.invoiceId}`, { state: { messageId: document.messageId } })}
+        onClick={() => handleNavigateToEdit(document.invoiceId, document.messageId)}
         className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-medium transition-all ${
           isReviewed
             ? theme === "dark"
@@ -471,7 +547,7 @@ const Queue = () => {
             : "bg-blue-100 text-blue-700 hover:bg-blue-200"
         }`}
       >
-        {isReviewed ? <FileSignature className="w-3 h-3" /> : <i className="fi fi-rr-file-edit text-xs"></i>}
+        {isReviewed ? <FileSignature className="w-3 h-3" /> : <FilePen className="w-3 h-3" />}
         {isReviewed ? "Draft" : "Review"}
       </button>
     );
@@ -507,14 +583,14 @@ const Queue = () => {
               actionColumnHeader="Review"
               pagination={{
                 enabled: true,
-                pageSize: 10,
+                pageSize: pageSizes[activeTab],
                 pageSizeOptions: [5, 10, 25, 50, 100],
               }}
               maxHeight="calc(100vh - 280px)"
               isLoading={isLoading}
               paginationInfo={pagination["Yet to Review"]}
               onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
+              onPageSizeChange={(size) => setPageSizes(prev => ({ ...prev, "Yet to Review": size }))}
             />
         </>
       );
@@ -569,17 +645,16 @@ const Queue = () => {
                     <File size={18} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p
-                      className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}
-                    >
-                      {doc.name} - {doc.sectionName}
+                  <div className={`font-semibold text-sm flex gap-2 items-center truncate ${textHeader}`}>
+                      <span className="truncate">{doc.name}</span>
                       {'isPriority' in doc && doc.isPriority && (
                         <Star
-                          className="w-3.5 h-3.5 text-yellow-400"
+                          className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0"
                           fill="currentColor"
                         />
                       )}
-                    </p>
+                    </div>
+                    <p className={`text-xs truncate ${textSecondary}`}>{doc.sectionName}</p>
                   </div>
                   <StatusBadge status={doc.status} theme={theme} />
                 </button>
@@ -779,17 +854,17 @@ const Queue = () => {
                       {activeTab === "Failed" && (
                         <>
                           <button
-                            onClick={() => navigate(`/manualEntry/${selectedDocument.id}`, { state: { messageId: selectedDocument.messageId } })}
+                            onClick={() => handleNavigateToManualEntry(selectedDocument.id, selectedDocument.messageId)}
                             className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
                                 ? "bg-blue-900/40 border border-blue-700/60 text-blue-300 hover:bg-blue-900/60"
                                 : "bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100"
                               }`}
                           >
-                            <i className="fi fi-rr-add-document text-xs"></i> Manual Entry
+                            <FilePlus className="h-3.5 w-3.5"/> Manual Entry
                           </button>
                           {user?.role === 'admin' && (
                             <button
-                              onClick={openRetryModal}
+                              onClick={handleSimpleRetry}
                               className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all ${theme === "dark"
                                   ? "bg-yellow-900/40 border border-yellow-700/60 text-yellow-300 hover:bg-yellow-900/60"
                                   : "bg-yellow-50 border border-yellow-200 text-yellow-800 hover:bg-yellow-100"

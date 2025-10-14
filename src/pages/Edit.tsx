@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import EditableComponent from '../components/common/EditableComponent';
 import ErrorDisplay from '../components/common/ErrorDisplay';
 import Loader from '../components/common/Loader';
@@ -23,6 +23,8 @@ import {
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
 import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
+import { ViewImageAbsPath } from '../lib/config/Config';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 
 const Edit = () => {
     const [invoiceDetails, setInvoiceDetails] = useState<InvoiceDetails | null>(null);
@@ -36,7 +38,7 @@ const Edit = () => {
     const { addToast } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
     const location = useLocation();
-    const navigate = useNavigate();
+    const { navigate } = useAppNavigation();
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
@@ -219,7 +221,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields]);
+    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields, addToast]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -265,7 +267,7 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, hasValidationErrors]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, hasValidationErrors, addToast]);
 
     const proceedWithFinalize = useCallback(async () => {
         if (hasValidationErrors) {
@@ -298,12 +300,13 @@ const Edit = () => {
             setIsDirty(false);
             navigate('/document');
 
-        } catch (error: any) {
+        } catch (error: any)
+{
             addToast({ type: 'error', message: `Failed to finalize invoice` });
         } finally {
             setIsSaving(false);
         }
-    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails, hasValidationErrors]);
+    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails, hasValidationErrors, addToast]);
 
     const handleSaveAsDraft = () => {
         if (hasValidationErrors || hasMandatoryFieldsError) {
@@ -403,7 +406,7 @@ const Edit = () => {
         try {
             const response = await getInvoicePdfFilename(messageId);
             if (response && response.original_filename) {
-                const filePath = `/src/invoice-pdf/${response.original_filename}`;
+                const filePath = `${ViewImageAbsPath}${response.original_filename}`;
                 window.open(filePath, '_blank');
             } else {
                 addToast({ type: 'error', message: 'Could not retrieve file information.' });
@@ -435,7 +438,7 @@ const Edit = () => {
                     onUnsavedRowsChange={setHasUnsavedRows}
                     renderActionCell={renderActionCell}
                     footer={
-                        <div className="flex justify-end gap-4 p-4">
+                        <div className="flex justify-end gap-4 p-2.5">
                             <button
                                 onClick={handleSaveAsDraft}
                                 disabled={!isDirty || isSaving || hasValidationErrors || hasMandatoryFieldsError}
