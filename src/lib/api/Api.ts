@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section, LineItem, ProductDetails } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://julianna-oxidic-keegan.ngrok-free.dev";
 
 // --- Axios Instances ---
 const api = axios.create({ baseURL: API_URL });
@@ -94,7 +94,7 @@ export const uploadFiles = async (
     formData.append('invoice_register_details', JSON.stringify(invoiceDetails));
 
     try {
-        const response = await api.post('/cdc/upload-invoice', formData, {
+        const response = await api.post('/upload/upload-invoice', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -105,9 +105,6 @@ export const uploadFiles = async (
                 }
             },
         });
-        if (globalAddToast) {
-            globalAddToast({ message: response.data.response, type: "success" });
-        }
         return { success: true, message: response.data.response };
     } catch (error) {
         handleError(error);

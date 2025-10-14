@@ -171,6 +171,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 item_id: product.item_id,
                 item_description: row.item_description || "",
                 total_count: Number(row.total_count) || 0,
+                size: row.size,
                 single_unit_price: Number(row.single_unit_price) || 0,
                 discount_percentage: String(row.discount_percentage) || "0",
                 discount_amount: Number(row.discount_amount) || 0,

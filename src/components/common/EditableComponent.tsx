@@ -155,20 +155,27 @@ const EditableComponent = ({
         try {
             const response = await getInvoicePdfFilename(messageId);
             if (response && response.original_filename) {
-                const filePath = `/src/invoice-pdf/${response.original_filename}`;
 
-                fetch(filePath, { method: 'HEAD' })
-                    .then(res => {
-                        const contentType = res.headers.get('Content-Type');
-                        if (res.ok && contentType && !contentType.includes('text/html')) {
-                            window.open(filePath, '_blank');
-                        } else {
-                            setError(`File not found: ${response.original_filename}`);
-                        }
-                    })
-                    .catch(() => {
-                        setError(`File not found: ${response.original_filename}`);
-                    });
+                const backendBaseUrl = 'https://julianna-oxidic-keegan.ngrok-free.dev';
+
+                const fileUrl = `${backendBaseUrl}/files/get-pdf/${messageId}`;
+                window.open(fileUrl, '_blank');
+
+
+                // const filePath = `/src/invoice-pdf/${response.original_filename}`;
+
+                // fetch(filePath, { method: 'HEAD' })
+                //     .then(res => {
+                //         const contentType = res.headers.get('Content-Type');
+                //         if (res.ok && contentType && !contentType.includes('text/html')) {
+                //             window.open(filePath, '_blank');
+                //         } else {
+                //             setError(`File not found: ${response.original_filename}`);
+                //         }
+                //     })
+                //     .catch(() => {
+                //         setError(`File not found: ${response.original_filename}`);
+                // });
             } else {
                 setError("Could not retrieve file information.");
             }
