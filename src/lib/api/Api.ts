@@ -2,11 +2,11 @@ import axios, { AxiosError } from 'axios';
 import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocument, ProcessedDocument, FailedDocument, FormField, Section, LineItem, ProductDetails } from '../../interfaces/Types';
 
 // --- Base URLs ---
-const API_URL = "http://10.2.0.4:30904";
-// const API_URL = import.meta.env.VITE_API_URL;
+// const API_URL = "http://10.2.0.4:30904";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // --- Axios Instances ---
-const api = axios.create({ baseURL: API_URL });
+const api = axios.create({ baseURL: API_URL, withCredentials: true, });
 
 // --- Global Toast Function ---
 let globalAddToast: ((toast: { message: string, type: "error" | "success" }) => void) | null = null;
@@ -78,6 +78,16 @@ export const login = async (credentials: { username: string; password: string; s
     try {
         const response = await api.post('/users/token', credentials);
         return response.data;
+    } catch (error) {
+        handleError(error);
+        throw error;
+    }
+};
+
+export const logout = async (): Promise<void> => {
+    try {
+        // Assuming your backend has a /logout endpoint that clears the access_token cookie
+        await api.post('/users/logout');
     } catch (error) {
         handleError(error);
         throw error;
@@ -549,9 +559,25 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
     }
 };
 
-export const getInvoicePdfFilename = async (messageId: string): Promise<{ queue_id: string, original_filename: string } | null> => {
+// export const getInvoicePdfFilename = async (messageId: string): Promise<{ queue_id: string, original_filename: string } | null> => {
+//     try {
+//         const response = await api.get(`/invoice_pdf_filename/${messageId}`);
+//         return response.data;
+//     } catch (error) {
+//         handleError(error);
+//         return null;
+//     }
+// };
+
+export const getFile = async (messageId: string): Promise<any> => {
     try {
-        const response = await api.get(`/invoice_pdf_filename/${messageId}`);
+        console.log("getFile called");
+        const response = await api.get(`/files/get-pdf/${messageId}`, {
+            // Crucial: Tells Axios to expect a binary file, not JSON
+            responseType: 'blob', 
+        });
+        console.log("getFile: "+ response.data);
+        
         return response.data;
     } catch (error) {
         handleError(error);

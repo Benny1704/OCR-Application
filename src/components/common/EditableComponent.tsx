@@ -11,10 +11,10 @@ import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
-import { retryMessage, getInvoicePdfFilename } from '../../lib/api/Api';
+import { getFile, retryMessage } from '../../lib/api/Api';
 import { accordionVariants, pageWithStaggerVariants, headerVariants, sectionVariants } from './Animation';
 import ErrorHandler from './ErrorHandler';
-import { ViewImageAbsPath } from '../../lib/config/Config';
+// import { ViewImageAbsPath } from '../../lib/config/Config';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -154,32 +154,44 @@ const EditableComponent = ({
             return;
         }
         try {
-            const response = await getInvoicePdfFilename(messageId);
-            if (response && response.original_filename) {
+            getFile(messageId);
 
-                const backendBaseUrl = 'https://julianna-oxidic-keegan.ngrok-free.dev';
+            const backendBaseUrl = 'https://julianna-oxidic-keegan.ngrok-free.dev';
 
-                const fileUrl = `${backendBaseUrl}/files/get-pdf/${messageId}`;
-                window.open(fileUrl, '_blank');
+            const fileUrl = `${backendBaseUrl}/files/get-pdf/${messageId}`;
+            window.open(fileUrl, '_blank');
+
+            // const pdfBlob = await getFile(messageId);
+
+            // // 2. Create a local, temporary URL for the Blob object.
+            // // This URL can be safely opened by the browser.
+            // const tempUrl = URL.createObjectURL(pdfBlob);
+
+            // // 3. Open the file in a new tab/window
+            // window.open(tempUrl, '_blank');
+            // const response = await getInvoicePdfFilename(messageId);
+            // if (response && response.original_filename) {
+
+                
 
 
-                // const filePath = `/src/invoice-pdf/${response.original_filename}`;
+            //     // const filePath = `/src/invoice-pdf/${response.original_filename}`;
 
-                // fetch(filePath, { method: 'HEAD' })
-                //     .then(res => {
-                //         const contentType = res.headers.get('Content-Type');
-                //         if (res.ok && contentType && !contentType.includes('text/html')) {
-                //             window.open(filePath, '_blank');
-                //         } else {
-                //             setError(`File not found: ${response.original_filename}`);
-                //         }
-                //     })
-                //     .catch(() => {
-                //         setError(`File not found: ${response.original_filename}`);
-                // });
-            } else {
-                setError("Could not retrieve file information.");
-            }
+            //     // fetch(filePath, { method: 'HEAD' })
+            //     //     .then(res => {
+            //     //         const contentType = res.headers.get('Content-Type');
+            //     //         if (res.ok && contentType && !contentType.includes('text/html')) {
+            //     //             window.open(filePath, '_blank');
+            //     //         } else {
+            //     //             setError(`File not found: ${response.original_filename}`);
+            //     //         }
+            //     //     })
+            //     //     .catch(() => {
+            //     //         setError(`File not found: ${response.original_filename}`);
+            //     // });
+            // } else {
+            //     setError("Could not retrieve file information.");
+            // }
         } catch (err: any) {
             if (err.statusCode === 422) {
                 setError("Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.");
