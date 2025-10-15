@@ -19,11 +19,10 @@ import {
     updateAmountAndTaxDetails,
     confirmInvoice,
     manualInvoiceEntryItemSummary,
-    getFile,
 } from '../lib/api/Api';
 import type { InvoiceDetails, ProductDetails, AmountAndTaxDetails, FormSection, FormField, DataItem } from '../interfaces/Types';
 import { Save, CheckCircle, Eye, AlertTriangle } from 'lucide-react';
-// import { ViewImageAbsPath } from '../lib/config/Config';
+import { ViewImageAbsPath } from '../lib/config/Config';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 
 const Edit = () => {
@@ -221,7 +220,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields, addToast]);
+    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -267,7 +266,7 @@ const Edit = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, hasValidationErrors, addToast]);
+    }, [invoiceId, messageId, invoiceDetails, productDetails, amountAndTaxDetails, isDirty, hasValidationErrors]);
 
     const proceedWithFinalize = useCallback(async () => {
         if (hasValidationErrors) {
@@ -300,13 +299,12 @@ const Edit = () => {
             setIsDirty(false);
             navigate('/document');
 
-        } catch (error: any)
-{
+        } catch (error: any) {
             addToast({ type: 'error', message: `Failed to finalize invoice` });
         } finally {
             setIsSaving(false);
         }
-    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails, hasValidationErrors, addToast]);
+    }, [messageId, isDirty, navigate, invoiceId, invoiceDetails, productDetails, amountAndTaxDetails, hasValidationErrors]);
 
     const handleSaveAsDraft = () => {
         if (hasValidationErrors || hasMandatoryFieldsError) {
@@ -400,48 +398,17 @@ const Edit = () => {
 
     const handleViewImage = async () => {
         if (!messageId) {
-            setError("Message ID is not available.");
+            addToast({ type: 'error', message: 'Message ID is not available.' });
             return;
         }
         try {
-            getFile(messageId);
-
-            const backendBaseUrl = 'https://julianna-oxidic-keegan.ngrok-free.dev';
-
-            const fileUrl = `${backendBaseUrl}/files/get-pdf/${messageId}`;
+            const fileUrl = `${ViewImageAbsPath}${messageId}`;
             window.open(fileUrl, '_blank');
 
             // const pdfBlob = await getFile(messageId);
-
-            // // 2. Create a local, temporary URL for the Blob object.
-            // // This URL can be safely opened by the browser.
             // const tempUrl = URL.createObjectURL(pdfBlob);
-
-            // // 3. Open the file in a new tab/window
             // window.open(tempUrl, '_blank');
-            // const response = await getInvoicePdfFilename(messageId);
-            // if (response && response.original_filename) {
-
-                
-
-
-            //     // const filePath = `/src/invoice-pdf/${response.original_filename}`;
-
-            //     // fetch(filePath, { method: 'HEAD' })
-            //     //     .then(res => {
-            //     //         const contentType = res.headers.get('Content-Type');
-            //     //         if (res.ok && contentType && !contentType.includes('text/html')) {
-            //     //             window.open(filePath, '_blank');
-            //     //         } else {
-            //     //             setError(`File not found: ${response.original_filename}`);
-            //     //         }
-            //     //     })
-            //     //     .catch(() => {
-            //     //         setError(`File not found: ${response.original_filename}`);
-            //     // });
-            // } else {
-            //     setError("Could not retrieve file information.");
-            // }
+            
         } catch (err: any) {
             if (err.statusCode === 422) {
                 setError("Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.");

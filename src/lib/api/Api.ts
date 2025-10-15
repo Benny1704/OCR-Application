@@ -3,10 +3,10 @@ import type { AmountAndTaxDetails, InvoiceDetails, PaginatedResponse, QueuedDocu
 
 // --- Base URLs ---
 // const API_URL = "http://10.2.0.4:30904";
-const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL;
 
 // --- Axios Instances ---
-const api = axios.create({ baseURL: API_URL, withCredentials: true, });
+const api = axios.create({ baseURL: API_URL });
 
 // --- Global Toast Function ---
 let globalAddToast: ((toast: { message: string, type: "error" | "success" }) => void) | null = null;

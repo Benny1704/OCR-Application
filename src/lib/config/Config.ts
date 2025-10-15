@@ -1,3 +1,5 @@
+import { API_URL } from "../api/Api";
+
 export interface FormField {
   key: string;
   label: string;
@@ -53,4 +55,4 @@ export const documentConfig = {
   ]
 };
 
-export const ViewImageAbsPath = "/src/invoice-pdf/";
+export const ViewImageAbsPath = `${API_URL}/files/get-pdf/`;
