@@ -202,11 +202,12 @@ const Edit = () => {
 
                 const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10));
 
-                if (Array.isArray(updatedProductDetails)) {
-                    setProductDetails(updatedProductDetails);
+                if (Array.isArray(updatedProductDetails.items)) {
+                    setProductDetails(updatedProductDetails.items);
                     if (!isDirty) setIsDirty(true);
-                    const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
-                    return savedProduct || { ...response.data[0], id: response.data[0].item_id };
+                    // const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+                    // return savedProduct || { ...response.data[0], id: response.data[0].item_id };
+                    return { ...response.data[0], id: response.data[0].item_id };
                 } else {
                     fetchData();
                     return { ...response.data[0], id: response.data[0].item_id };
