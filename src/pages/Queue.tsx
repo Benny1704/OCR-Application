@@ -935,15 +935,21 @@ const Queue = () => {
       <div className="tab-container">
         <div className="header">
           <div className="left-shape">
-            <div>
-              <h1>Document Queue</h1>
-              {(sectionFilter === 'current' && sectionName) ? (
-                <div className={`active-tab ${activeTab.toLowerCase().replace(/\s+/g, '-')}`}>
-                  <p>{sectionFilter === 'current' && sectionName ? `${sectionName}` : ''}</p>
-                  <div className="badge">{pagination[activeTab]?.total_items || 0}</div>
-                </div>
-              ) : (
-                ''
+            <div className="flex flex-col items-start justify-end">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold">Document Queue</h1>
+                <span className={`inline-flex items-center justify-center min-w-[2rem] h-6 px-2.5 rounded-full text-xs font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/30' 
+                    : 'bg-violet-100 text-violet-700 ring-1 ring-violet-200'
+                }`}>
+                  {pagination[activeTab]?.total_items || 0}
+                </span>
+              </div>
+              {sectionFilter === 'current' && sectionName && (
+                <p className={`text-sm font-light ${textSecondary}`}>
+                  {sectionName}
+                </p>
               )}
             </div>
           </div>

@@ -217,6 +217,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
         <AnimatePresence>
             {isOpen && (
                 <motion.div
+                    key="product-details-content" 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -294,6 +295,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             )}
 
             <ConfirmationModal
+                key="unsaved-changes-modal"
                 isOpen={isConfirmModalOpen}
                 onClose={() => setConfirmModalOpen(false)}
                 onConfirm={confirmClose}
@@ -303,6 +305,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             />
 
             <WarningConfirmationModal
+                key="unsaved-rows-warning-modal" // FIX 3: Add a unique key here
                 isOpen={isUnsavedRowsModalOpen}
                 onClose={() => setUnsavedRowsModalOpen(false)}
                 onConfirm={() => setUnsavedRowsModalOpen(false)}
