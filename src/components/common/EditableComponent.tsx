@@ -11,10 +11,11 @@ import ProductDetailPopup from './ProductDetailsPopup';
 import { useToast } from '../../hooks/useToast';
 import { set, get, cloneDeep } from 'lodash';
 import { useParams } from 'react-router-dom';
-import { getFile, retryMessage } from '../../lib/api/Api';
+import { retryMessage } from '../../lib/api/Api';
 import { accordionVariants, pageWithStaggerVariants, headerVariants, sectionVariants } from './Animation';
 import ErrorHandler from './ErrorHandler';
-// import { ViewImageAbsPath } from '../../lib/config/Config';
+import { ViewImageAbsPath } from '../../lib/config/Config';
+import BackButton from './BackButton';
 
 const initialEmptyInvoiceDetails: InvoiceDetails = {
     supplier_id: 0,
@@ -150,48 +151,17 @@ const EditableComponent = ({
 
     const handleViewImage = async () => {
         if (!messageId) {
-            setError("Message ID is not available.");
+            addToast({ type: 'error', message: 'Message ID is not available.' });
             return;
         }
         try {
-            getFile(messageId);
-
-            const backendBaseUrl = 'https://julianna-oxidic-keegan.ngrok-free.dev';
-
-            const fileUrl = `${backendBaseUrl}/files/get-pdf/${messageId}`;
+            const fileUrl = `${ViewImageAbsPath}${messageId}`;
             window.open(fileUrl, '_blank');
 
             // const pdfBlob = await getFile(messageId);
-
-            // // 2. Create a local, temporary URL for the Blob object.
-            // // This URL can be safely opened by the browser.
             // const tempUrl = URL.createObjectURL(pdfBlob);
-
-            // // 3. Open the file in a new tab/window
             // window.open(tempUrl, '_blank');
-            // const response = await getInvoicePdfFilename(messageId);
-            // if (response && response.original_filename) {
-
-                
-
-
-            //     // const filePath = `/src/invoice-pdf/${response.original_filename}`;
-
-            //     // fetch(filePath, { method: 'HEAD' })
-            //     //     .then(res => {
-            //     //         const contentType = res.headers.get('Content-Type');
-            //     //         if (res.ok && contentType && !contentType.includes('text/html')) {
-            //     //             window.open(filePath, '_blank');
-            //     //         } else {
-            //     //             setError(`File not found: ${response.original_filename}`);
-            //     //         }
-            //     //     })
-            //     //     .catch(() => {
-            //     //         setError(`File not found: ${response.original_filename}`);
-            //     // });
-            // } else {
-            //     setError("Could not retrieve file information.");
-            // }
+            
         } catch (err: any) {
             if (err.statusCode === 422) {
                 setError("Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.");
@@ -297,14 +267,17 @@ const EditableComponent = ({
                 variants={headerVariants}
                 className={`sticky top-0 z-20 px-4 py-4 border-b backdrop-blur-md ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-white/50 border-slate-200'}`}>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
-                    <div className="min-w-0">
-                        <h1 className={`text-lg font-bold leading-tight tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                            {isManual ? "Manual Entry" : (isReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
-                        </h1>
-                        <div className={`text-xs mt-1 flex items-center gap-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                            <span>Supplier: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.supplier_name || 'N/A'}</span></span>
-                            <span className="text-gray-500 dark:text-gray-400">•</span>
-                            <span>Invoice No: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.invoice_number || 'N/A'}</span></span>
+                    <div className="min-w-0 flex gap-2">
+                        <BackButton />
+                        <div>
+                            <h1 className={`text-lg font-bold leading-tight tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                {isManual ? "Manual Entry" : (isReadOnly ? "Review Document" : "Verify & Edit Extracted Data")}
+                            </h1>
+                            <div className={`text-xs mt-1 flex items-center gap-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <span>Supplier: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.supplier_name || 'N/A'}</span></span>
+                                <span className="text-gray-500 dark:text-gray-400">•</span>
+                                <span>Invoice No: <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>{invoiceDetails?.invoice_number || 'N/A'}</span></span>
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 flex-wrap">

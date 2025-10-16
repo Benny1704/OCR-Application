@@ -28,7 +28,6 @@ import Review from "./pages/Review";
 import { setGlobalToast } from "./lib/api/Api";
 import { SectionProvider } from "./contexts/SectionContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
-import GlobalNavigationButtons from "./components/common/GlobalNavigationButton";
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: Role[] }) => {
   const auth = useContext(AuthContext);
@@ -90,9 +89,6 @@ const AppRoutesAndToasts = () => {
           <Route path="/manualEntry/:invoiceId" element={<ManualEntry />} />
         </Route>
       </Routes>
-      
-      {/* Global Navigation Buttons */}
-      <GlobalNavigationButtons />
       
       <div className="fixed top-4 right-4 z-[100] flex flex-col items-end gap-2">
         <AnimatePresence>
