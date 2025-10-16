@@ -26,6 +26,10 @@ export interface DataTableProps extends Omit<OriginalDataTableProps, 'tableData'
     onPageChange?: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
     onSearch?: (query: string) => void;
+    isRefreshable?: boolean;
+    isRefreshing?: boolean;
+    lastUpdatedDate?: Date | null;
+    onRefresh?: () => void;
 }
 
 type ProcessedDataItem = DataItem & {

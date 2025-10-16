@@ -26,7 +26,6 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
-  RotateCw,
   FileSignature,
   Calendar,
   Hash,
@@ -36,7 +35,7 @@ import {
   FilePlus,
 } from "lucide-react";
 import { Dialog, Transition } from '@headlessui/react'
-import { NoDataDisplay, RetryModal, StatusBadge } from "../components/common/Helper";
+import { NoDataDisplay, RefreshPillButton, RetryModal, StatusBadge } from "../components/common/Helper";
 import { motion, AnimatePresence } from "framer-motion";
 import { getQueuedDocuments, getProcessedDocuments, getFailedDocuments, deleteMessage, togglePriority, retryMessage } from "../lib/api/Api";
 import { documentConfig } from "../lib/config/Config";
@@ -46,12 +45,6 @@ import ErrorDisplay from "../components/common/ErrorDisplay";
 import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
 import { useAppNavigation } from "../hooks/useAppNavigation";
-
-// --- Helper function to format date/time ---
-const formatLastUpdated = (date: Date | null) => {
-    if (!date) return 'N/A';
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
 
 export const formatDateTime = (dateString: string) => {
   if (!dateString) return "N/A";
@@ -565,15 +558,13 @@ const Queue = () => {
     if (activeTab === "Yet to Review") {
       return (
         <>
-            <div className={`flex items-center justify-end p-2 text-xs ${textSecondary}`}>
-                <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Last Updated: <span className={`font-light ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{formatLastUpdated(lastUpdated[activeTab])}</span></p>
-                <button
-                    onClick={() => fetchDocuments(true)}
-                    className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                    title="Refresh Documents"
-                >
-                    <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                </button>
+            <div className="flex items-center justify-end p-2 text-xs">
+                <RefreshPillButton
+                    lastUpdatedDate={lastUpdated[activeTab]}
+                    theme={theme}
+                    isLoading={isLoading}
+                    onRefresh={() => fetchDocuments(true)}
+                />
             </div>
             <DataTable
               tableData={processedDocuments}
@@ -607,16 +598,12 @@ const Queue = () => {
               <h3 className={`font-semibold text-base ${textHeader}`}>
                 {activeTab} Documents
               </h3>
-              <div className={`flex items-center text-xs ${textSecondary}`}>
-                <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Last Updated: <span className={`font-light ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{formatLastUpdated(lastUpdated[activeTab])}</span></p>
-                <button
-                    onClick={() => fetchDocuments(true)}
-                    className={`ml-2 p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                    title="Refresh Documents"
-                >
-                    <RotateCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
+                <RefreshPillButton
+                    lastUpdatedDate={lastUpdated[activeTab]}
+                    theme={theme}
+                    isLoading={isLoading}
+                    onRefresh={() => fetchDocuments(true)}
+                />
             </div>
             <div className="flex-grow p-2 overflow-y-auto">
               {documentsForTab.map((doc) => (

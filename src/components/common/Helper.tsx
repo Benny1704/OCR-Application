@@ -1,4 +1,4 @@
-import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info, ArrowLeftRight, ArrowUpDown, ChevronsUpDown, ClipboardPaste, Copy, Keyboard, MousePointer2, Redo2, Undo2, MousePointerClick, Expand, PlusSquare, Loader2 } from 'lucide-react';
+import { RefreshCw, X, CheckCircle, AlertTriangle, UploadCloud, Info, ArrowLeftRight, ArrowUpDown, ChevronsUpDown, ClipboardPaste, Copy, Keyboard, MousePointer2, Redo2, Undo2, MousePointerClick, Expand, PlusSquare, Loader2, Calendar, RotateCw } from 'lucide-react';
 import { useState, useEffect, Fragment, type ReactNode } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 import type { Document, Toast as ToastType, DataItem } from '../../interfaces/Types';
@@ -582,3 +582,125 @@ export const StatusBadge = ({ status, large = false, theme: initialTheme = 'ligh
         </div>
     );
 };
+
+// --- Helper function to format date/time ---
+export const formatLastUpdated = (date: Date | null) => {
+    if (!date) return 'N/A';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+export const LastUpdatedRefreshControl = ({
+  lastUpdatedDate,
+  theme,
+  isLoading,
+  onRefresh,
+}: {
+  lastUpdatedDate: Date | null;
+  theme: string;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) => {
+  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`flex items-center text-xs ${textSecondary}`}>
+        <Calendar className="w-3.5 h-3.5 mr-1.5" />
+        <span className="font-medium">Last Update:</span>
+        <span className={`ml-1 font-light ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+          {formatLastUpdated(lastUpdatedDate)}
+        </span>
+      </div>
+      <button
+        onClick={onRefresh}
+        disabled={isLoading}
+        className={`p-1.5 rounded-full transition-all duration-300 transform
+          ${isLoading
+            ? 'animate-pulse ring-2 ring-offset-2 ring-violet-500/50'
+            : theme === 'dark' ? 'hover:bg-gray-700 hover:scale-105' : 'hover:bg-gray-200 hover:scale-105'
+          }
+          ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
+          disabled:opacity-80 disabled:cursor-wait
+        `}
+        title="Click to manually fetch the latest document list" // Clearer hint for the user
+      >
+        <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+      </button>
+    </div>
+  );
+};
+
+export const RefreshPillButton = ({
+    lastUpdatedDate,
+    theme,
+    isLoading,
+    onRefresh,
+  }: {
+    lastUpdatedDate: Date | null;
+    theme: string;
+    isLoading: boolean;
+    onRefresh: () => void;
+  }) => {
+    // Base classes for the outer pill container (minimalist border and shadow)
+    const baseClasses = `inline-flex items-center text-xs rounded-full transition-all duration-300 font-medium shadow-sm flex-shrink-0`;
+  
+    // Refresh segment styles (The clickable part)
+    const refreshSegmentClasses = `flex items-center gap-1.5 px-3 py-1.5 cursor-pointer disabled:cursor-wait transition-all duration-150`;
+  
+    // Updated segment styles (The static information part - distinct background)
+    const updatedSegmentClasses = `flex items-center gap-1.5 px-3 py-1.5 rounded-r-full flex-shrink-0`;
+  
+    // --- Theme-Specific Styles (Elegant & Aesthetic) ---
+    // Normal State
+    const containerNormal = theme === 'dark' 
+      ? "border border-gray-700 bg-gray-800"
+      : "border border-gray-200 bg-white";
+  
+    const refreshNormal = theme === 'dark'
+      ? "text-gray-300" : "text-gray-700";
+  
+    const updatedNormal = theme === 'dark'
+      ? "text-gray-400 bg-gray-700/50 border-l border-gray-700"
+      : "text-gray-500 bg-gray-100 border-l border-gray-200";
+  
+    // Loading State (Subtle violet highlight to match the app's accent color)
+    const containerLoading = theme === 'dark' 
+      ? "border border-violet-700/60 bg-violet-900/20 animate-pulse-slow" 
+      : "border border-violet-300 bg-violet-50/50 animate-pulse-slow";
+  
+    const refreshLoading = theme === 'dark'
+      ? "text-violet-300"
+      : "text-violet-800";
+  
+    const updatedLoading = theme === 'dark'
+      ? "text-violet-400 bg-violet-900/30 border-l border-violet-800/50"
+      : "text-violet-600 bg-violet-200/50 border-l border-violet-300";
+  
+    // Combine Styles
+    const containerStyle = `${baseClasses} ${isLoading ? containerLoading : containerNormal}`;
+    const refreshStyle = `${refreshSegmentClasses} ${isLoading ? refreshLoading : refreshNormal}`;
+    const updatedStyle = `${updatedSegmentClasses} ${isLoading ? updatedLoading : updatedNormal}`;
+  
+    const lastUpdatedText = lastUpdatedDate ? formatLastUpdated(lastUpdatedDate) : 'N/A';
+    
+    return (
+      <div className={containerStyle}>
+        <button
+          onClick={onRefresh}
+          disabled={isLoading}
+          // Button uses the refresh segment styles for color/hover/active
+          className={refreshStyle}
+          title="Tap to manually fetch the latest documents"
+        >
+          <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span className="truncate">{isLoading ? "Refreshing..." : "Tap to Refresh"}</span>
+        </button>
+        
+        <div className={updatedStyle}>
+          <Calendar className="w-3.5 h-3.5" />
+          <span className="font-light hidden sm:inline">Updated:</span>
+          <span className="font-semibold">{lastUpdatedText}</span>
+        </div>
+      </div>
+    );
+  };
