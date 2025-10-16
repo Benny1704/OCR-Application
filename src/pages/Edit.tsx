@@ -198,20 +198,23 @@ const Edit = () => {
         try {
             const response = await manualInvoiceEntryItemSummary(payload);
             if (response && response.status === 'success' && response.data?.length > 0) {
-                addToast({ type: 'success', message: 'Product row saved successfully!' });
-
-                const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10));
-
-                if (Array.isArray(updatedProductDetails.items)) {
-                    setProductDetails(updatedProductDetails.items);
-                    if (!isDirty) setIsDirty(true);
-                    // const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
-                    // return savedProduct || { ...response.data[0], id: response.data[0].item_id };
-                    return { ...response.data[0], id: response.data[0].item_id };
+                // Fetch fresh data from backend
+                const invoiceIdNum = parseInt(invoiceId, 10);
+                const updatedProductDetails = await getProductDetails(invoiceIdNum);
+                
+                // Update state with fresh data
+                if (updatedProductDetails && 'items' in updatedProductDetails) {
+                    setProductDetails(updatedProductDetails.items || []);
                 } else {
-                    fetchData();
-                    return { ...response.data[0], id: response.data[0].item_id };
+                    setProductDetails(updatedProductDetails || []);
                 }
+                
+                if (!isDirty) setIsDirty(true);
+                
+                addToast({ type: 'success', message: 'Product row saved successfully!' });
+                
+                // Return the saved product with proper ID
+                return { ...response.data[0], id: response.data[0].item_id };
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
             }
@@ -221,7 +224,7 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields]);
+    }, [invoiceId, isDirty, hasValidationErrors, hasIncompleteMandatoryFields]);
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);

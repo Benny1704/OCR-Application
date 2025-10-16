@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Save, Eye, ChevronDown } from 'lucide-react';
+import { Save, Eye, ChevronDown, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
@@ -296,6 +296,34 @@ const EditableComponent = ({
             </motion.header>
 
             <main className="flex-grow py-6 md:py-8 overflow-y-auto">
+
+                {(hasValidationErrors) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`mx-6 mb-4 rounded-xl border-2 p-4 ${
+                            theme === 'dark'
+                                ? 'bg-red-900/20 border-red-500/50 text-red-300'
+                                : 'bg-red-50 border-red-400 text-red-800'
+                        }`}
+                    >
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <div className="flex-grow">
+                                <h3 className="font-semibold text-sm mb-1">Action Required</h3>
+                                <ul className="text-xs space-y-1 list-disc list-inside">
+                                    {hasValidationErrors && (
+                                        <li>Please fix validation errors in the form before saving</li>
+                                    )}
+                                    {/* {hasUnsavedRows && (
+                                        <li>You have unsaved rows in the product details table. Please save them before proceeding</li>
+                                    )} */}
+                                </ul>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 <motion.div
                     variants={sectionVariants}
                     className="px-6 space-y-6">
@@ -337,7 +365,7 @@ const EditableComponent = ({
                                                             onUnsavedRowsChange={handleUnsavedRowsChange}
                                                         />
                                                     ) : (
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-7">
                                                             {section.fields?.map((field: any) => (
                                                                 <DynamicField
                                                                     key={field.key}

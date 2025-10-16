@@ -986,6 +986,7 @@ const DataTable = ({
                                     : 'bg-white hover:bg-violet-50/50'
                                 }
                                 transition-colors duration-150
+                                ${isUnsavedRow ? 'relative' : ''}
                             `}
                         >
                             {fixedHeaderKey && (
@@ -997,10 +998,24 @@ const DataTable = ({
                                     }}
                                 >
                                     {isUnsavedRow && (
-                                        <div
-                                            className={`absolute left-0 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-violet-500' : 'bg-violet-600'}`}
-                                            title="Unsaved Row"
-                                        />
+                                        <>
+                                            <div
+                                                className={`absolute left-0 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-violet-500' : 'bg-violet-600'}`}
+                                                title="Unsaved Row"
+                                            />
+                                            {/* Check if row has missing mandatory fields */}
+                                            {movableHeaders.some(label => {
+                                                const colConfig = columnConfig[label];
+                                                const cellValue = row[label];
+                                                const isEmpty = cellValue === null || cellValue === undefined || String(cellValue).trim() === '';
+                                                return colConfig?.isRequired && isEmpty;
+                                            }) && (
+                                                <div
+                                                    className={`absolute left-1 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-red-500' : 'bg-red-600'}`}
+                                                    title="Missing Required Fields"
+                                                />
+                                            )}
+                                        </>
                                     )}
                                     {row[fixedHeaderKey]}
                                 </td>
@@ -1008,6 +1023,10 @@ const DataTable = ({
                             {movableHeaders.map(label => {
                                 const error = validationErrors[originalRowIndex]?.[label];
                                 const isDragOver = dragOverCell?.rowIndex === rowIndex && dragOverCell?.colKey === label;
+                                const colConfig = columnConfig[label];
+                                const cellValue = row[label];
+                                const isEmpty = cellValue === null || cellValue === undefined || String(cellValue).trim() === '';
+                                const isMandatoryEmpty = colConfig?.isRequired && isEmpty;
 
                                 return (
                                     <td
@@ -1028,12 +1047,23 @@ const DataTable = ({
                                             } ${isSelected(rowIndex, label)
                                                 ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100')
                                                 : ''
-                                            } ${error ? 'ring-2 ring-red-500 inset-0 bg-red-500/10' : ''
+                                            } ${error || isMandatoryEmpty
+                                                ? theme === 'dark'
+                                                    ? 'ring-2 ring-inset ring-red-500 bg-red-900/30'
+                                                    : 'ring-2 ring-inset ring-red-500 bg-red-50'
+                                                : ''
                                             } ${isDragOver && draggedCell && (draggedCell.colKey !== label || draggedCell.rowIndex !== rowIndex) ? (theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200') : ''
                                             }`}
-                                        title={error || ''}
+                                        title={error || (isMandatoryEmpty ? `${colConfig.label} is required` : '')}
                                     >
                                         {renderCellContent(rowIndex, label)}
+                                        {isMandatoryEmpty && !error && (
+                                            <div className="absolute top-1 right-1">
+                                                <svg className={`w-3 h-3 ${theme === 'dark' ? 'text-red-400' : 'text-red-500'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </td>
                                 );
                             })}
