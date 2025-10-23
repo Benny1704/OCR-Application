@@ -249,16 +249,20 @@ export interface EditableComponentProps {
   formConfig: FormSection[];
   itemSummaryConfig: { columns: FormField[] };
   itemAttributesConfig: { columns: FormField[] };
-  onSaveNewProduct?: (product: ProductDetails) => Promise<ProductDetails>;
+  onSaveNewProduct?: (productRow: ProductDetails) => Promise<ProductDetails>;
   onFormChange?: (
       invoiceDetails: InvoiceDetails,
       productDetails: ProductDetails[],
-      amountAndTaxDetails: AmountAndTaxDetails
+      amountDetails: AmountAndTaxDetails
   ) => void;
   onValidationChange?: (hasErrors: boolean) => void;
-  onUnsavedRowsChange?: (hasUnsavedRows: boolean) => void; // NEW PROP
+  onUnsavedRowsChange?: (hasUnsavedRows: boolean) => void;
   footer?: React.ReactNode;
   renderActionCell?: (row: DataItem, rowIndex: number) => React.ReactNode;
+  // NEW: Add refresh-related props
+  isRefreshingProducts?: boolean;
+  lastProductUpdate?: Date | null;
+  onRefreshProducts?: () => void;
 }
 
 // --- Component Prop Interfaces ---

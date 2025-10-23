@@ -53,6 +53,10 @@ const Edit = () => {
     const [isUnsavedRowsModalOpen, setUnsavedRowsModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState<'save' | 'finalize' | null>(null);
 
+    // NEW: State for refresh functionality
+    const [isRefreshingProducts, setIsRefreshingProducts] = useState(false);
+    const [lastProductUpdate, setLastProductUpdate] = useState<Date | null>(null);
+
     const messageId = location.state?.messageId;
 
     const liveCalculatedAmount = useMemo(() => {
@@ -66,7 +70,6 @@ const Edit = () => {
         return Number(amountAndTaxDetails?.taxable_value) || 0;
     }, [amountAndTaxDetails]);
 
-    // Check if any row has incomplete mandatory fields
     const hasIncompleteMandatoryFields = useCallback((row: ProductDetails): boolean => {
         if (!itemSummaryConfig) return false;
         const requiredColumns = itemSummaryConfig.columns.filter(col => col.isRequired && col.key !== 'sno');
@@ -149,6 +152,9 @@ const Edit = () => {
             setFormConfig(fetchedFormConfig);
             setItemSummaryConfig({ columns: itemSummaryConfigData.fields });
             setItemAttributesConfig({ columns: itemAttributesConfigData.fields });
+            
+            // Update last refresh timestamp
+            setLastProductUpdate(new Date());
 
         } catch (err: any) {
             setError(err.message || "An unknown error occurred while fetching invoice data.");
@@ -156,6 +162,30 @@ const Edit = () => {
             setIsLoading(false);
         }
     }, [invoiceId]);
+
+    // NEW: Function to refresh only product details
+    const refreshProductDetails = useCallback(async () => {
+        if (!invoiceId || isRefreshingProducts) return;
+
+        setIsRefreshingProducts(true);
+        try {
+            const invoiceIdNum = parseInt(invoiceId, 10);
+            const productData = await getProductDetails(invoiceIdNum);
+            
+            if (productData && 'items' in productData) {
+                setProductDetails(productData.items || []);
+            } else {
+                setProductDetails(productData || []);
+            }
+            
+            setLastProductUpdate(new Date());
+            addToast({ type: 'success', message: 'Product details refreshed successfully!' });
+        } catch (err: any) {
+            addToast({ type: 'error', message: 'Failed to refresh product details' });
+        } finally {
+            setIsRefreshingProducts(false);
+        }
+    }, [invoiceId, isRefreshingProducts]);
 
     useEffect(() => {
         fetchData();
@@ -167,7 +197,6 @@ const Edit = () => {
             throw new Error('Validation errors');
         }
 
-        // Check for incomplete mandatory fields
         if (hasIncompleteMandatoryFields(productRow)) {
             addToast({ type: 'error', message: 'Please fill all mandatory fields before saving.' });
             throw new Error('Incomplete mandatory fields');
@@ -198,22 +227,21 @@ const Edit = () => {
         try {
             const response = await manualInvoiceEntryItemSummary(payload);
             if (response && response.status === 'success' && response.data?.length > 0) {
-                // Fetch fresh data from backend
                 const invoiceIdNum = parseInt(invoiceId, 10);
                 const updatedProductDetails = await getProductDetails(invoiceIdNum);
                 
-                // Update state with fresh data
                 if (updatedProductDetails && 'items' in updatedProductDetails) {
                     setProductDetails(updatedProductDetails.items || []);
                 } else {
                     setProductDetails(updatedProductDetails || []);
                 }
                 
+                setLastProductUpdate(new Date());
+                
                 if (!isDirty) setIsDirty(true);
                 
                 addToast({ type: 'success', message: 'Product row saved successfully!' });
                 
-                // Return the saved product with proper ID
                 return { ...response.data[0], id: response.data[0].item_id };
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
@@ -316,14 +344,12 @@ const Edit = () => {
             return;
         }
 
-        // Check for unsaved rows
         if (hasUnsavedRows) {
             setActionToConfirm('save');
             setUnsavedRowsModalOpen(true);
             return;
         }
 
-        // Check for amount mismatch
         if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('save');
             setAmountMismatchModalOpen(true);
@@ -338,14 +364,12 @@ const Edit = () => {
             return;
         }
 
-        // Check for unsaved rows
         if (hasUnsavedRows) {
             setActionToConfirm('finalize');
             setUnsavedRowsModalOpen(true);
             return;
         }
 
-        // Check for amount mismatch
         if (Math.abs(liveCalculatedAmount - liveTaxableValue) > 0.01) {
             setActionToConfirm('finalize');
             setAmountMismatchModalOpen(true);
@@ -408,11 +432,6 @@ const Edit = () => {
         try {
             const fileUrl = `${ViewImageAbsPath}${messageId}`;
             window.open(fileUrl, '_blank');
-
-            // const pdfBlob = await getFile(messageId);
-            // const tempUrl = URL.createObjectURL(pdfBlob);
-            // window.open(tempUrl, '_blank');
-            
         } catch (err: any) {
             if (err.statusCode === 422) {
                 setError("Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.");
@@ -442,6 +461,9 @@ const Edit = () => {
                     onValidationChange={setHasValidationErrors}
                     onUnsavedRowsChange={setHasUnsavedRows}
                     renderActionCell={renderActionCell}
+                    isRefreshingProducts={isRefreshingProducts}
+                    lastProductUpdate={lastProductUpdate}
+                    onRefreshProducts={refreshProductDetails}
                     footer={
                         <div className="flex justify-end gap-4 p-2.5">
                             <button
@@ -477,7 +499,6 @@ const Edit = () => {
                     invoiceId={invoiceId ? parseInt(invoiceId, 10) : 0}
                 />
                 
-                {/* Unsaved Rows Warning Modal */}
                 <WarningConfirmationModal
                     isOpen={isUnsavedRowsModalOpen}
                     onClose={() => setUnsavedRowsModalOpen(false)}
@@ -488,7 +509,6 @@ const Edit = () => {
                     showConfirmButton={false}
                 />
 
-                {/* Amount Mismatch Warning Modal */}
                 <WarningConfirmationModal
                     isOpen={isAmountMismatchModalOpen}
                     onClose={() => setAmountMismatchModalOpen(false)}
@@ -498,7 +518,6 @@ const Edit = () => {
                     icon={<AlertTriangle className="w-6 h-6 text-yellow-500" />}
                 />
 
-                {/* Finalize Confirmation Modal */}
                 <ConfirmationModal
                     isOpen={isFinalizeModalOpen}
                     onClose={() => setFinalizeModalOpen(false)}

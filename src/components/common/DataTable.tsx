@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Undo, Redo, Info, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward, Plus } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import type { DataItem, CellIdentifier, CopiedCell, DataTableProps as OriginalDataTableProps, Pagination as PaginationInfo, TableConfig, TableColumnConfig } from '../../interfaces/Types';
-import { Popup, InfoPill, HowToUse, formatIndianCurrency } from './Helper';
+import { Popup, InfoPill, HowToUse, formatIndianCurrency, RefreshPillButton } from './Helper';
 import { tableBodyVariants, tableRowVariants } from './Animation';
 import { NoDataDisplay } from './Helper';
 
@@ -104,6 +104,10 @@ const DataTable = ({
     paginationInfo,
     onPageChange,
     onPageSizeChange,
+    isRefreshable = false,
+    isRefreshing = false,
+    lastUpdatedDate = null,
+    onRefresh,
 }: DataTableProps) => {
     const { theme } = useTheme();
     const [history, setHistory] = useState<DataItem[][]>([tableData]);
@@ -169,7 +173,6 @@ const DataTable = ({
             finalColumns = [snoColumn];
         }
 
-        // ** FIX: Ensure finalColumns has unique keys to prevent React warnings **
         const uniqueColumns = finalColumns.filter((col, index, self) =>
             index === self.findIndex((c) => c.key === col.key)
         );
@@ -180,7 +183,6 @@ const DataTable = ({
             acc[col.key] = col;
             return acc;
         }, {} as Record<string, TableColumnConfig>);
-
 
         return {
             fixedHeaderKey: fixedKey,
@@ -268,11 +270,9 @@ const DataTable = ({
         );
     }, [validationErrors]);
 
-    // Check if a row has unsaved changes (new row not yet saved to backend)
     const hasUnsavedRows = useMemo(() => {
         if (!isEditable) return false;
         return tableData.some(row => {
-            // Check if row is new (has temporary ID or no item_id)
             const isNewRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
             return isNewRow;
         });
@@ -284,7 +284,6 @@ const DataTable = ({
         }
     }, [hasBlockingErrors, onValidationChange]);
 
-    // Notify parent component about unsaved rows
     useEffect(() => {
         if (onUnsavedRowsChange) {
             onUnsavedRowsChange(hasUnsavedRows);
@@ -517,21 +516,18 @@ const DataTable = ({
         const colIndex = movableHeaders.indexOf(colKey);
         if (direction === 'left' && colIndex > 0) {
             const targetColKey = movableHeaders[colIndex - 1];
-            // Swap columns and validate each cell
             newData.forEach((row, idx) => {
                 const sourceValue = row[colKey];
                 const targetValue = row[targetColKey];
                 const sourceType = columnConfig[colKey]?.type || 'string';
                 const targetType = columnConfig[targetColKey]?.type || 'string';
 
-                // Convert values to target types
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
 
                 row[colKey] = valueForSource;
                 row[targetColKey] = valueForTarget;
 
-                // Validate converted values
                 if (!newValidationErrors[idx]) newValidationErrors[idx] = {};
                 newValidationErrors[idx][colKey] = validateCell(valueForSource, colKey);
                 newValidationErrors[idx][targetColKey] = validateCell(valueForTarget, targetColKey);
@@ -539,21 +535,18 @@ const DataTable = ({
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'right' && colIndex < movableHeaders.length - 1) {
             const targetColKey = movableHeaders[colIndex + 1];
-            // Swap columns and validate each cell
             newData.forEach((row, idx) => {
                 const sourceValue = row[colKey];
                 const targetValue = row[targetColKey];
                 const sourceType = columnConfig[colKey]?.type || 'string';
                 const targetType = columnConfig[targetColKey]?.type || 'string';
 
-                // Convert values to target types
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
 
                 row[colKey] = valueForSource;
                 row[targetColKey] = valueForTarget;
 
-                // Validate converted values
                 if (!newValidationErrors[idx]) newValidationErrors[idx] = {};
                 newValidationErrors[idx][colKey] = validateCell(valueForSource, colKey);
                 newValidationErrors[idx][targetColKey] = validateCell(valueForTarget, targetColKey);
@@ -1007,7 +1000,6 @@ const DataTable = ({
                                                 className={`absolute left-0 top-0 bottom-0 w-1 ${theme === 'dark' ? 'bg-violet-500' : 'bg-violet-600'}`}
                                                 title="Unsaved Row"
                                             />
-                                            {/* Check if row has missing mandatory fields */}
                                             {movableHeaders.some(label => {
                                                 const colConfig = columnConfig[label];
                                                 const cellValue = row[label];
@@ -1106,6 +1098,13 @@ const DataTable = ({
         );
     };
 
+    // Handler for the refresh button
+    const handleRefreshClick = useCallback(() => {
+        if (onRefresh && !isRefreshing) {
+            onRefresh();
+        }
+    }, [onRefresh, isRefreshing]);
+
     return (
         <div
             className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-white'}`}
@@ -1124,12 +1123,22 @@ const DataTable = ({
                         />
                     </div>
                 )}
-                {isEditable && (
-                    <div className="flex items-center gap-2 flex-wrap justify-center">
-                        <button onClick={undo} disabled={historyIndex === 0} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Undo"><Undo size={14} /></button>
-                        <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Redo"><Redo size={14} /></button>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {isRefreshable && onRefresh && (
+                        <RefreshPillButton
+                            lastUpdatedDate={lastUpdatedDate}
+                            theme={theme}
+                            isLoading={isRefreshing}
+                            onRefresh={handleRefreshClick}
+                        />
+                    )}
+                    {isEditable && (
+                        <>
+                            <button onClick={undo} disabled={historyIndex === 0} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Undo"><Undo size={14} /></button>
+                            <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Redo"><Redo size={14} /></button>
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="flex-grow overflow-auto">

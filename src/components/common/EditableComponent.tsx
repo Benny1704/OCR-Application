@@ -75,7 +75,10 @@ const EditableComponent = ({
     onValidationChange,
     onUnsavedRowsChange,
     footer,
-    renderActionCell: passedRenderActionCell
+    renderActionCell: passedRenderActionCell,
+    isRefreshingProducts = false,
+    lastProductUpdate = null,
+    onRefreshProducts,
 }: EditableComponentProps) => {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -363,6 +366,10 @@ const EditableComponent = ({
                                                             onDataChange={(newData) => setProductDetails(newData as unknown as ProductDetails[])}
                                                             onValidationChange={handleValidationChange}
                                                             onUnsavedRowsChange={handleUnsavedRowsChange}
+                                                            isRefreshable={!isReadOnly && !!onRefreshProducts}
+                                                            isRefreshing={isRefreshingProducts}
+                                                            lastUpdatedDate={lastProductUpdate}
+                                                            onRefresh={onRefreshProducts}
                                                         />
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-7">
