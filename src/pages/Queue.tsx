@@ -323,6 +323,7 @@ const Queue = () => {
 
     } catch (err: any) {
       setError(err.message || "Failed to fetch documents. Please try again.");
+      setLastUpdated(prev => ({ ...prev, [activeTab]: null })); // Clear update time on error
     } finally {
       setIsLoading(false);
     }
@@ -558,14 +559,14 @@ const Queue = () => {
     if (activeTab === "Yet to Review") {
       return (
         <>
-            <div className="flex items-center justify-end p-2 text-xs">
+            {/* <div className="flex items-center justify-end p-2 text-xs">
                 <RefreshPillButton
                     lastUpdatedDate={lastUpdated[activeTab]}
                     theme={theme}
                     isLoading={isLoading}
                     onRefresh={() => fetchDocuments(true)}
                 />
-            </div>
+            </div> */}
             <DataTable
               tableData={processedDocuments}
               tableConfig={documentConfig}
@@ -582,6 +583,10 @@ const Queue = () => {
               paginationInfo={pagination["Yet to Review"]}
               onPageChange={setCurrentPage}
               onPageSizeChange={(size) => setPageSizes(prev => ({ ...prev, "Yet to Review": size }))}
+              isRefreshable={true}
+              isRefreshing={isLoading}
+              lastUpdatedDate={lastUpdated[activeTab]}
+              onRefresh={() => fetchDocuments(true)}
             />
         </>
       );

@@ -335,6 +335,7 @@ export const getInvoiceDetails = async (invoiceId: number) => {
 export const getProductDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items`);
+        console.log("getProductDetails: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -355,6 +356,7 @@ export const getAmountAndTaxDetails = async (invoiceId: number) => {
 export const getLineItems = async (invoiceId: number, itemId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
+        console.log("getLineItems: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -471,6 +473,7 @@ export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemSummary');
+        console.log("getItemSummaryConfig: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -481,6 +484,7 @@ export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemAttributesConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemAttributes');
+        console.log("getItemAttributesConfig: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);

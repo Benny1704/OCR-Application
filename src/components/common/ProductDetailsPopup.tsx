@@ -34,6 +34,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
     const [isFormValid, setIsFormValid] = useState(false);
     const [hasUnsavedRows, setHasUnsavedRows] = useState<boolean>(false);
     const [hasValidationErrors, setHasValidationErrors] = useState<boolean>(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null); // State for last update time
 
     const fetchLineItems = useCallback(async () => {
         if (product?.item_id && invoiceId) {
@@ -44,8 +45,10 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 setLineItems(newInitialLineItems);
                 setInitialLineItems(newInitialLineItems);
                 setIsDirty(false);
+                setLastUpdated(new Date()); // Set update time on success
             } catch (error) {
                 addToast({ type: 'error', message: 'Failed to fetch line items.' });
+                setLastUpdated(null); // Clear update time on error
             } finally {
                 setIsLoading(false);
             }
@@ -182,7 +185,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
 
             if (response && response.status === 'success') {
                 addToast({ type: 'success', message: 'Row saved successfully!' });
-                await fetchLineItems();
+                await fetchLineItems(); // Refresh data after saving
             }
         } catch (error) {
             console.error("Failed to save line item:", error);
@@ -258,7 +261,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                         </header>
 
                         <main className="flex-grow overflow-y-auto p-6">
-                            {isLoading ? (
+                            {isLoading && !lastUpdated ? ( // Show loader only on initial load
                                 <div className="flex justify-center items-center h-full"><Loader type="dots" /></div>
                             ) : (
                                 <div className={`rounded-lg p-4 overflow-hidden ring-1 ${theme === 'dark' ? 'ring-white/10' : 'ring-black/5'}`}>
@@ -274,6 +277,10 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                                         onUnsavedRowsChange={handleUnsavedRowsChange}
                                         renderActionCell={renderActionCell}
                                         actionColumnHeader="Status"
+                                        isRefreshable={!isReadOnly}
+                                        isRefreshing={isLoading}
+                                        lastUpdatedDate={lastUpdated}
+                                        onRefresh={fetchLineItems}
                                     />
                                 </div>
                             )}
@@ -305,7 +312,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             />
 
             <WarningConfirmationModal
-                key="unsaved-rows-warning-modal" // FIX 3: Add a unique key here
+                key="unsaved-rows-warning-modal"
                 isOpen={isUnsavedRowsModalOpen}
                 onClose={() => setUnsavedRowsModalOpen(false)}
                 onConfirm={() => setUnsavedRowsModalOpen(false)}

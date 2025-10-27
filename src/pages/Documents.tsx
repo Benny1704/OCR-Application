@@ -39,6 +39,7 @@ const Documents = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null); // State for last update time
 
   const getSectionId = useCallback(() => {
     if (!user) return undefined;
@@ -74,8 +75,10 @@ const Documents = () => {
           })));
         }
         setPagination(paginationData);
+        setLastUpdated(new Date()); // Set update time
     } catch (err: any) {
         setError(err.message || "Failed to fetch documents.");
+        setLastUpdated(null); // Clear update time on error
     } finally {
         setIsLoading(false);
     }
@@ -136,6 +139,10 @@ const Documents = () => {
         paginationInfo={pagination || undefined}
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
+        isRefreshable={true}
+        isRefreshing={isLoading}
+        lastUpdatedDate={lastUpdated}
+        onRefresh={() => fetchDocuments(currentPage, pageSize)}
       />
     );
   };

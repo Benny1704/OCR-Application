@@ -27,16 +27,18 @@ interface NoDataDisplayProps {
     heading?: string;
     message?: string;
     children?: ReactNode;
-  }
+}
 
 export const formatIndianCurrency = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === "") {
         return '';
     }
+
     const numberValue = Number(value);
     if (isNaN(numberValue)) {
-        return String(value);
+        return ''; 
     }
+
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR',

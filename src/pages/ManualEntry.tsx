@@ -74,6 +74,8 @@ const ManualEntry = () => {
     const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['supplier_invoice']));
     // This state tracks the row currently being saved using its temporary client-side ID.
     const [savingRowId, setSavingRowId] = useState<string | number | null>(null);
+    const [isRefreshingProducts, setIsRefreshingProducts] = useState(false);
+    const [lastProductUpdate, setLastProductUpdate] = useState<Date | null>(null);
 
     // --- Hooks ---
     const { addToast } = useToast();
@@ -147,12 +149,17 @@ const ManualEntry = () => {
 
     const fetchProductDetails = useCallback(async (invoiceId: number) => {
         if (!invoiceId) return;
+        setIsRefreshingProducts(true);
         try {
             const productsData = await getProductDetails(invoiceId);
             setProductDetails(productsData || []);
+            setLastProductUpdate(new Date());
         } catch (err) {
             console.error("Failed to fetch product details", err);
             addToast({ type: 'error', message: 'Could not load product details.' });
+            setLastProductUpdate(null);
+        } finally {
+            setIsRefreshingProducts(false);
         }
     }, []);
 
@@ -221,6 +228,8 @@ const ManualEntry = () => {
                         p.id === temporaryRowId ? { ...savedProduct, id: savedProduct.item_id } : p
                     )
                 );
+                // Optionally refresh all products after saving one
+                // await fetchProductDetails(invoiceDetails.invoice_id); 
             } else {
                 addToast({ type: 'warning', message: 'Could not update the row in place. The list was not refreshed.' });
             }
@@ -245,6 +254,7 @@ const ManualEntry = () => {
             addToast({ type: 'success', message: 'Amount & Tax details saved successfully!' });
         } catch (apiError) {
             console.error("Failed to save amount details:", apiError);
+            addToast({ type: 'error', message: 'Failed to save amount details.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -489,6 +499,10 @@ const ManualEntry = () => {
                                                                         pagination={paginationConfig}
                                                                         onDataChange={onDataChange}
                                                                         onValidationChange={setHasValidationErrors}
+                                                                        isRefreshable={true}
+                                                                        isRefreshing={isRefreshingProducts}
+                                                                        lastUpdatedDate={lastProductUpdate}
+                                                                        onRefresh={() => fetchProductDetails(invoiceDetails.invoice_id)}
                                                                     />
                                                                 ) : (
                                                                     <div className="space-y-6">
