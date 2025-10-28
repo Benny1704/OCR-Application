@@ -27,13 +27,11 @@ const Documents = () => {
   // Initialize state from location for navigation preservation
   const [currentPage, setCurrentPage] = useState(() => {
     const savedPage = location.state?.currentPage;
-    console.log('Documents initializing with page:', savedPage || 1);
     return savedPage || 1;
   });
   
   const [pageSize, setPageSize] = useState(() => {
     const savedPageSize = location.state?.pageSize;
-    console.log('Documents initializing with pageSize:', savedPageSize || 25);
     return savedPageSize || 25;
   });
   
@@ -90,7 +88,6 @@ const Documents = () => {
 
   // Navigation handler with state preservation
   const handleNavigateToReview = useCallback((doc: ProcessedDocument) => {
-    console.log('Navigating to review with state:', { currentPage, pageSize, sectionFilter });
     navigate(`/review/${doc.invoiceId}`, {
       state: {
         messageId: doc.messageId,

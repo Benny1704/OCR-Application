@@ -309,7 +309,7 @@ const Queue = () => {
                   messageId: item.message_id,
                   sectionName: item.section_name,
                   errorMessage: item.error_message,
-                  status: "Failed",
+                  status: "failed",
                   supplier_meta: item.supplier_meta,
                   invoice_meta: item.invoice_meta
               })));
@@ -342,8 +342,8 @@ const Queue = () => {
   const documentsForTab = useMemo(() => {
     if (activeTab === "Queued") {
       return [...queuedDocuments].sort((a, b) => {
-        if (a.status === "Processing" && b.status !== "Processing") return -1;
-        if (b.status === "Processing" && a.status !== "Processing") return 1;
+        if (a.status === "processing" && b.status !== "processing") return -1;
+        if (b.status === "processing" && a.status !== "processing") return 1;
       
         if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
       
@@ -526,7 +526,7 @@ const Queue = () => {
 
   const renderActionCell = (row: DataItem) => {
     const document = row as ProcessedDocument;
-    const isReviewed = document.status === "Reviewed";
+    const isReviewed = document.status === "reviewed";
     
     return (
       <button
@@ -807,7 +807,7 @@ const Queue = () => {
                               handleSetPriority(selectedDocument.id)
                             }
                             disabled={
-                              selectedDocument.status === "Processing" || ('isPriority' in selectedDocument && selectedDocument.isPriority)
+                              selectedDocument.status === "processing" || ('isPriority' in selectedDocument && selectedDocument.isPriority)
                             }
                             className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
                                 ? "bg-gray-700 border border-gray-600 text-white hover:bg-gray-600"
@@ -832,7 +832,7 @@ const Queue = () => {
                               handleDelete(selectedDocument.id)
                             }
                             disabled={
-                              selectedDocument.status === "Processing"
+                              selectedDocument.status === "processing"
                             }
                             className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${theme === "dark"
                                 ? "bg-red-900/40 border border-red-700/60 text-red-300 hover:bg-red-900/60"
@@ -868,7 +868,7 @@ const Queue = () => {
                         </>
                       )}
                     </div>
-                    {selectedDocument.status === "Processing" && user?.role === 'admin' && (
+                    {selectedDocument.status === "processing" && user?.role === 'admin' && (
                       <p
                         className={`text-xs mt-2 ${theme === "dark"
                             ? "text-yellow-400"

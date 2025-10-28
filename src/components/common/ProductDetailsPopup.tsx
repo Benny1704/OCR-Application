@@ -168,17 +168,15 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
             const attributePayload = {
                 item_id: product.item_id,
                 item_description: row.item_description || "",
-                total_count: Number(row.total_count) || 0,
-                size: row.size,
-                single_unit_price: Number(row.single_unit_price) || 0,
-                discount_percentage: String(row.discount_percentage) || "0",
-                discount_amount: Number(row.discount_amount) || 0,
-                single_unit_mrp: Number(row.single_unit_mrp) || 0,
-                HSN: String(row.hsn || row.HSN || ""),
-                cgst_percentage: String(row.cgst_percentage) || "0",
-                sgst_percentage: String(row.sgst_percentage) || "0",
-                igst_percentage: String(row.igst_percentage) || "0",
-                EAN: String(row.ean_code || row.EAN || "")
+                quantity: Number(row.quantity) || 0,
+                pieces: Number(row.pieces) || 0,
+                style_code: String(row.style_code) || "0",
+                brand: String(row.brand) || "0",
+                size: String(row.size) || "0",
+                pattern: String(row.pattern) || "0",
+                quality: String(row.quality) || "0",
+                cost_price: Number(row.cost_price) || 0,
+                mrp: Number(row.mrp) || 0,
             };
 
             const response = await manualInvoiceEntryItemAttributes([attributePayload]);

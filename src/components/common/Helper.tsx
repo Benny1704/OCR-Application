@@ -537,35 +537,35 @@ export const StatusBadge = ({ status, large = false, theme: initialTheme = 'ligh
     const resolvedTheme = initialTheme || theme;
 
     const statusConfig = {
-        Queued: {
+        queued: {
             icon: <Info size={14} />,
             label: 'Queued',
             styles: resolvedTheme === 'dark'
                 ? 'bg-blue-900/50 text-blue-300 ring-1 ring-inset ring-blue-400/30'
                 : 'bg-blue-100 text-blue-800 ring-1 ring-inset ring-blue-600/20',
         },
-        Processing: {
+        processing: {
             icon: <Loader2 size={14} className="animate-spin" />,
             label: 'Processing',
             styles: resolvedTheme === 'dark'
                 ? 'bg-yellow-900/50 text-yellow-300 ring-1 ring-inset ring-yellow-400/30'
                 : 'bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-600/20',
         },
-        Processed: {
+        processed: {
             icon: <CheckCircle size={14} />,
             label: 'Processed',
             styles: resolvedTheme === 'dark'
                 ? 'bg-green-900/50 text-green-300 ring-1 ring-inset ring-green-400/30'
                 : 'bg-green-100 text-green-800 ring-1 ring-inset ring-green-600/20',
         },
-        Failed: {
+        failed: {
             icon: <X size={14} />,
             label: 'Failed',
             styles: resolvedTheme === 'dark'
                 ? 'bg-red-900/50 text-red-300 ring-1 ring-inset ring-red-400/30'
                 : 'bg-red-100 text-red-800 ring-1 ring-inset ring-red-600/20',
         },
-        Reviewed: {
+        reviewed: {
             icon: <CheckCircle size={14} />,
             label: 'Reviewed',
             styles: resolvedTheme === 'dark'
@@ -574,7 +574,7 @@ export const StatusBadge = ({ status, large = false, theme: initialTheme = 'ligh
         },
     };
 
-    const config = statusConfig[status] || statusConfig.Queued;
+    const config = statusConfig[status] || statusConfig.queued;
     const size = large ? 'px-3.5 py-1.5 text-sm' : 'px-3 py-1 text-xs';
 
     return (

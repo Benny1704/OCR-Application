@@ -212,14 +212,19 @@ const Edit = () => {
             items: [
                 {
                     invoice_id: parseInt(invoiceId, 10),
+                    item_description: productRow.item_description || "",
                     total_quantity: Number(productRow.total_quantity) || 0,
                     total_pieces: Number(productRow.total_pieces) || 0,
                     total_amount: Number(productRow.total_amount) || 0,
-                    gst_percentage: Number(productRow.gst_percentage) || 0,
-                    style_code: productRow.style_code || "",
-                    category: productRow.category || "",
-                    uom: productRow.uom || "",
-                    design_code: productRow.design_code || ""
+                    cost_price: Number(productRow.cost_price) || 0,
+                    discount_percentage: productRow.discount_percentage || "",
+                    discount_amount: Number(productRow.discount_amount) || 0,
+                    mrp: Number(productRow.mrp) || 0,
+                    hsn: productRow.hsn || "",
+                    ean_code: productRow.ean_code || "",
+                    cgst: productRow.cgst || "",
+                    sgst: productRow.sgst || "",
+                    igst: productRow.igst || "", 
                 }
             ]
         };

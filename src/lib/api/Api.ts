@@ -335,7 +335,6 @@ export const getInvoiceDetails = async (invoiceId: number) => {
 export const getProductDetails = async (invoiceId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items`);
-        console.log("getProductDetails: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -356,7 +355,6 @@ export const getAmountAndTaxDetails = async (invoiceId: number) => {
 export const getLineItems = async (invoiceId: number, itemId: number) => {
     try {
         const response = await api.get(`/invoices/${invoiceId}/line-items/${itemId}/attributes`);
-        console.log("getLineItems: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -473,7 +471,6 @@ export const getInvoiceMetaConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemSummary');
-        console.log("getItemSummaryConfig: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -484,7 +481,6 @@ export const getItemSummaryConfig = async (): Promise<{ fields: FormField[] }> =
 export const getItemAttributesConfig = async (): Promise<{ fields: FormField[] }> => {
     try {
         const response = await api.get('/ui_configs/itemAttributes');
-        console.log("getItemAttributesConfig: "+JSON.stringify(response.data,null,2));
         return response.data;
     } catch (error) {
         handleError(error);
@@ -534,27 +530,7 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
     status: string; data: LineItem[], message: string
 }> => {
     try {
-        // Clean each attribute object to match the exact payload structure required by the API.
-        const cleanedAttributes = attributes.map(attr => ({
-            item_id: attr.item_id,
-            item_description: attr.item_description || "",
-            total_count: Number(attr.total_count) || 0,
-            size: attr.size || "",
-            pieces: Number(attr.pieces) || 0,
-            color_code: attr.color_code || "",
-            single_unit_price: Number(attr.single_unit_price) || 0,
-            discount_percentage: String(attr.discount_percentage) || "0",
-            discount_amount: Number(attr.discount_amount) || 0,
-            single_unit_mrp: Number(attr.single_unit_mrp) || 0,
-            HSN: String((attr as any).hsn || attr.HSN || ""),
-            cgst_percentage: String(attr.cgst_percentage) || "0",
-            sgst_percentage: String(attr.sgst_percentage) || "0",
-            igst_percentage: String(attr.igst_percentage) || "0",
-            EAN: String((attr as any).ean_code || attr.EAN || "")
-        }));
-
-        // The object sent to the API now correctly wraps the cleaned array in an "attributes" key.
-        const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: cleanedAttributes });
+        const response = await api.post('/manual_invoice_entry/item_attributes', { attributes: attributes });
 
         return response.data;
     } catch (error) {
@@ -575,12 +551,10 @@ export const manualInvoiceEntryItemAttributes = async (attributes: Partial<LineI
 
 export const getFile = async (messageId: string): Promise<any> => {
     try {
-        console.log("getFile called");
         const response = await api.get(`/files/get-pdf/${messageId}`, {
             // Crucial: Tells Axios to expect a binary file, not JSON
             responseType: 'blob', 
         });
-        console.log("getFile: "+ response.data);
         
         return response.data;
     } catch (error) {

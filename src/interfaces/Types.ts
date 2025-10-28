@@ -113,7 +113,7 @@ export interface AuthUser {
 export interface Document {
   id: string;
   name: string;
-  status: "Queued" | "Processing" | "Processed" | "Failed" | "Reviewed";
+  status: "queued" | "processing" | "processed" | "failed" | "reviewed";
   uploadDate: string;
   uploadedBy: string;
   sectionName?: string;
