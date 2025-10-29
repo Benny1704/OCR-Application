@@ -232,22 +232,19 @@ const Edit = () => {
         try {
             const response = await manualInvoiceEntryItemSummary(payload);
             if (response && response.status === 'success' && response.data?.length > 0) {
-                const invoiceIdNum = parseInt(invoiceId, 10);
-                const updatedProductDetails = await getProductDetails(invoiceIdNum);
-                
-                if (updatedProductDetails && 'items' in updatedProductDetails) {
-                    setProductDetails(updatedProductDetails.items || []);
-                } else {
-                    setProductDetails(updatedProductDetails || []);
-                }
-                
-                setLastProductUpdate(new Date());
-                
-                if (!isDirty) setIsDirty(true);
-                
                 addToast({ type: 'success', message: 'Product row saved successfully!' });
-                
-                return { ...response.data[0], id: response.data[0].item_id };
+
+                const updatedProductDetails = await getProductDetails(parseInt(invoiceId, 10));
+
+                if (Array.isArray(updatedProductDetails)) {
+                    setProductDetails(updatedProductDetails);
+                    if (!isDirty) setIsDirty(true);
+                    const savedProduct = updatedProductDetails.find((p: { item_id: number; }) => p.item_id === response.data[0].item_id);
+                    return savedProduct || { ...response.data[0], id: response.data[0].item_id };
+                } else {
+                    fetchData();
+                    return { ...response.data[0], id: response.data[0].item_id };
+                }
             } else {
                 throw new Error(response.message || 'Failed to save product row.');
             }
@@ -257,7 +254,8 @@ const Edit = () => {
         } finally {
             setSavingRowId(null);
         }
-    }, [invoiceId, isDirty, hasValidationErrors, hasIncompleteMandatoryFields]);
+    }, [invoiceId, isDirty, fetchData, hasValidationErrors, hasIncompleteMandatoryFields]);
+
 
     const handleFormChange = (newInvoiceDetails: InvoiceDetails, newProductDetails: ProductDetails[], newAmountAndTaxDetails: AmountAndTaxDetails) => {
         setInvoiceDetails(newInvoiceDetails);
@@ -293,7 +291,7 @@ const Edit = () => {
                 updateAmountAndTaxDetails(invoiceIdNum, amountAndTaxDetails),
             ]);
 
-            await confirmInvoice(messageId, { isEdited: true, state: 'Reviewed' });
+            await confirmInvoice(messageId, { isEdited: true, state: 'reviewed' });
 
             addToast({ type: 'success', message: 'Draft saved successfully!' });
             setIsDirty(false);
@@ -331,7 +329,7 @@ const Edit = () => {
                 ]);
             }
 
-            await confirmInvoice(messageId, { isEdited: isDirty, state: 'Completed' });
+            await confirmInvoice(messageId, { isEdited: isDirty, state: 'completed' });
             addToast({ type: 'success', message: 'Invoice finalized successfully!' });
             setIsDirty(false);
             navigate('/document');

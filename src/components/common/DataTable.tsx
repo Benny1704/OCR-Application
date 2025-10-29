@@ -126,10 +126,6 @@ const DataTable = ({
     const [dragOverCell, setDragOverCell] = useState<CellIdentifier | null>(null);
     const helpRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        setCurrentView(tableData);
-    }, [tableData]);
-
     // Close help tooltip when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -191,6 +187,58 @@ const DataTable = ({
         };
     }, [currentView, tableConfig, tableData]);
 
+    const validateCell = useCallback((value: any, colKey: string): string | null => {
+        const config = columnConfig[colKey];
+        if (!config) return null;
+
+        if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
+            return `${config.label} is required.`;
+        }
+
+        if (value !== null && value !== undefined && String(value).trim() !== '') {
+            if (!canConvertValue(value, config.type || 'string')) {
+                return `Invalid value. ${config.label} must be a ${config.type}.`;
+            }
+            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+                return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
+            }
+        }
+
+        return null;
+    }, [columnConfig]);
+
+    // ----- MODIFICATION START -----
+    // This effect hook now resets ALL internal state when tableData changes.
+    useEffect(() => {
+        setCurrentView(tableData);
+
+        // When tableData is replaced from the parent (e.g., after an API refresh),
+        // we MUST reset the internal history and validation states.
+        setHistory([tableData]);
+        setHistoryIndex(0);
+
+        // Re-validate all rows based on the new tableData
+        const newValidationErrors: ValidationErrors = {};
+        tableData.forEach((row, originalIndex) => {
+            // Iterate over columnConfig to catch required fields, not just keys in `row`
+            Object.values(columnConfig).forEach(col => {
+                const colKey = col.key;
+                if (colKey === fixedHeaderKey) return; // Don't validate sno
+
+                const error = validateCell(row[colKey], colKey);
+                if (error) {
+                    if (!newValidationErrors[originalIndex]) {
+                        newValidationErrors[originalIndex] = {};
+                    }
+                    newValidationErrors[originalIndex][colKey] = error;
+                }
+            });
+        });
+        setValidationErrors(newValidationErrors);
+
+    }, [tableData, columnConfig, validateCell, fixedHeaderKey]);
+    // ----- MODIFICATION END -----
+
     const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
@@ -244,26 +292,6 @@ const DataTable = ({
         }
     }, [searchQuery, pageSize, paginationInfo]);
 
-    const validateCell = useCallback((value: any, colKey: string): string | null => {
-        const config = columnConfig[colKey];
-        if (!config) return null;
-
-        if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
-            return `${config.label} is required.`;
-        }
-
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-            if (!canConvertValue(value, config.type || 'string')) {
-                return `Invalid value. ${config.label} must be a ${config.type}.`;
-            }
-            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
-                return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
-            }
-        }
-
-        return null;
-    }, [columnConfig]);
-
     const hasBlockingErrors = useMemo(() => {
         return Object.values(validationErrors).some(rowErrors =>
             Object.values(rowErrors).some(error => error !== null)
@@ -272,10 +300,9 @@ const DataTable = ({
 
     const hasUnsavedRows = useMemo(() => {
         if (!isEditable) return false;
-        return tableData.some(row => {
-            const isNewRow = !row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-'));
-            return isNewRow;
-        });
+        // A row is considered unsaved if it does not have an `item_id`.
+        // This matches the logic in `EditableComponent`'s `renderActionCell`.
+        return tableData.some(row => !row.item_id);
     }, [tableData, isEditable]);
 
     useEffect(() => {
@@ -292,10 +319,15 @@ const DataTable = ({
 
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(newData);
-        setHistory(newHistory);
-        setHistoryIndex(newHistory.length - 1);
+        
+        // Only update history if the data has actually changed
+        if (history[historyIndex] !== newData) {
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(newData);
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+        }
+        
         setCurrentView(newData);
         onDataChange(newData);
         if (newSelectedCells) {
@@ -312,8 +344,10 @@ const DataTable = ({
         if (!isEditable || historyIndex === 0 || !onDataChange) return;
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
-        setCurrentView(history[newIndex]);
-        onDataChange(history[newIndex]);
+        
+        const previousData = history[newIndex];
+        setCurrentView(previousData);
+        onDataChange(previousData);
         setSelectedCells([]);
         setEditingCell(null);
     }, [history, historyIndex, isEditable, onDataChange]);
@@ -322,8 +356,10 @@ const DataTable = ({
         if (!isEditable || historyIndex >= history.length - 1 || !onDataChange) return;
         const newIndex = historyIndex + 1;
         setHistoryIndex(newIndex);
-        setCurrentView(history[newIndex]);
-        onDataChange(history[newIndex]);
+        
+        const nextData = history[newIndex];
+        setCurrentView(nextData);
+        onDataChange(nextData);
         setSelectedCells([]);
         setEditingCell(null);
     }, [history, historyIndex, isEditable, onDataChange]);
@@ -971,7 +1007,8 @@ const DataTable = ({
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
-                    const isUnsavedRow = isEditable && (!row.item_id || (typeof row.id === 'string' && row.id.startsWith('new-')));
+                    // This logic is now consistent with `hasUnsavedRows`
+                    const isUnsavedRow = isEditable && !row.item_id;
 
                     return (
                         <motion.tr
@@ -1183,9 +1220,10 @@ const DataTable = ({
                                 <span className="text-red-500">⚠ Please fix the validation errors before saving.</span>
                             </InfoPill>
                         )}
+                        {/* This filter logic is now consistent */}
                         {hasUnsavedRows && (
                             <InfoPill>
-                                <span className="text-yellow-600 dark:text-yellow-400">⚠ {tableData.filter(r => !r.item_id || (typeof r.id === 'string' && r.id.startsWith('new-'))).length} unsaved row(s)</span>
+                                <span className="text-yellow-600 dark:text-yellow-400">⚠ {tableData.filter(r => !r.item_id).length} unsaved row(s)</span>
                             </InfoPill>
                         )}
                     </div>

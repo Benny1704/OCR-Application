@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useEffect, type FormEvent } from 'react';
-import BrandLogo from '../../assets/images/RMKV_logo.png';
+import BrandLogo from '../../assets/images/logo.png';
 import '../../assets/styles/Layout.scss';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import ThemeToggle from '../common/ThemeToggle';

@@ -275,7 +275,7 @@ const ManualEntry = () => {
         }
         setIsSubmitting(true);
         try {
-            await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'Reviewed' });
+            await confirmInvoice(location.state?.messageId, { isEdited: true, state: 'reviewed' });
             addToast({ type: 'success', message: 'Invoice confirmed successfully!' });
             navigate('/queue', { state: { defaultTab: "Yet to Review" } });
         } catch (apiError) {

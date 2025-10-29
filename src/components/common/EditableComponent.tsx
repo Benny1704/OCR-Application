@@ -202,6 +202,7 @@ const EditableComponent = ({
         }
     };
 
+    // ----- MODIFICATION START -----
     const handleSaveRow = useCallback(async (productRow: ProductDetails) => {
         if (hasValidationErrors) {
             addToast({ type: 'error', message: 'Please fix validation errors before saving.' });
@@ -209,12 +210,29 @@ const EditableComponent = ({
         }
         if (onSaveNewProduct) {
             try {
+                // Await the save operation from the parent
                 await onSaveNewProduct(productRow);
+                
+                // Add a success toast for feedback
+                addToast({ type: 'success', message: 'Row saved successfully!' });
+
+                // *** THIS IS THE FIX ***
+                // Call the onRefreshProducts function passed from the parent.
+                // This will trigger the parent (Edit.tsx) to refetch the
+                // product list and pass it back down as new props,
+                // which will update the DataTable.
+                if (onRefreshProducts) {
+                    await onRefreshProducts();
+                }
+
             } catch (error) {
                 console.error("Failed to save product row from EditableComponent", error);
+                // Assuming onSaveNewProduct handles its own error toasts,
+                // otherwise add one here.
             }
         }
-    }, [onSaveNewProduct, hasValidationErrors]);
+    }, [onSaveNewProduct, hasValidationErrors, onRefreshProducts]); // Added addToast and onRefreshProducts to dependency array
+    // ----- MODIFICATION END -----
 
     const renderActionCell = (row: DataItem) => {
         const productRow = row as unknown as ProductDetails;

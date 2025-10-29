@@ -695,13 +695,13 @@ export const RefreshPillButton = ({
           title="Tap to manually fetch the latest documents"
         >
           <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="truncate">{isLoading ? "Refreshing..." : "Tap to Refresh"}</span>
+          <span className="truncate md:text-[8px]">{isLoading ? "Refreshing..." : "Tap to Refresh"}</span>
         </button>
         
         <div className={updatedStyle}>
           <Calendar className="w-3.5 h-3.5" />
-          <span className="font-light hidden sm:inline">Updated:</span>
-          <span className="font-semibold">{lastUpdatedText}</span>
+          <span className="font-light hidden sm:inline md:text-[8px]">Updated:</span>
+          <span className="font-semibold md:text-[8px]">{lastUpdatedText}</span>
         </div>
       </div>
     );

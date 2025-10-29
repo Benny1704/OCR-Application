@@ -2,7 +2,7 @@ import { User, Lock, AlertTriangle, Eye, EyeOff, Building, ChevronDown } from 'l
 import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import brandLogo from '../assets/images/RMKV_logo.png';
+import brandLogo from '../assets/images/logo.png';
 import { motion, AnimatePresence } from "framer-motion";
 import { getSections } from '../lib/api/Api';
 import type { Section } from '../interfaces/Types';
@@ -83,9 +83,9 @@ const Login = () => {
                 animate="visible"
             >
                 <motion.div variants={itemVariants} className="flex flex-col items-center mb-6 text-center">
-                    <img src={brandLogo} className="w-25 mb-4" alt="RMKV Logo" />
-                    <h1 className="text-xl font-bold text-white">Welcome to RMKV Silks!</h1>
-                    {/* <p className="text-gray-400 text-sm">Log in to continue to RMKV</p> */}
+                    <img src={brandLogo} className="w-25 mb-4" alt="Nextriq Logo" />
+                    <h1 className="text-xl font-bold text-white">Welcome to Nextriq!</h1>
+                    {/* <p className="text-gray-400 text-sm">Log in to continue to Nextriq</p> */}
                 </motion.div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">

@@ -600,7 +600,7 @@ const Queue = () => {
               } ${borderPrimary} overflow-hidden`}
           >
             <div className={`p-3 border-b ${borderPrimary} flex-shrink-0 flex justify-between items-center`}>
-              <h3 className={`font-semibold text-base ${textHeader}`}>
+              <h3 className={`font-semibold  text-base md:text-[10px] ${textHeader}`}>
                 {activeTab} Documents
               </h3>
                 <RefreshPillButton
