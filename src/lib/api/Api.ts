@@ -84,16 +84,6 @@ export const login = async (credentials: { username: string; password: string; s
     }
 };
 
-export const logout = async (): Promise<void> => {
-    try {
-        // Assuming your backend has a /logout endpoint that clears the access_token cookie
-        await api.post('/users/logout');
-    } catch (error) {
-        handleError(error);
-        throw error;
-    }
-};
-
 export const uploadFiles = async (
     file: File,
     invoiceDetails: any,

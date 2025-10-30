@@ -181,7 +181,7 @@ const DashboardStatusTable = ({ section_id }: { section_id?: number }) => {
         if (tab === 'Completed') {
             navigate('/document');
         } else {
-            navigate('/queue', { state: { defaultTab: tab } });
+            navigate('/queue', { state: {queueState: { activeTab: tab } }});
         }
     };
 

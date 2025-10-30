@@ -170,13 +170,13 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 item_description: row.item_description || "",
                 quantity: Number(row.quantity) || 0,
                 pieces: Number(row.pieces) || 0,
-                style_code: String(row.style_code) || "0",
-                brand: String(row.brand) || "0",
-                size: String(row.size) || "0",
-                pattern: String(row.pattern) || "0",
-                quality: String(row.quality) || "0",
+                style_code: String(row.style_code) || "",
+                brand: String(row.brand) || "",
+                size: String(row.size) || "",
+                pattern: String(row.pattern) || "",
+                quality: String(row.quality) || "",
                 cost_price: Number(row.cost_price) || 0,
-                mrp: Number(row.mrp) || 0,
+                // mrp: Number(row.mrp) || 0,
             };
 
             const response = await manualInvoiceEntryItemAttributes([attributePayload]);

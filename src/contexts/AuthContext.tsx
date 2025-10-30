@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as apiLogin, logout as apiLogout } from '../lib/api/Api';
+import { login as apiLogin } from '../lib/api/Api';
 import type { AuthUser, Role } from '../interfaces/Types';
 import { useToast } from '../hooks/useToast';
 
@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    apiLogout();
     setUser(null);
     localStorage.removeItem('token');
     navigate('/login');

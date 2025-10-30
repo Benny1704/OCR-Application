@@ -578,7 +578,7 @@ const Queue = () => {
                 pageSize: pageSizes[activeTab],
                 pageSizeOptions: [5, 10, 25, 50, 100],
               }}
-              maxHeight="calc(100vh - 280px)"
+              maxHeight="calc(100vh - 240px)"
               isLoading={isLoading}
               paginationInfo={pagination["Yet to Review"]}
               onPageChange={setCurrentPage}
