@@ -173,7 +173,7 @@ const Queue = () => {
   const { user } = useAuth();
   const { navigate, updateCurrentState } = useAppNavigation();
   const location = useLocation();
-  const { addToast } = useToast();
+  const { addToast, toasts } = useToast(); // MODIFIED: Get toasts array
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
   const isInitialMount = useRef(true);
 
@@ -318,7 +318,11 @@ const Queue = () => {
         }
         setLastUpdated(prev => ({ ...prev, [activeTab]: new Date() }));
         if (isRefresh) {
-            addToast({ type: 'success', message: `${activeTab} documents updated!` });
+            // MODIFIED: Check for existing toast before adding a new one
+            const refreshMessage = `${activeTab} documents updated!`;
+            if (!toasts.some(toast => toast.message === refreshMessage)) {
+                addToast({ type: 'success', message: refreshMessage });
+            }
         }
 
     } catch (err: any) {
@@ -327,7 +331,7 @@ const Queue = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSizes, activeTab, getSectionId, user, addToast]);
+  }, [currentPage, pageSizes, activeTab, getSectionId, user, toasts]); // MODIFIED: Add toasts to dependency array
 
 
   useEffect(() => {

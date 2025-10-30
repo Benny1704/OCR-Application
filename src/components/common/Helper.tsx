@@ -643,66 +643,67 @@ export const RefreshPillButton = ({
     isLoading: boolean;
     onRefresh: () => void;
   }) => {
-    // Base classes for the outer pill container (minimalist border and shadow)
-    const baseClasses = `inline-flex items-center text-xs rounded-full transition-all duration-300 font-medium shadow-sm flex-shrink-0`;
-  
-    // Refresh segment styles (The clickable part)
-    const refreshSegmentClasses = `flex items-center gap-1.5 px-3 py-1.5 cursor-pointer disabled:cursor-wait transition-all duration-150`;
-  
-    // Updated segment styles (The static information part - distinct background)
-    const updatedSegmentClasses = `flex items-center gap-1.5 px-3 py-1.5 rounded-r-full flex-shrink-0`;
-  
-    // --- Theme-Specific Styles (Elegant & Aesthetic) ---
-    // Normal State
-    const containerNormal = theme === 'dark' 
-      ? "border border-gray-700 bg-gray-800"
-      : "border border-gray-200 bg-white";
-  
-    const refreshNormal = theme === 'dark'
-      ? "text-gray-300" : "text-gray-700";
-  
-    const updatedNormal = theme === 'dark'
-      ? "text-gray-400 bg-gray-700/50 border-l border-gray-700"
-      : "text-gray-500 bg-gray-100 border-l border-gray-200";
-  
-    // Loading State (Subtle violet highlight to match the app's accent color)
-    const containerLoading = theme === 'dark' 
-      ? "border border-violet-700/60 bg-violet-900/20 animate-pulse-slow" 
-      : "border border-violet-300 bg-violet-50/50 animate-pulse-slow";
-  
-    const refreshLoading = theme === 'dark'
-      ? "text-violet-300"
-      : "text-violet-800";
-  
-    const updatedLoading = theme === 'dark'
-      ? "text-violet-400 bg-violet-900/30 border-l border-violet-800/50"
-      : "text-violet-600 bg-violet-200/50 border-l border-violet-300";
-  
-    // Combine Styles
-    const containerStyle = `${baseClasses} ${isLoading ? containerLoading : containerNormal}`;
-    const refreshStyle = `${refreshSegmentClasses} ${isLoading ? refreshLoading : refreshNormal}`;
-    const updatedStyle = `${updatedSegmentClasses} ${isLoading ? updatedLoading : updatedNormal}`;
-  
+    
     const lastUpdatedText = lastUpdatedDate ? formatLastUpdated(lastUpdatedDate) : 'N/A';
+  
+    // Base styles
+    const baseClasses = `
+      flex-shrink-0 relative flex items-center justify-center gap-2 text-base font-semibold px-3 py-1.5 
+      rounded-full transition-all duration-300 ease-in-out shadow-sm overflow-hidden
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+    `; // MODIFIED: Set base text to text-base (1rem)
+  
+    // Theme-specific styles
+    const themeClasses = theme === 'dark' ? `
+      border border-gray-700/80 bg-gray-800/50 backdrop-blur-sm
+      text-gray-300
+      hover:border-gray-600 hover:bg-gray-700/60
+      focus-visible:ring-violet-500 focus-visible:ring-offset-gray-900
+    ` : `
+      border border-gray-200/90 bg-white/70 backdrop-blur-sm
+      text-gray-600
+      hover:border-gray-300 hover:bg-gray-50/80
+      focus-visible:ring-violet-500 focus-visible:ring-offset-white
+    `;
+  
+    // Loading state styles
+    const loadingClasses = isLoading ? (theme === 'dark' ? `
+      text-violet-300
+      bg-violet-900/20
+      border-violet-700/60
+      animate-pulse-slow
+    ` : `
+      text-violet-700
+      bg-violet-100/50
+      border-violet-300/70
+      animate-pulse-slow
+    `) : '';
+  
+    // Disabled state
+    const disabledClasses = isLoading ? `
+      opacity-80 cursor-wait
+    ` : '';
     
     return (
-      <div className={containerStyle}>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          // Button uses the refresh segment styles for color/hover/active
-          className={refreshStyle}
-          title="Tap to manually fetch the latest documents"
-        >
-          <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="truncate md:text-[8px]">{isLoading ? "Refreshing..." : "Tap to Refresh"}</span>
-        </button>
+      <button
+        onClick={onRefresh}
+        disabled={isLoading}
+        className={`${baseClasses} ${themeClasses} ${loadingClasses} ${disabledClasses}`}
+        title="Tap to manually fetch the latest documents"
+      >
+        <RotateCw className={`w-3.5 h-3.5 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
         
-        <div className={updatedStyle}>
-          <Calendar className="w-3.5 h-3.5" />
-          <span className="font-light hidden sm:inline md:text-[8px]">Updated:</span>
-          <span className="font-semibold md:text-[8px]">{lastUpdatedText}</span>
+        <div className="flex items-center whitespace-nowrap">
+          <span className="truncate text-base md:text-[0.7rem]"> 
+            {/* MODIFIED: Set text to 0.6rem on md screens */}
+            {isLoading ? "Refreshing..." : "Refresh"}
+          </span>
+          <span className={`mx-1.5 opacity-50 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>·</span>
+          <span className={`font-normal opacity-90 truncate md:text-[0.7rem] ${isLoading ? (theme === 'dark' ? 'text-violet-400' : 'text-violet-600') : ''}`}>
+            {/* MODIFIED: Set text to 0.6rem on md screens */}
+            {lastUpdatedText}
+          </span>
         </div>
-      </div>
+      </button>
     );
   };

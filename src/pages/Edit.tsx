@@ -34,7 +34,7 @@ const Edit = () => {
     const [itemAttributesConfig, setItemAttributesConfig] = useState<{ columns: FormField[] } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { addToast } = useToast();
+    const { addToast, toasts } = useToast();
     const { invoiceId } = useParams<{ invoiceId: string }>();
     const location = useLocation();
     const { navigate } = useAppNavigation();
@@ -179,7 +179,9 @@ const Edit = () => {
             }
             
             setLastProductUpdate(new Date());
-            addToast({ type: 'success', message: 'Product details refreshed successfully!' });
+            if (!toasts.some(toast => toast.message === 'Product details refreshed successfully!')) {
+                addToast({ type: 'success', message: 'Product details refreshed successfully!' });
+            }
         } catch (err: any) {
             addToast({ type: 'error', message: 'Failed to refresh product details' });
         } finally {
