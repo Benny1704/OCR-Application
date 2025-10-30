@@ -827,7 +827,7 @@ const DataTable = ({
                     autoFocus
                     onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
                     onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
-                    className={`absolute inset-0 w-full h-full p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
+                    className={`absolute inset-0 w-full h-full p-1 md:p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
                 />
             );
         }
@@ -866,7 +866,7 @@ const DataTable = ({
         }
 
         return (
-            <div style={headerStyle} className="p-2 transition-colors duration-200">
+            <div style={headerStyle} className="p-1.5 md:p-2 transition-colors duration-200">
                 <span>{label}</span>
                 {config?.isRequired && <span className="text-red-500 ml-1">*</span>}
                 {isEditable && draggedCell && (
@@ -913,8 +913,8 @@ const DataTable = ({
         };
 
         return (
-            <div className={`flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 py-2 px-4 border-t text-xs ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}>
-                <div className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className={`flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 p-2 sm:py-2 sm:px-4 border-t text-xs ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}>
+                <div className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                     Showing {totalItems > 0 ? startIndex + 1 : 0}-{endIndex} of {totalItems}
                 </div>
 
@@ -922,7 +922,7 @@ const DataTable = ({
                     <select
                         value={pageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className={`px-2 py-1 rounded border text-xs ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
+                        className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded border text-xs ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
                     >
                         {pagination.pageSizeOptions?.map(size => (
                             <option key={size} value={size}>Show {size}</option>
@@ -939,7 +939,7 @@ const DataTable = ({
                             </button>
 
                             {getPageNumbers().map(page => (
-                                <button key={page} onClick={() => handlePageChange(page)} className={`px-2 py-0.5 text-xs rounded ${page === finalCurrentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
+                                <button key={page} onClick={() => handlePageChange(page)} className={`px-1.5 sm:px-2 py-0.5 text-xs rounded ${page === finalCurrentPage ? 'bg-violet-600 text-white' : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}>
                                     {page}
                                 </button>
                             ))}
@@ -963,11 +963,11 @@ const DataTable = ({
                 <tbody>
                     {Array.from({ length: pageSize }).map((_, rowIndex) => (
                         <tr key={`skeleton-${rowIndex}`}>
-                            {fixedHeaderKey && <td className={`p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
+                            {fixedHeaderKey && <td className={`p-1.5 md:p-2 sticky left-0 border-b z-index ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-gray-50'}`}><div className={`h-4 w-8 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
                             {movableHeaders.map(label => (
-                                <td key={label} className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
+                                <td key={label} className={`p-1.5 md:p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-4 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>
                             ))}
-                            {renderActionCell && <td className={`p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-6 w-16 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
+                            {renderActionCell && <td className={`p-1.5 md:p-2 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}><div className={`h-6 w-16 rounded animate-pulse ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></div></td>}
                         </tr>
                     ))}
                 </tbody>
@@ -978,14 +978,14 @@ const DataTable = ({
             return (
                 <tbody>
                     <tr>
-                        <td colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} className="text-center p-8">
+                        <td colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)} className="text-center p-4 md:p-8">
                             <div className="flex flex-col items-center gap-4 text-gray-500">
                                 <NoDataDisplay heading="No Data Found" message="There are no records to display for your current search." />
                                 {isEditable && (
                                     <button
                                         onClick={handleAddRow}
                                         disabled={hasUnsavedRows}
-                                        className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
+                                        className={`w-1/2 p-2 rounded-md flex items-center justify-center gap-2 text-xs sm:text-sm font-medium transition-colors duration-200
                                         ${theme === 'dark'
                                                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
@@ -1025,7 +1025,7 @@ const DataTable = ({
                         >
                             {fixedHeaderKey && (
                                 <td
-                                    className={`p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-white text-gray-700'}`}
+                                    className={`p-1.5 md:p-2 border-b font-medium sticky left-0 ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E] text-gray-300' : 'border-gray-200 bg-white text-gray-700'}`}
                                     style={{
                                         zIndex: 40,
                                         boxShadow: theme === 'dark' ? '1px 0 0 0 rgba(255,255,255,0.06)' : '1px 0 0 0 rgba(0,0,0,0.06)'
@@ -1075,7 +1075,7 @@ const DataTable = ({
                                         }}
                                         onDragLeave={() => setDragOverCell(null)}
                                         onDrop={() => handleDrop(rowIndex, label)}
-                                        className={`relative p-2 border-b transition-all duration-150 group ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
+                                        className={`relative p-1.5 md:p-2 border-b transition-all duration-150 group ${!isEditable || columnConfig[label]?.isEditable === false ? 'cursor-default' : 'cursor-pointer'
                                             } ${theme === 'dark' ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'
                                             } ${isSelected(rowIndex, label)
                                                 ? (theme === 'dark' ? 'bg-violet-900/60' : 'bg-violet-100')
@@ -1101,7 +1101,7 @@ const DataTable = ({
                                 );
                             })}
                             {renderActionCell && (
-                                <td className={`p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                                <td className={`p-1.5 md:p-2 border-b text-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                                     {renderActionCell(row, rowIndex)}
                                 </td>
                             )}
@@ -1113,12 +1113,12 @@ const DataTable = ({
                     <tr>
                         <td
                             colSpan={1 + movableHeaders.length + (renderActionCell ? 1 : 0)}
-                            className={`p-1 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+                            className={`p-0.5 md:p-1 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
                         >
                             <button
                                 onClick={handleAddRow}
                                 disabled={hasUnsavedRows}
-                                className={`w-full p-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors duration-200
+                                className={`w-full p-1.5 md:p-2 rounded-md flex items-center justify-center gap-2 text-xs sm:text-sm font-medium transition-colors duration-200
                                 ${theme === 'dark'
                                         ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
                                         : 'text-gray-500 hover:bg-gray-100/80 hover:text-gray-800'
@@ -1147,7 +1147,7 @@ const DataTable = ({
             className={`rounded-lg border flex flex-col overflow-hidden ${theme === 'dark' ? 'border-gray-700 bg-[#1C1C2E]' : 'border-gray-200 bg-white'}`}
             style={{ maxHeight: maxHeight }}
         >
-            <div className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 p-2 md:p-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                 {isSearchable && (
                     <div className="relative w-full md:w-auto">
                         <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
@@ -1156,7 +1156,7 @@ const DataTable = ({
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className={`w-full md:w-56 pl-8 pr-3 py-1.5 text-sm border rounded-md focus:ring-violet-500 focus:border-violet-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
+                            className={`w-full md:w-56 pl-8 pr-3 py-1 sm:py-1.5 text-xs sm:text-sm border rounded-md focus:ring-violet-500 focus:border-violet-500 ${theme === 'dark' ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-300 bg-white text-gray-900'}`}
                         />
                     </div>
                 )}
@@ -1171,8 +1171,8 @@ const DataTable = ({
                     )}
                     {isEditable && (
                         <>
-                            <button onClick={undo} disabled={historyIndex === 0} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Undo"><Undo size={14} /></button>
-                            <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Redo"><Redo size={14} /></button>
+                            <button onClick={undo} disabled={historyIndex === 0} className={`p-1 sm:p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Undo"><Undo size={14} /></button>
+                            <button onClick={redo} disabled={historyIndex === history.length - 1} className={`p-1 sm:p-1.5 rounded-md disabled:opacity-50 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} title="Redo"><Redo size={14} /></button>
                         </>
                     )}
                 </div>
@@ -1197,7 +1197,7 @@ const DataTable = ({
                                 </th>
                             ))}
                             {renderActionCell && (
-                                <th className={`p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
+                                <th className={`p-1.5 md:p-2 font-semibold text-left border-b-2 ${theme === 'dark' ? 'text-gray-200 border-gray-700 bg-gray-800' : 'text-gray-700 border-gray-200 bg-gray-100'}`}>
                                     {actionColumnHeader}
                                 </th>
                             )}
@@ -1212,9 +1212,9 @@ const DataTable = ({
             <Popup isOpen={false} onClose={() => { }} data={null} />
 
             {isEditable && (
-                <div className={`flex-shrink-0 p-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className={`flex-shrink-0 p-2 md:p-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="flex flex-wrap gap-2">
-                        {selectionInfo ? selectionInfo : (<p className="text-sm text-gray-500 font-extralight">Click on a cell to start selecting.</p>)}
+                        {selectionInfo ? selectionInfo : (<p className="text-xs sm:text-sm text-gray-500 font-extralight">Click on a cell to start selecting.</p>)}
                         {hasBlockingErrors && (
                             <InfoPill>
                                 <span className="text-red-500">⚠ Please fix the validation errors before saving.</span>
@@ -1228,7 +1228,7 @@ const DataTable = ({
                         )}
                     </div>
                     <div>
-                        <button onClick={() => setShowHelp(true)} className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+                        <button onClick={() => setShowHelp(true)} className={`p-1 sm:p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
                             <Info size={16} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
                         </button>
                         <HowToUse isOpen={showHelp} onClose={() => setShowHelp(false)} />

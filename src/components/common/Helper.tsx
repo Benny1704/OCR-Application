@@ -644,66 +644,95 @@ export const RefreshPillButton = ({
     onRefresh: () => void;
   }) => {
     
-    const lastUpdatedText = lastUpdatedDate ? formatLastUpdated(lastUpdatedDate) : 'N/A';
+    const lastUpdatedText = lastUpdatedDate ? formatLastUpdated(lastUpdatedDate) : 'Never';
   
-    // Base styles
-    const baseClasses = `
-      flex-shrink-0 relative flex items-center justify-center gap-2 text-base font-semibold px-3 py-1.5 
-      rounded-full transition-all duration-300 ease-in-out shadow-sm overflow-hidden
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-    `; // MODIFIED: Set base text to text-base (1rem)
-  
-    // Theme-specific styles
-    const themeClasses = theme === 'dark' ? `
-      border border-gray-700/80 bg-gray-800/50 backdrop-blur-sm
-      text-gray-300
-      hover:border-gray-600 hover:bg-gray-700/60
-      focus-visible:ring-violet-500 focus-visible:ring-offset-gray-900
-    ` : `
-      border border-gray-200/90 bg-white/70 backdrop-blur-sm
-      text-gray-600
-      hover:border-gray-300 hover:bg-gray-50/80
-      focus-visible:ring-violet-500 focus-visible:ring-offset-white
-    `;
-  
-    // Loading state styles
-    const loadingClasses = isLoading ? (theme === 'dark' ? `
-      text-violet-300
-      bg-violet-900/20
-      border-violet-700/60
-      animate-pulse-slow
-    ` : `
-      text-violet-700
-      bg-violet-100/50
-      border-violet-300/70
-      animate-pulse-slow
-    `) : '';
-  
-    // Disabled state
-    const disabledClasses = isLoading ? `
-      opacity-80 cursor-wait
-    ` : '';
-    
     return (
       <button
         onClick={onRefresh}
         disabled={isLoading}
-        className={`${baseClasses} ${themeClasses} ${loadingClasses} ${disabledClasses}`}
-        title="Tap to manually fetch the latest documents"
+        className={`
+          group relative flex items-center gap-2 px-3 py-1.5 rounded-lg
+          text-xs font-medium transition-all duration-300
+          ${theme === 'dark'
+            ? 'bg-gray-800/60 hover:bg-gray-700/70 text-gray-300 hover:text-white border border-gray-700/50 hover:border-gray-600'
+            : 'bg-gray-50/80 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/70 hover:border-gray-300'
+          }
+          ${isLoading 
+            ? theme === 'dark'
+              ? 'bg-violet-900/20 border-violet-700/40 text-violet-300'
+              : 'bg-violet-50 border-violet-200/60 text-violet-700'
+            : ''
+          }
+          disabled:cursor-not-allowed
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2
+          ${theme === 'dark' ? 'focus-visible:ring-offset-gray-900' : 'focus-visible:ring-offset-white'}
+        `}
+        title={isLoading ? 'Refreshing data...' : 'Click to refresh'}
       >
-        <RotateCw className={`w-3.5 h-3.5 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+        {/* Icon */}
+        <RotateCw 
+          className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-500 ${
+            isLoading ? 'animate-spin' : 'group-hover:rotate-180'
+          }`} 
+        />
         
-        <div className="flex items-center whitespace-nowrap">
-          <span className="truncate text-base md:text-[0.7rem]"> 
-            {/* MODIFIED: Set text to 0.6rem on md screens */}
-            {isLoading ? "Refreshing..." : "Refresh"}
+        {/* Text Content with Animated Transition */}
+        <div className="relative overflow-hidden h-5">
+        {/* Default State - Last Update */}
+        <div className={`
+          flex items-center h-full gap-1.5
+          transition-all duration-300 ease-out
+          ${isLoading 
+            ? 'translate-y-0 opacity-100' 
+            : 'group-hover:-translate-y-full group-hover:opacity-0 translate-y-0 opacity-100'
+          }
+        `}>
+          <span className="font-semibold whitespace-nowrap">
+            {isLoading ? 'Updating' : 'Last update'}
           </span>
-          <span className={`mx-1.5 opacity-50 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>·</span>
-          <span className={`font-normal opacity-90 truncate md:text-[0.7rem] ${isLoading ? (theme === 'dark' ? 'text-violet-400' : 'text-violet-600') : ''}`}>
-            {/* MODIFIED: Set text to 0.6rem on md screens */}
+          <span className={`font-normal whitespace-nowrap ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
             {lastUpdatedText}
           </span>
         </div>
+
+        {/* Hover State - Refresh Now */}
+        {!isLoading && (
+          <div className={`
+            flex items-center h-full gap-1.5 absolute left-0 top-0
+            transition-all duration-300 ease-out
+            translate-y-full opacity-0
+            group-hover:translate-y-0 group-hover:opacity-100
+          `}>
+            <span className="font-semibold whitespace-nowrap">
+              Refresh now
+            </span>
+            <svg 
+              className="w-3 h-3 flex-shrink-0" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2.5} 
+                d="M13 7l5 5m0 0l-5 5m5-5H6" 
+              />
+            </svg>
+          </div>
+        )}
+      </div>
+
+        {/* Subtle loading indicator */}
+        {isLoading && (
+          <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+            <div className={`h-full animate-shimmer ${
+              theme === 'dark' 
+                ? 'bg-gradient-to-r from-transparent via-violet-500/10 to-transparent' 
+                : 'bg-gradient-to-r from-transparent via-violet-400/20 to-transparent'
+            }`} style={{ width: '200%' }} />
+          </div>
+        )}
       </button>
     );
-  };
+};
