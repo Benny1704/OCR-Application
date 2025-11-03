@@ -47,7 +47,9 @@ const canConvertValue = (value: any, targetType: string): boolean => {
 
     switch (targetType) {
         case 'number':
-            return !isNaN(Number(stringValue)) && stringValue !== '';
+            // Allow empty string to be converted (to '')
+            if (stringValue === '') return true;
+            return !isNaN(Number(stringValue));
         case 'boolean':
             const lowerValue = stringValue.toLowerCase();
             return ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off'].includes(lowerValue);
@@ -67,8 +69,9 @@ const convertValue = (value: any, targetType: string): any => {
 
     switch (targetType) {
         case 'number':
-            if (isNaN(Number(stringValue)) || stringValue === '') {
-                return value;
+            if (stringValue === '') return ''; // Return empty string if input was empty string
+            if (isNaN(Number(stringValue))) {
+                return value; // Return original value if not a number
             }
             return Number(stringValue);
         case 'boolean':
@@ -157,13 +160,15 @@ const DataTable = ({
             finalColumns = [snoColumn, ...userColumns];
         } else if (data.length > 0) {
             const allHeaders = Object.keys(data[0]).filter(h => h !== 'sno' && h !== 'id');
+            // ----- MODIFICATION START: This is the fix for the TS error -----
             const derivedColumns = allHeaders.map(label => ({
                 key: label,
                 label: label.replace(/_/g, ' '),
-                type: 'string' as const,
+                type: 'string' as const, // Must be 'string' to match TableColumnConfig
                 isEditable: true,
                 fixed: false,
             }));
+            // ----- MODIFICATION END -----
             finalColumns = [snoColumn, ...derivedColumns];
         } else {
             finalColumns = [snoColumn];
@@ -191,39 +196,68 @@ const DataTable = ({
         const config = columnConfig[colKey];
         if (!config) return null;
 
-        if (config.isRequired && (value === null || value === undefined || String(value).trim() === '')) {
+        const stringValue = String(value).trim();
+        const isEmpty = value === null || value === undefined || stringValue === '';
+        
+        // ----- MODIFICATION START: Use config.type, default to 'string' -----
+        const configType = config.type || 'string';
+        // ----- MODIFICATION END -----
+
+        // --- Percentage Validation ---
+        if (config.isPercentage) {
+            if (isEmpty) {
+                return config.isRequired ? `${config.label} is required.` : null;
+            }
+
+            const numericValue = Number(stringValue);
+            if (isNaN(numericValue)) {
+                return `${config.label} must be a valid number.`;
+            }
+
+            if (numericValue < 0 || numericValue > 100) {
+                return `${config.label} must be between 0 and 100.`;
+            }
+
+            if (colKey === 'gst' && numericValue > 28) {
+                return `GST must not exceed 28%.`;
+            }
+
+            if ((colKey === 'cgst' || colKey === 'sgst') && numericValue > 14) {
+                return `${config.label} must not exceed 14%.`;
+            }
+            
+            return null; // Percentage validation passed
+        }
+
+        // --- Standard Validation ---
+        if (config.isRequired && isEmpty) {
             return `${config.label} is required.`;
         }
 
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-            if (!canConvertValue(value, config.type || 'string')) {
-                return `Invalid value. ${config.label} must be a ${config.type}.`;
+        if (!isEmpty) {
+            // ----- MODIFICATION START: Use configType -----
+            if (!canConvertValue(value, configType)) {
+                return `Invalid value. ${config.label} must be a ${configType}.`;
             }
-            if (config.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+            if (configType === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
                 return `Invalid date format for ${config.label}. Use YYYY-MM-DD.`;
             }
+            // ----- MODIFICATION END -----
         }
 
         return null;
     }, [columnConfig]);
 
-    // ----- MODIFICATION START -----
-    // This effect hook now resets ALL internal state when tableData changes.
     useEffect(() => {
         setCurrentView(tableData);
-
-        // When tableData is replaced from the parent (e.g., after an API refresh),
-        // we MUST reset the internal history and validation states.
         setHistory([tableData]);
         setHistoryIndex(0);
 
-        // Re-validate all rows based on the new tableData
         const newValidationErrors: ValidationErrors = {};
         tableData.forEach((row, originalIndex) => {
-            // Iterate over columnConfig to catch required fields, not just keys in `row`
             Object.values(columnConfig).forEach(col => {
                 const colKey = col.key;
-                if (colKey === fixedHeaderKey) return; // Don't validate sno
+                if (colKey === fixedHeaderKey) return; 
 
                 const error = validateCell(row[colKey], colKey);
                 if (error) {
@@ -237,7 +271,6 @@ const DataTable = ({
         setValidationErrors(newValidationErrors);
 
     }, [tableData, columnConfig, validateCell, fixedHeaderKey]);
-    // ----- MODIFICATION END -----
 
     const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
 
@@ -300,8 +333,6 @@ const DataTable = ({
 
     const hasUnsavedRows = useMemo(() => {
         if (!isEditable) return false;
-        // A row is considered unsaved if it does not have an `item_id`.
-        // This matches the logic in `EditableComponent`'s `renderActionCell`.
         return tableData.some(row => !row.item_id);
     }, [tableData, isEditable]);
 
@@ -320,7 +351,6 @@ const DataTable = ({
     const updateData = useCallback((newData: DataItem[], newSelectedCells?: CellIdentifier[]) => {
         if (!isEditable || !onDataChange) return;
         
-        // Only update history if the data has actually changed
         if (history[historyIndex] !== newData) {
             const newHistory = history.slice(0, historyIndex + 1);
             newHistory.push(newData);
@@ -373,12 +403,15 @@ const DataTable = ({
 
         Object.values(columnConfig).forEach(col => {
             if (col.key !== 'sno') {
+                // ----- MODIFICATION START: Use config type for default value -----
                 switch (col.type) {
                     case 'number': newRow[col.key] = 0; break;
                     case 'boolean': newRow[col.key] = false; break;
                     case 'date': newRow[col.key] = new Date().toISOString().split('T')[0]; break;
-                    default: newRow[col.key] = '';
+                    case 'string':
+                    default: newRow[col.key] = ''; // 'string' and 'undefined' default to empty string
                 }
+                // ----- MODIFICATION END -----
             }
         });
 
@@ -414,31 +447,51 @@ const DataTable = ({
         }
     }, [isEditable, hasUnsavedRows, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
 
+    // ----- MODIFICATION START: Respect config.type -----
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
         if (!isEditable) return;
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         if (originalRowIndex === undefined) return;
 
-        const targetType = columnConfig[colKey]?.type || 'string';
+        const colConfig = columnConfig[colKey];
+        // ----- Use the type from config (defaulting to 'string') -----
+        const targetType = colConfig?.type || 'string';
         let finalValue = value;
 
         if (canConvertValue(value, targetType)) {
             finalValue = convertValue(value, targetType);
         }
+        // ----- MODIFICATION END -----
 
+        const newData: DataItem[] = structuredClone(tableData);
+        if (!newData[originalRowIndex]) return;
+
+        const newValidationErrorsForThisRow: Record<string, string | null> = {};
+
+        // Handle inter-dependencies for cgst/sgst
+        if (colKey === 'cgst' && columnConfig['sgst']) {
+            newData[originalRowIndex]['sgst'] = finalValue;
+            newValidationErrorsForThisRow['sgst'] = validateCell(finalValue, 'sgst');
+        } else if (colKey === 'sgst' && columnConfig['cgst']) {
+            newData[originalRowIndex]['cgst'] = finalValue;
+            newValidationErrorsForThisRow['cgst'] = validateCell(finalValue, 'cgst');
+        }
+
+        // Validate and update the current cell
         const error = validateCell(finalValue, colKey);
+        newValidationErrorsForThisRow[colKey] = error;
+        newData[originalRowIndex][colKey] = finalValue;
 
+        // Update validation state
         setValidationErrors(prev => {
             const newErrors = { ...prev };
             if (!newErrors[originalRowIndex]) newErrors[originalRowIndex] = {};
-            newErrors[originalRowIndex][colKey] = error;
+            // Merge new errors for this row (current cell + linked cells)
+            newErrors[originalRowIndex] = { ...newErrors[originalRowIndex], ...newValidationErrorsForThisRow };
             return newErrors;
         });
 
-        const newData: DataItem[] = structuredClone(tableData);
-        if (newData[originalRowIndex]) {
-            newData[originalRowIndex][colKey] = finalValue;
-        }
+        // Update data state
         updateData(newData, selectedCells);
     };
 
@@ -461,6 +514,7 @@ const DataTable = ({
         return selectedCells.some(c => c.rowIndex === rowIndex && c.colKey === colKey);
     };
 
+    // ----- MODIFICATION START: Respect config.type -----
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
         const newData: DataItem[] = structuredClone(tableData);
@@ -494,8 +548,13 @@ const DataTable = ({
                 if (newData[sourceOriginalIndex] && newData[targetOriginalIndex]) {
                     const sourceValue = newData[sourceOriginalIndex][colKey];
                     const targetValue = newData[targetOriginalIndex][targetColKey];
-                    const sourceType = columnConfig[colKey]?.type || 'string';
-                    const targetType = columnConfig[targetColKey]?.type || 'string';
+                    
+                    const sourceTypeConfig = columnConfig[colKey];
+                    const targetTypeConfig = columnConfig[targetColKey];
+                    // ----- Use the type from config (defaulting to 'string') -----
+                    const sourceType = sourceTypeConfig?.type || 'string';
+                    const targetType = targetTypeConfig?.type || 'string';
+                    // ----- MODIFICATION END -----
 
                     let valueForTarget = sourceValue;
                     if (sourceType !== targetType) {
@@ -538,6 +597,7 @@ const DataTable = ({
         updateData(newData, newSelectedCells);
     }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
 
+    // ----- MODIFICATION START: Respect config.type -----
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
 
@@ -552,12 +612,17 @@ const DataTable = ({
         const colIndex = movableHeaders.indexOf(colKey);
         if (direction === 'left' && colIndex > 0) {
             const targetColKey = movableHeaders[colIndex - 1];
+            const sourceTypeConfig = columnConfig[colKey];
+            const targetTypeConfig = columnConfig[targetColKey];
+            // ----- Use the type from config (defaulting to 'string') -----
+            const sourceType = sourceTypeConfig?.type || 'string';
+            const targetType = targetTypeConfig?.type || 'string';
+            // ----- MODIFICATION END -----
+
             newData.forEach((row, idx) => {
                 const sourceValue = row[colKey];
                 const targetValue = row[targetColKey];
-                const sourceType = columnConfig[colKey]?.type || 'string';
-                const targetType = columnConfig[targetColKey]?.type || 'string';
-
+                
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
 
@@ -571,12 +636,17 @@ const DataTable = ({
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'right' && colIndex < movableHeaders.length - 1) {
             const targetColKey = movableHeaders[colIndex + 1];
+            const sourceTypeConfig = columnConfig[colKey];
+            const targetTypeConfig = columnConfig[targetColKey];
+            // ----- Use the type from config (defaulting to 'string') -----
+            const sourceType = sourceTypeConfig?.type || 'string';
+            const targetType = targetTypeConfig?.type || 'string';
+            // ----- MODIFICATION END -----
+
             newData.forEach((row, idx) => {
                 const sourceValue = row[colKey];
                 const targetValue = row[targetColKey];
-                const sourceType = columnConfig[colKey]?.type || 'string';
-                const targetType = columnConfig[targetColKey]?.type || 'string';
-
+                
                 const valueForTarget = convertValue(sourceValue, targetType);
                 const valueForSource = convertValue(targetValue, sourceType);
 
@@ -590,9 +660,11 @@ const DataTable = ({
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
+            [newValidationErrors[originalRowIndex], newValidationErrors[originalRowIndex - 1]] = [newValidationErrors[originalRowIndex - 1], newValidationErrors[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex - 1 }));
         } else if (direction === 'down' && originalRowIndex < tableData.length - 1) {
             [newData[originalRowIndex], newData[originalRowIndex + 1]] = [newData[originalRowIndex + 1], newData[originalRowIndex]];
+            [newValidationErrors[originalRowIndex], newValidationErrors[originalRowIndex + 1]] = [newValidationErrors[originalRowIndex + 1], newValidationErrors[originalRowIndex]];
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
 
@@ -600,6 +672,7 @@ const DataTable = ({
         updateData(newData, newSelectedCells);
     }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
 
+    // ----- MODIFICATION START: Respect config.type on paste -----
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (editingCell) return;
 
@@ -626,20 +699,37 @@ const DataTable = ({
                         if (targetCell.colKey === fixedHeaderKey || columnConfig[targetCell.colKey]?.isEditable === false) return;
 
                         const originalRowIndex = paginatedData[targetCell.rowIndex]?.originalIndex;
-                        if (originalRowIndex !== undefined && newData[originalRowIndex]) {
-                            const targetType = columnConfig[targetCell.colKey]?.type || 'string';
-                            let finalValue = copiedCell.value;
+                        if (originalRowIndex === undefined || !newData[originalRowIndex]) return;
+                        
+                        const colConfig = columnConfig[targetCell.colKey];
+                        // ----- Use the type from config (defaulting to 'string') -----
+                        const targetType = colConfig?.type || 'string';
+                        // ----- MODIFICATION END -----
+                        
+                        let finalValue = copiedCell.value;
 
-                            if (canConvertValue(copiedCell.value, targetType)) {
-                                finalValue = convertValue(copiedCell.value, targetType);
-                            }
-
-                            const error = validateCell(finalValue, targetCell.colKey);
-                            if (!newValidationErrors[originalRowIndex]) newValidationErrors[originalRowIndex] = {};
-                            newValidationErrors[originalRowIndex][targetCell.colKey] = error;
-
-                            newData[originalRowIndex][targetCell.colKey] = finalValue;
+                        if (canConvertValue(copiedCell.value, targetType)) {
+                            finalValue = convertValue(copiedCell.value, targetType);
                         }
+
+                        const newValidationErrorsForThisRow: Record<string, string | null> = {};
+
+                        // Handle inter-dependencies for cgst/sgst on paste
+                        if (targetCell.colKey === 'cgst' && columnConfig['sgst']) {
+                            newData[originalRowIndex]['sgst'] = finalValue;
+                            newValidationErrorsForThisRow['sgst'] = validateCell(finalValue, 'sgst');
+                        } else if (targetCell.colKey === 'sgst' && columnConfig['cgst']) {
+                            newData[originalRowIndex]['cgst'] = finalValue;
+                            newValidationErrorsForThisRow['cgst'] = validateCell(finalValue, 'cgst');
+                        }
+
+                        const error = validateCell(finalValue, targetCell.colKey);
+                        newValidationErrorsForThisRow[targetCell.colKey] = error;
+                        newData[originalRowIndex][targetCell.colKey] = finalValue;
+
+                        // Merge errors
+                        if (!newValidationErrors[originalRowIndex]) newValidationErrors[originalRowIndex] = {};
+                        newValidationErrors[originalRowIndex] = { ...newValidationErrors[originalRowIndex], ...newValidationErrorsForThisRow };
                     });
                     setValidationErrors(newValidationErrors);
                     updateData(newData, selectedCells);
@@ -679,6 +769,7 @@ const DataTable = ({
         fixedHeaderKey, paginatedData, columnConfig, validationErrors, validateCell
     ]);
 
+
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -694,6 +785,7 @@ const DataTable = ({
         setDragOverCell(null);
     };
 
+    // ----- MODIFICATION START: Respect config.type -----
     const handleDrop = (targetRowIndex: number, targetColKey: string) => {
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
         if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
@@ -707,8 +799,13 @@ const DataTable = ({
         if (draggedOriginalIndex !== undefined && targetOriginalIndex !== undefined && newData[draggedOriginalIndex] && newData[targetOriginalIndex]) {
             const sourceValue = newData[draggedOriginalIndex][draggedCell.colKey];
             const targetValue = newData[targetOriginalIndex][targetColKey];
-            const sourceType = columnConfig[draggedCell.colKey]?.type || 'string';
-            const targetType = columnConfig[targetColKey]?.type || 'string';
+            
+            const sourceTypeConfig = columnConfig[draggedCell.colKey];
+            const targetTypeConfig = columnConfig[targetColKey];
+            // ----- Use the type from config (defaulting to 'string') -----
+            const sourceType = sourceTypeConfig?.type || 'string';
+            const targetType = targetTypeConfig?.type || 'string';
+            // ----- MODIFICATION END -----
 
             const valueForTarget = convertValue(sourceValue, targetType);
             const valueForSource = convertValue(targetValue, sourceType);
@@ -750,7 +847,7 @@ const DataTable = ({
         return pills;
     }, [selectedCells, paginatedData, fixedHeaderKey, columnConfig]);
 
-    const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colKey: string) => {
+    const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, colKey: string) => {
         const { key, shiftKey } = e;
         const value = e.currentTarget.value;
         const maxRow = paginatedData.length - 1;
@@ -784,6 +881,15 @@ const DataTable = ({
 
         switch (key) {
             case 'Enter':
+                if (e.currentTarget.tagName === 'SELECT') {
+                    e.preventDefault();
+                    handleCellUpdate(rowIndex, colKey, value);
+                    setEditingCell(null);
+                } else {
+                    e.preventDefault();
+                    move(shiftKey ? 'prev' : 'next');
+                }
+                break;
             case 'Tab':
                 e.preventDefault();
                 move(shiftKey ? 'prev' : 'next');
@@ -791,21 +897,38 @@ const DataTable = ({
             case 'Escape':
                 setEditingCell(null);
                 break;
-            case 'ArrowUp': e.preventDefault(); move('up'); break;
-            case 'ArrowDown': e.preventDefault(); move('down'); break;
+            case 'ArrowUp': 
+                if (e.currentTarget.tagName !== 'SELECT') {
+                    e.preventDefault(); 
+                    move('up');
+                }
+                break;
+            case 'ArrowDown':
+                if (e.currentTarget.tagName !== 'SELECT') {
+                    e.preventDefault(); 
+                    move('down');
+                }
+                break;
         }
     };
 
-    const handleEditBlur = (e: React.FocusEvent<HTMLInputElement>, rowIndex: number, colKey: string) => {
+    const handleEditBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, colKey: string) => {
         handleCellUpdate(rowIndex, colKey, e.currentTarget.value);
         setEditingCell(null);
     };
+
 
     const renderCellContent = (rowIndex: number, colKey: string) => {
         const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.colKey === colKey;
         const cellValue = paginatedData[rowIndex]?.[colKey];
         const colConfig = columnConfig[colKey];
-        const inputType = colConfig?.type === 'string' ? 'text' : colConfig?.type || 'text';
+        
+        // ----- MODIFICATION START: Use config.type, but override for UX -----
+        const inputType = colConfig?.isPercentage 
+            ? 'number' 
+            // Otherwise, use the config type, defaulting to 'string'
+            : (colConfig?.type || 'string');
+        // ----- MODIFICATION END -----
 
         if (isEditing) {
             if (inputType === 'boolean') {
@@ -822,17 +945,21 @@ const DataTable = ({
             }
             return (
                 <input
-                    type={inputType}
+                    // ----- MODIFICATION START: Handle 'string' type -----
+                    // Map data type 'string' to HTML input type 'text'
+                    type={inputType === 'string' ? 'text' : inputType}
+                    // ----- MODIFICATION END -----
                     defaultValue={cellValue}
                     autoFocus
                     onKeyDown={(e) => handleEditKeyDown(e, rowIndex, colKey)}
                     onBlur={(e) => handleEditBlur(e, rowIndex, colKey)}
+                    {...(inputType === 'number' && { step: 'any' })}
                     className={`absolute inset-0 w-full h-full p-1 md:p-2 text-xs md:text-sm border-2 border-violet-500 rounded-md outline-none z-10 ${theme === 'dark' ? 'bg-[#1C1C2E] text-gray-100' : 'bg-violet-50 text-gray-900'}`}
                 />
             );
         }
 
-        if (inputType === 'boolean') {
+        if (colConfig?.type === 'boolean') { // Check config type directly
             return <input type="checkbox" checked={!!cellValue} readOnly className={`h-4 w-4 ${theme === 'dark' ? 'accent-violet-500' : 'accent-violet-600'}`} />;
         }
 
@@ -840,20 +967,32 @@ const DataTable = ({
             return formatIndianCurrency(cellValue);
         }
 
+        if (colConfig?.isPercentage && cellValue !== null && cellValue !== undefined && String(cellValue).trim() !== '') {
+            return `${String(cellValue)}%`;
+        }
+
         return String(cellValue ?? '');
     };
 
+    // ----- MODIFICATION START: Respect config.type -----
     const getColumnHeader = (key: string) => {
         const config = columnConfig[key];
         const label = config?.label || key.replace(/_/g, ' ');
-        const type = config?.type || 'string';
+        // ----- Display type: 'percentage' if flag is set, else use config type -----
+        const type = config?.isPercentage ? 'percentage' : (config?.type || 'string'); // Default to 'string'
 
         let headerStyle = {};
-        if (isEditable && draggedCell) {
-            const draggedType = columnConfig[draggedCell.colKey]?.type || 'string';
+        if (isEditable && draggedCell && paginatedData[draggedCell.rowIndex]) {
+            const draggedConfig = columnConfig[draggedCell.colKey];
+            // ----- Display type for dragged cell -----
+            const draggedType = draggedConfig?.isPercentage ? 'percentage' : (draggedConfig?.type || 'string'); // Default to 'string'
+
             if (key !== fixedHeaderKey) {
-                const draggedValue = tableData[paginatedData[draggedCell.rowIndex]?.originalIndex]?.[draggedCell.colKey];
-                const canConvert = canConvertValue(draggedValue, type);
+                const draggedValue = tableData[paginatedData[draggedCell.rowIndex].originalIndex]?.[draggedCell.colKey];
+                
+                // ----- Use the actual config type for conversion check -----
+                const convertType = config?.type || 'string'; // Default to 'string'
+                const canConvert = canConvertValue(draggedValue, convertType);
 
                 if (type === draggedType) {
                     headerStyle = { backgroundColor: 'rgba(34, 197, 94, 0.3)' };
@@ -864,6 +1003,7 @@ const DataTable = ({
                 }
             }
         }
+        // ----- MODIFICATION END -----
 
         return (
             <div style={headerStyle} className="p-1.5 md:p-2 transition-colors duration-200">
@@ -1007,7 +1147,6 @@ const DataTable = ({
             <motion.tbody variants={tableBodyVariants} initial="hidden" animate="visible">
                 {paginatedData.map((row, rowIndex) => {
                     const originalRowIndex = row.originalIndex;
-                    // This logic is now consistent with `hasUnsavedRows`
                     const isUnsavedRow = isEditable && !row.item_id;
 
                     return (
@@ -1059,7 +1198,17 @@ const DataTable = ({
                                 const colConfig = columnConfig[label];
                                 const cellValue = row[label];
                                 const isEmpty = cellValue === null || cellValue === undefined || String(cellValue).trim() === '';
+                                // ----- MODIFICATION START: Check isRequired and isEmpty -----
                                 const isMandatoryEmpty = colConfig?.isRequired && isEmpty;
+                                // ----- MODIFICATION END -----
+
+                                let titleMessage = error || '';
+                                if (isMandatoryEmpty && !error) {
+                                    titleMessage = `${colConfig.label} is required.`;
+                                }
+                                if (error && isMandatoryEmpty) {
+                                    titleMessage = error;
+                                }
 
                                 return (
                                     <td
@@ -1087,7 +1236,7 @@ const DataTable = ({
                                                 : ''
                                             } ${isDragOver && draggedCell && (draggedCell.colKey !== label || draggedCell.rowIndex !== rowIndex) ? (theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200') : ''
                                             }`}
-                                        title={error || (isMandatoryEmpty ? `${colConfig.label} is required` : '')}
+                                        title={titleMessage}
                                     >
                                         {renderCellContent(rowIndex, label)}
                                         {isMandatoryEmpty && !error && (
@@ -1135,7 +1284,6 @@ const DataTable = ({
         );
     };
 
-    // Handler for the refresh button
     const handleRefreshClick = useCallback(() => {
         if (onRefresh && !isRefreshing) {
             onRefresh();
@@ -1220,7 +1368,6 @@ const DataTable = ({
                                 <span className="text-red-500">⚠ Please fix the validation errors before saving.</span>
                             </InfoPill>
                         )}
-                        {/* This filter logic is now consistent */}
                         {hasUnsavedRows && (
                             <InfoPill>
                                 <span className="text-yellow-600 dark:text-yellow-400">⚠ {tableData.filter(r => !r.item_id).length} unsaved row(s)</span>

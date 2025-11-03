@@ -176,7 +176,7 @@ const ProductDetailPopup = ({ isOpen, onClose, product, onSave, onViewImage, ite
                 pattern: String(row.pattern) || "",
                 quality: String(row.quality) || "",
                 cost_price: Number(row.cost_price) || 0,
-                // mrp: Number(row.mrp) || 0,
+                gst: String(row.gst) || "",
             };
 
             const response = await manualInvoiceEntryItemAttributes([attributePayload]);

@@ -49,7 +49,8 @@ export interface TableColumnConfig {
     isRequired?: boolean;
     isCalculated?: boolean;
     fixed?: boolean;
-    isCurrency?: boolean
+    isCurrency?: boolean;
+    isPercentage?:boolean;
 }
 
 export interface TableConfig {
