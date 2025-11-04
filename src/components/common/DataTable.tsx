@@ -248,11 +248,20 @@ const DataTable = ({
         return null;
     }, [columnConfig]);
 
+    // ----- MODIFICATION START: Fix for Undo/Redo -----
     useEffect(() => {
+        // Sync internal view with external prop
         setCurrentView(tableData);
-        setHistory([tableData]);
-        setHistoryIndex(0);
 
+        // Check if the prop change was caused by an internal update (like undo/redo).
+        // If the new tableData is already our current history state, do NOT reset history.
+        if (history[historyIndex] !== tableData) {
+            // This change came from outside (e.g., parent fetch), so reset history.
+            setHistory([tableData]);
+            setHistoryIndex(0);
+        }
+
+        // Always run validation on the new data.
         const newValidationErrors: ValidationErrors = {};
         tableData.forEach((row, originalIndex) => {
             Object.values(columnConfig).forEach(col => {
@@ -270,12 +279,15 @@ const DataTable = ({
         });
         setValidationErrors(newValidationErrors);
 
-    }, [tableData, columnConfig, validateCell, fixedHeaderKey]);
+    }, [tableData, columnConfig, validateCell, fixedHeaderKey, history, historyIndex]);
+    // ----- MODIFICATION END -----
 
     const finalCurrentPage = paginationInfo ? paginationInfo.page : currentPage;
 
     const processedData: ProcessedDataItem[] = useMemo(() => {
-        const dataToProcess = tableData;
+        // ----- MODIFICATION START: Use currentView for processing -----
+        const dataToProcess = currentView;
+        // ----- MODIFICATION END -----
 
         let processed: ProcessedDataItem[] = dataToProcess.map((row, index) => {
             const processedRow: ProcessedDataItem = {
@@ -303,7 +315,9 @@ const DataTable = ({
         }
 
         return processed;
-    }, [tableData, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize, paginationInfo]);
+    // ----- MODIFICATION START: Depend on currentView -----
+    }, [currentView, searchQuery, isSearchable, tableConfig, finalCurrentPage, pageSize, paginationInfo]);
+    // ----- MODIFICATION END -----
 
     const totalItems = paginationInfo ? paginationInfo.total_items : processedData.length;
     const totalPages = paginationInfo ? paginationInfo.total_pages : Math.ceil(totalItems / pageSize);
@@ -325,16 +339,21 @@ const DataTable = ({
         }
     }, [searchQuery, pageSize, paginationInfo]);
 
+    // ----- MODIFICATION START: Fix for Alt+Arrow crash -----
     const hasBlockingErrors = useMemo(() => {
         return Object.values(validationErrors).some(rowErrors =>
-            Object.values(rowErrors).some(error => error !== null)
+            // Add null/undefined check for rowErrors
+            rowErrors && Object.values(rowErrors).some(error => error !== null)
         );
     }, [validationErrors]);
+    // ----- MODIFICATION END -----
 
     const hasUnsavedRows = useMemo(() => {
         if (!isEditable) return false;
-        return tableData.some(row => !row.item_id);
-    }, [tableData, isEditable]);
+        // ----- MODIFICATION START: Use currentView -----
+        return currentView.some(row => !row.item_id);
+        // ----- MODIFICATION END -----
+    }, [currentView, isEditable]);
 
     useEffect(() => {
         if (onValidationChange) {
@@ -415,7 +434,9 @@ const DataTable = ({
             }
         });
 
-        const originalIndex = tableData.length;
+        // ----- MODIFICATION START: Use currentView -----
+        const originalIndex = currentView.length;
+        // ----- MODIFICATION END -----
         const newValidationErrors: ValidationErrors = { ...validationErrors };
         newValidationErrors[originalIndex] = {};
         Object.values(columnConfig).forEach(col => {
@@ -425,7 +446,9 @@ const DataTable = ({
         });
         setValidationErrors(newValidationErrors);
 
-        const newData = [...tableData, newRow];
+        // ----- MODIFICATION START: Use currentView -----
+        const newData = [...currentView, newRow];
+        // ----- MODIFICATION END -----
         updateData(newData);
 
         if (pagination.enabled) {
@@ -445,7 +468,9 @@ const DataTable = ({
                 colKey: firstEditableCol,
             });
         }
-    }, [isEditable, hasUnsavedRows, columnConfig, tableData, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
+    // ----- MODIFICATION START: Use currentView -----
+    }, [isEditable, hasUnsavedRows, columnConfig, currentView, updateData, pagination.enabled, pageSize, movableHeaders, paginationInfo, onPageChange, validateCell, validationErrors]);
+    // ----- MODIFICATION END -----
 
     // ----- MODIFICATION START: Respect config.type -----
     const handleCellUpdate = (rowIndex: number, colKey: string, value: any) => {
@@ -463,7 +488,9 @@ const DataTable = ({
         }
         // ----- MODIFICATION END -----
 
-        const newData: DataItem[] = structuredClone(tableData);
+        // ----- MODIFICATION START: Use currentView -----
+        const newData: DataItem[] = structuredClone(currentView);
+        // ----- MODIFICATION END -----
         if (!newData[originalRowIndex]) return;
 
         const newValidationErrorsForThisRow: Record<string, string | null> = {};
@@ -517,7 +544,9 @@ const DataTable = ({
     // ----- MODIFICATION START: Respect config.type -----
     const shiftCells = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
-        const newData: DataItem[] = structuredClone(tableData);
+        // ----- MODIFICATION START: Use currentView -----
+        const newData: DataItem[] = structuredClone(currentView);
+        // ----- MODIFICATION END -----
         const newSelectedCells: CellIdentifier[] = [];
         const newValidationErrors = { ...validationErrors };
 
@@ -595,9 +624,11 @@ const DataTable = ({
 
         setValidationErrors(newValidationErrors);
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
+    // ----- MODIFICATION START: Use currentView -----
+    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
+    // ----- MODIFICATION END -----
 
-    // ----- MODIFICATION START: Respect config.type -----
+    // ----- MODIFICATION START: Respect config.type AND fix Alt+Arrow crash -----
     const shiftColumnOrRow = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
         if (!isEditable || selectedCells.length === 0) return;
 
@@ -605,7 +636,9 @@ const DataTable = ({
         const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
         if (originalRowIndex === undefined) return;
 
-        const newData: DataItem[] = structuredClone(tableData);
+        // ----- MODIFICATION START: Use currentView -----
+        const newData: DataItem[] = structuredClone(currentView);
+        // ----- MODIFICATION END -----
         const newValidationErrors = { ...validationErrors };
         let newSelectedCells = [...selectedCells];
 
@@ -658,19 +691,33 @@ const DataTable = ({
                 newValidationErrors[idx][targetColKey] = validateCell(valueForTarget, targetColKey);
             });
             newSelectedCells = selectedCells.map(c => ({ ...c, colKey: targetColKey }));
+        // ----- MODIFICATION START: Use currentView AND fix validation swap -----
         } else if (direction === 'up' && originalRowIndex > 0) {
             [newData[originalRowIndex], newData[originalRowIndex - 1]] = [newData[originalRowIndex - 1], newData[originalRowIndex]];
-            [newValidationErrors[originalRowIndex], newValidationErrors[originalRowIndex - 1]] = [newValidationErrors[originalRowIndex - 1], newValidationErrors[originalRowIndex]];
+            
+            const errorsA = newValidationErrors[originalRowIndex] || {};
+            const errorsB = newValidationErrors[originalRowIndex - 1] || {};
+            newValidationErrors[originalRowIndex] = errorsB;
+            newValidationErrors[originalRowIndex - 1] = errorsA;
+
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex - 1 }));
-        } else if (direction === 'down' && originalRowIndex < tableData.length - 1) {
+        } else if (direction === 'down' && originalRowIndex < currentView.length - 1) {
             [newData[originalRowIndex], newData[originalRowIndex + 1]] = [newData[originalRowIndex + 1], newData[originalRowIndex]];
-            [newValidationErrors[originalRowIndex], newValidationErrors[originalRowIndex + 1]] = [newValidationErrors[originalRowIndex + 1], newValidationErrors[originalRowIndex]];
+
+            const errorsA = newValidationErrors[originalRowIndex] || {};
+            const errorsB = newValidationErrors[originalRowIndex + 1] || {};
+            newValidationErrors[originalRowIndex] = errorsB;
+            newValidationErrors[originalRowIndex + 1] = errorsA;
+
             newSelectedCells = selectedCells.map(c => ({ ...c, rowIndex: rowIndex + 1 }));
         }
+        // ----- MODIFICATION END -----
 
         setValidationErrors(newValidationErrors);
         updateData(newData, newSelectedCells);
-    }, [tableData, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
+    // ----- MODIFICATION START: Use currentView -----
+    }, [currentView, movableHeaders, selectedCells, updateData, isEditable, paginatedData, columnConfig, validationErrors, validateCell]);
+    // ----- MODIFICATION END -----
 
     // ----- MODIFICATION START: Respect config.type on paste -----
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -684,7 +731,9 @@ const DataTable = ({
                     const { rowIndex, colKey } = selectedCells[0];
                     const originalRowIndex = paginatedData[rowIndex]?.originalIndex;
                     if (originalRowIndex !== undefined) {
-                        const value = tableData[originalRowIndex]?.[colKey];
+                        // ----- MODIFICATION START: Use currentView -----
+                        const value = currentView[originalRowIndex]?.[colKey];
+                        // ----- MODIFICATION END -----
                         setCopiedCell({ rowIndex, colKey, value });
                     }
                 }
@@ -692,7 +741,9 @@ const DataTable = ({
             else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (copiedCell && selectedCells.length > 0) {
                     e.preventDefault();
-                    const newData: DataItem[] = structuredClone(tableData);
+                    // ----- MODIFICATION START: Use currentView -----
+                    const newData: DataItem[] = structuredClone(currentView);
+                    // ----- MODIFICATION END -----
                     const newValidationErrors = { ...validationErrors };
 
                     selectedCells.forEach(targetCell => {
@@ -764,7 +815,9 @@ const DataTable = ({
             });
         }
     }, [
-        editingCell, isEditable, undo, redo, selectedCells, copiedCell, tableData,
+        // ----- MODIFICATION START: Use currentView -----
+        editingCell, isEditable, undo, redo, selectedCells, copiedCell, currentView,
+        // ----- MODIFICATION END -----
         updateData, shiftCells, shiftColumnOrRow, lastSelected, movableHeaders,
         fixedHeaderKey, paginatedData, columnConfig, validationErrors, validateCell
     ]);
@@ -785,12 +838,15 @@ const DataTable = ({
         setDragOverCell(null);
     };
 
-    // ----- MODIFICATION START: Respect config.type -----
+    // ----- MODIFICATION START: Fix Drag/Drop to "Move" (Copy/Clear) -----
     const handleDrop = (targetRowIndex: number, targetColKey: string) => {
         if (!isEditable || !draggedCell || targetColKey === fixedHeaderKey) return;
-        if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) return;
+        if (draggedCell.rowIndex === targetRowIndex && draggedCell.colKey === targetColKey) {
+            handleDragEnd();
+            return;
+        }
 
-        const newData: DataItem[] = structuredClone(tableData);
+        const newData: DataItem[] = structuredClone(currentView);
         const newValidationErrors = { ...validationErrors };
 
         const draggedOriginalIndex = paginatedData[draggedCell.rowIndex]?.originalIndex;
@@ -798,29 +854,40 @@ const DataTable = ({
 
         if (draggedOriginalIndex !== undefined && targetOriginalIndex !== undefined && newData[draggedOriginalIndex] && newData[targetOriginalIndex]) {
             const sourceValue = newData[draggedOriginalIndex][draggedCell.colKey];
-            const targetValue = newData[targetOriginalIndex][targetColKey];
             
             const sourceTypeConfig = columnConfig[draggedCell.colKey];
             const targetTypeConfig = columnConfig[targetColKey];
-            // ----- Use the type from config (defaulting to 'string') -----
+            
             const sourceType = sourceTypeConfig?.type || 'string';
             const targetType = targetTypeConfig?.type || 'string';
-            // ----- MODIFICATION END -----
 
+            // 1. Move value to target cell
             const valueForTarget = convertValue(sourceValue, targetType);
-            const valueForSource = convertValue(targetValue, sourceType);
-
-            newData[draggedOriginalIndex][draggedCell.colKey] = valueForSource;
             newData[targetOriginalIndex][targetColKey] = valueForTarget;
 
-            const sourceError = validateCell(valueForSource, draggedCell.colKey);
+            // 2. Validate target cell
             const targetError = validateCell(valueForTarget, targetColKey);
+            if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
+            newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
 
+            // 3. Get default "empty" value for source cell
+            let valueForSource: any;
+            switch (sourceType) {
+                case 'number': valueForSource = 0; break;
+                case 'boolean': valueForSource = false; break;
+                case 'date': valueForSource = new Date().toISOString().split('T')[0]; break;
+                case 'string':
+                default: valueForSource = '';
+            }
+
+            // 4. Clear source cell
+            newData[draggedOriginalIndex][draggedCell.colKey] = valueForSource;
+            
+            // 5. Validate source cell
+            const sourceError = validateCell(valueForSource, draggedCell.colKey);
             if (!newValidationErrors[draggedOriginalIndex]) newValidationErrors[draggedOriginalIndex] = {};
             newValidationErrors[draggedOriginalIndex][draggedCell.colKey] = sourceError;
 
-            if (!newValidationErrors[targetOriginalIndex]) newValidationErrors[targetOriginalIndex] = {};
-            newValidationErrors[targetOriginalIndex][targetColKey] = targetError;
 
             setValidationErrors(newValidationErrors);
             updateData(newData);
@@ -828,6 +895,7 @@ const DataTable = ({
 
         handleDragEnd();
     };
+    // ----- MODIFICATION END -----
 
     const selectionInfo = useMemo(() => {
         if (selectedCells.length === 0) return null;
@@ -988,7 +1056,9 @@ const DataTable = ({
             const draggedType = draggedConfig?.isPercentage ? 'percentage' : (draggedConfig?.type || 'string'); // Default to 'string'
 
             if (key !== fixedHeaderKey) {
-                const draggedValue = tableData[paginatedData[draggedCell.rowIndex].originalIndex]?.[draggedCell.colKey];
+                // ----- MODIFICATION START: Use currentView -----
+                const draggedValue = currentView[paginatedData[draggedCell.rowIndex].originalIndex]?.[draggedCell.colKey];
+                // ----- MODIFICATION END -----
                 
                 // ----- Use the actual config type for conversion check -----
                 const convertType = config?.type || 'string'; // Default to 'string'
@@ -1370,7 +1440,9 @@ const DataTable = ({
                         )}
                         {hasUnsavedRows && (
                             <InfoPill>
-                                <span className="text-yellow-600 dark:text-yellow-400">⚠ {tableData.filter(r => !r.item_id).length} unsaved row(s)</span>
+                                {/* ----- MODIFICATION START: Use currentView ----- */}
+                                <span className="text-yellow-600 dark:text-yellow-400">⚠ {currentView.filter(r => !r.item_id).length} unsaved row(s)</span>
+                                {/* ----- MODIFICATION END ----- */}
                             </InfoPill>
                         )}
                     </div>
