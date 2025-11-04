@@ -46,6 +46,49 @@ import { useSections } from "../contexts/SectionContext";
 import PillToggle from "../components/common/PillToggle";
 import { useAppNavigation } from "../hooks/useAppNavigation";
 
+// ===== NEW: Priority Timestamp Management =====
+const PRIORITY_TIMESTAMPS_KEY = 'priority_timestamps';
+
+const getPriorityTimestamps = (): Record<string, string> => {
+  try {
+    const stored = localStorage.getItem(PRIORITY_TIMESTAMPS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setPriorityTimestamp = (messageId: string) => {
+  const timestamps = getPriorityTimestamps();
+  timestamps[messageId] = new Date().toISOString();
+  localStorage.setItem(PRIORITY_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+};
+
+const removePriorityTimestamp = (messageId: string) => {
+  const timestamps = getPriorityTimestamps();
+  delete timestamps[messageId];
+  localStorage.setItem(PRIORITY_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+};
+
+const cleanupPriorityTimestamps = (currentDocuments: QueuedDocument[]) => {
+  const timestamps = getPriorityTimestamps();
+  const currentIds = new Set(currentDocuments.map(d => d.messageId));
+  
+  // Remove timestamps for documents no longer in queue
+  let hasChanges = false;
+  Object.keys(timestamps).forEach(id => {
+    if (!currentIds.has(id)) {
+      delete timestamps[id];
+      hasChanges = true;
+    }
+  });
+  
+  if (hasChanges) {
+    localStorage.setItem(PRIORITY_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+  }
+};
+// ===== END: Priority Timestamp Management =====
+
 export const formatDateTime = (dateString: string) => {
   if (!dateString) return "N/A";
   const date = new Date(dateString);
@@ -123,7 +166,6 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { isO
   )
 }
 
-// Helper function to format bytes into a readable string
 const formatBytes = (bytes: number, decimals = 2) => {
     if (!bytes || bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -170,7 +212,7 @@ const Queue = () => {
   const { user } = useAuth();
   const { navigate, updateCurrentState } = useAppNavigation();
   const location = useLocation();
-  const { addToast, toasts } = useToast(); // MODIFIED: Get toasts array
+  const { addToast, toasts } = useToast();
   const { getSectionNameById, sectionFilter, setSectionFilter } = useSections();
   const isInitialMount = useRef(true);
 
@@ -257,7 +299,10 @@ const Queue = () => {
         if (activeTab === 'Queued') {
             queuedResponse = await getQueuedDocuments(currentPage, pageSize, sectionId);
             if (Array.isArray(queuedResponse.data)) {
-              setQueuedDocuments(queuedResponse.data.map((item: any) => ({
+              // NEW: Get stored priority timestamps
+              const priorityTimestamps = getPriorityTimestamps();
+              
+              const mappedDocs = queuedResponse.data.map((item: any) => ({
                   id: item.message_id,
                   name: item.file_name,
                   size: formatBytes(item.file_size),
@@ -266,11 +311,18 @@ const Queue = () => {
                   messageId: item.message_id,
                   sectionName: item.section_name,
                   isPriority: item.is_priority,
+                  // NEW: Use backend prioritized_at if available, otherwise use localStorage
+                  prioritized_at: item.prioritized_at || (item.is_priority ? priorityTimestamps[item.message_id] : null),
                   status: item.status || "Queued",
                   queue_position: item.queue_position,
                   supplier_meta: item.supplier_meta,
                   invoice_meta: item.invoice_meta
-              })));
+              }));
+              
+              setQueuedDocuments(mappedDocs);
+              
+              // NEW: Cleanup old timestamps
+              cleanupPriorityTimestamps(mappedDocs);
             }
             setPagination(prev => ({...prev, Queued: queuedResponse.pagination}));
         } else if (activeTab === 'Yet to Review') {
@@ -315,7 +367,6 @@ const Queue = () => {
         }
         setLastUpdated(prev => ({ ...prev, [activeTab]: new Date() }));
         if (isRefresh) {
-            // MODIFIED: Check for existing toast before adding a new one
             const refreshMessage = `${activeTab} documents updated!`;
             if (!toasts.some(toast => toast.message === refreshMessage)) {
                 addToast({ type: 'success', message: refreshMessage });
@@ -324,11 +375,11 @@ const Queue = () => {
 
     } catch (err: any) {
       setError(err.message || "Failed to fetch documents. Please try again.");
-      setLastUpdated(prev => ({ ...prev, [activeTab]: null })); // Clear update time on error
+      setLastUpdated(prev => ({ ...prev, [activeTab]: null }));
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSizes, activeTab, getSectionId, user, toasts]); // MODIFIED: Add toasts to dependency array
+  }, [currentPage, pageSizes, activeTab, getSectionId, user, toasts]);
 
 
   useEffect(() => {
@@ -340,14 +391,28 @@ const Queue = () => {
   const textSecondary = theme === "dark" ? "text-gray-400" : "text-gray-500";
   const borderPrimary = theme === "dark" ? "border-gray-700/80" : "border-gray-200/80";
 
+  // NEW: Updated sorting logic with prioritized_at support
   const documentsForTab = useMemo(() => {
     if (activeTab === "Queued") {
       return [...queuedDocuments].sort((a, b) => {
+        // 1. Processing documents always come first
         if (a.status === "processing" && b.status !== "processing") return -1;
         if (b.status === "processing" && a.status !== "processing") return 1;
       
+        // 2. Among non-processing documents, prioritized ones come before non-prioritized
         if (a.isPriority !== b.isPriority) return a.isPriority ? -1 : 1;
       
+        // 3. Among prioritized documents, sort by prioritized_at timestamp (earliest first)
+        if (a.isPriority && b.isPriority) {
+          if (a.prioritized_at && b.prioritized_at) {
+            return new Date(a.prioritized_at).getTime() - new Date(b.prioritized_at).getTime();
+          }
+          // If one has prioritized_at and the other doesn't, the one with timestamp comes first
+          if (a.prioritized_at) return -1;
+          if (b.prioritized_at) return 1;
+        }
+      
+        // 4. Among non-prioritized documents, sort by upload date (earliest first)
         return new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
       });
     } else if (activeTab === "Yet to Review") {
@@ -424,6 +489,7 @@ const Queue = () => {
     });
   }, [navigate, activeTab, currentPage, pageSizes, sectionFilter]);
 
+  // NEW: Updated handleSetPriority to store timestamp
   const handleSetPriority = (id: string) => {
     const doc = queuedDocuments.find(d => d.id === id);
     if (!doc || doc.isPriority) return;
@@ -435,6 +501,8 @@ const Queue = () => {
       onConfirm: async () => {
         try {
           await togglePriority(id);
+          // NEW: Store the priority timestamp
+          setPriorityTimestamp(id);
           await fetchDocuments();
           addToast({ type: 'success', message: 'Priority updated successfully.' });
         } finally {
@@ -444,6 +512,7 @@ const Queue = () => {
     });
   };
 
+  // NEW: Updated handleDelete to clean up timestamp
   const handleDelete = (id: string) => {
     if (user?.role !== "admin") return;
     setConfirmationModal({
@@ -453,6 +522,8 @@ const Queue = () => {
       onConfirm: async () => {
         try {
           await deleteMessage(id);
+          // NEW: Remove priority timestamp if exists
+          removePriorityTimestamp(id);
           await fetchDocuments();
           addToast({ type: 'success', message: 'Document deleted successfully.' });
         } finally {
@@ -560,14 +631,6 @@ const Queue = () => {
     if (activeTab === "Yet to Review") {
       return (
         <>
-            {/* <div className="flex items-center justify-end p-2 text-xs">
-                <RefreshPillButton
-                    lastUpdatedDate={lastUpdated[activeTab]}
-                    theme={theme}
-                    isLoading={isLoading}
-                    onRefresh={() => fetchDocuments(true)}
-                />
-            </div> */}
             <DataTable
               tableData={processedDocuments}
               tableConfig={documentConfig}
@@ -601,7 +664,7 @@ const Queue = () => {
               } ${borderPrimary} overflow-hidden`}
           >
             <div className={`p-3 border-b ${borderPrimary} flex-shrink-0 flex justify-between items-center`}>
-              <h3 className={`font-semibold  text-base md:text-[10px] ${textHeader}`}>
+              <h3 className={`font-semibold  text-base ${textHeader}`}>
                 {activeTab} Documents
               </h3>
                 <RefreshPillButton

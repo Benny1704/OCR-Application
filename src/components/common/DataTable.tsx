@@ -218,8 +218,8 @@ const DataTable = ({
                 return `${config.label} must be between 0 and 100.`;
             }
 
-            if (colKey === 'gst' && numericValue > 28) {
-                return `GST must not exceed 28%.`;
+            if ((colKey === 'gst' || colKey === 'igst') && numericValue > 28) {
+                return `${config.label} must not exceed 28%.`;
             }
 
             if ((colKey === 'cgst' || colKey === 'sgst') && numericValue > 14) {

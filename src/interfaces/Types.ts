@@ -123,6 +123,7 @@ export interface Document {
 export interface QueuedDocument extends Document {
   size: string;
   isPriority: boolean;
+  prioritized_at?: string | null; // NEW: Timestamp when document was prioritized
   messageId: string;
   queue_position: number;
   supplier_meta: {
